@@ -660,6 +660,7 @@ Each endpoint must:
 4. Return validated response data.
 5. Handle errors.
 
+
 ---
 
 # 21. Day 5 — What-If Career Planner
