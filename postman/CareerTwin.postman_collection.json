@@ -1,0 +1,18 @@
+{
+	"info": {
+		"name": "CareerTwin API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [{"key": "baseUrl", "value": "http://localhost:8000"}, {"key": "userId", "value": "demo-user"}],
+	"item": [
+		{"name": "Health", "request": {"method": "GET", "url": "{{baseUrl}}/health"}},
+		{"name": "Career Analysis", "request": {"method": "POST", "header": [{"key": "X-User-ID", "value": "{{userId}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"target_role\": \"Software Engineer\",\n  \"scores\": {\"resume\": 80, \"dsa\": 60, \"aptitude\": 75, \"communication\": 70, \"technical\": 78, \"interview\": 65, \"job_match\": 82}\n}"}, "url": "{{baseUrl}}/api/v1/career/analyze"}},
+		{"name": "Readiness", "request": {"method": "GET", "header": [{"key": "X-User-ID", "value": "{{userId}}"}], "url": "{{baseUrl}}/api/v1/career/readiness"}},
+		{"name": "What If", "request": {"method": "POST", "header": [{"key": "X-User-ID", "value": "{{userId}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{}"}, "url": "{{baseUrl}}/api/v1/career/what-if"}},
+		{"name": "Next Action", "request": {"method": "POST", "header": [{"key": "X-User-ID", "value": "{{userId}}"}], "url": "{{baseUrl}}/api/v1/career/next-action"}},
+		{"name": "Reassess", "request": {"method": "POST", "header": [{"key": "X-User-ID", "value": "{{userId}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"scores\": {\"dsa\": 70}}"}, "url": "{{baseUrl}}/api/v1/career/reassess"}},
+		{"name": "Digital Twin", "request": {"method": "GET", "header": [{"key": "X-User-ID", "value": "{{userId}}"}], "url": "{{baseUrl}}/api/v1/digital-twin"}},
+		{"name": "Digital Twin History", "request": {"method": "GET", "header": [{"key": "X-User-ID", "value": "{{userId}}"}], "url": "{{baseUrl}}/api/v1/digital-twin/history"}},
+		{"name": "Recalculate Digital Twin", "request": {"method": "POST", "header": [{"key": "X-User-ID", "value": "{{userId}}"}], "url": "{{baseUrl}}/api/v1/digital-twin/recalculate"}}
+	]
+}
