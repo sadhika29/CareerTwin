@@ -1486,27 +1486,27 @@ style: improve responsive dashboard
 
 # 52. Definition of Done — Frontend
 
-- [ ] Frontend starts successfully.
-- [ ] Routing works.
-- [ ] Common layout works.
-- [ ] Dashboard works.
-- [ ] Profile page works.
-- [ ] Resume upload page works.
-- [ ] Job pages work.
-- [ ] Skill-gap page works.
-- [ ] Digital Twin page works.
-- [ ] Preparation page works.
-- [ ] Assessment page works.
-- [ ] Performance page works.
-- [ ] Interview page works.
-- [ ] What-If page works.
-- [ ] APIs are integrated.
-- [ ] Loading states are implemented.
-- [ ] Error states are implemented.
-- [ ] Empty states are implemented.
-- [ ] Protected routes work.
-- [ ] Responsive UI works.
-- [ ] No critical console errors remain.
+- [x] Frontend starts successfully.
+- [x] Routing works.
+- [x] Common layout works.
+- [x] Dashboard works.
+- [x] Profile page works.
+- [x] Resume upload page works.
+- [x] Job pages work.
+- [x] Skill-gap page works.
+- [x] Digital Twin page works.
+- [x] Preparation page works.
+- [x] Assessment page works.
+- [x] Performance page works.
+- [x] Interview page works.
+- [x] What-If page works.
+- [ ] APIs are integrated. Career, Digital Twin, and authentication are connected; specialized backend routes remain unimplemented.
+- [x] Loading states are implemented.
+- [x] Error states are implemented.
+- [x] Empty states are implemented.
+- [x] Protected routes work.
+- [x] Responsive UI works.
+- [x] No critical console errors remain when the backend is running.
 
 ---
 
