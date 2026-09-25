@@ -33,7 +33,7 @@ async def analyze(payload: CareerAnalyzeRequest, user_id: str = Depends(get_curr
 async def readiness(user_id: str = Depends(get_current_user)):
 	state = career_states.get(user_id)
 	if state is None:
-		raise HTTPException(status_code=404, detail="Career state not found")
+		return CareerResponse(user_id=user_id)
 	return _response(state)
 
 
