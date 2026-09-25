@@ -1,0 +1,1 @@
+export default function EmptyState({ title, action, onAction }) { return <div className="empty"><strong>{title}</strong>{action && <div style={{ marginTop: 14 }}><button className="button secondary" onClick={onAction}>{action}</button></div>}</div> }

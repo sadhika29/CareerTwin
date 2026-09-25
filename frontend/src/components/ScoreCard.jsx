@@ -1,0 +1,1 @@
+export default function ScoreCard({ label, value }) { const score = Number(value || 0); return <div className="card metric"><div className="metric-label">{label}</div><div className="metric-value">{score}%</div><div className="progress"><span style={{ width: `${Math.min(100, Math.max(0, score))}%` }} /></div></div> }

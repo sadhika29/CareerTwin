@@ -1,0 +1,4 @@
+import { NavLink } from 'react-router-dom'
+
+const links = [['/dashboard','Dashboard'],['/profile','Profile'],['/resume','Resume'],['/jobs','Jobs'],['/skills','Skill gaps'],['/digital-twin','Digital twin'],['/preparation','Preparation'],['/assessment','Assessments'],['/performance','Performance'],['/interview','Interview'],['/what-if','What-if planner']]
+export default function Sidebar({ open, onNavigate }) { return <aside className={`sidebar ${open ? 'open' : ''}`}><div className="brand"><span className="brand-mark">C</span> CareerTwin</div><div className="nav-label">Workspace</div><nav className="nav-list">{links.map(([to,label]) => <NavLink key={to} to={to} onClick={onNavigate} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}><span>{label === 'Dashboard' ? '◈' : '·'}</span>{label}</NavLink>)}</nav><div className="sidebar-foot"><strong>Career pulse</strong><br />Your next best action is waiting on the dashboard.</div></aside> }

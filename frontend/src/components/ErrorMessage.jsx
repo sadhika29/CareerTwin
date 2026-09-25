@@ -1,0 +1,1 @@
+export default function ErrorMessage({ message = 'We could not load this right now.', onRetry }) { return <div className="notice error" role="alert">{message} {onRetry && <button className="button secondary" onClick={onRetry}>Try again</button>}</div> }
