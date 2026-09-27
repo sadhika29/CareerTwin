@@ -21,4 +21,6 @@ function ProtectedRoutes() { return <Navbar><Routes><Route path="/dashboard" ele
 
 function AuthenticatedApp() { return localStorage.getItem('career_user') ? <ProtectedRoutes /> : <Navigate to="/login" replace /> }
 
-export default function AppRoutes() { return <Routes><Route path="/login" element={<Login />} /><Route path="/signup" element={<Signup />} /><Route path="/forgot-password" element={<ForgotPassword />} /><Route path="/*" element={<AuthenticatedApp />} /></Routes> }
+import Home from '../pages/Home'
+
+export default function AppRoutes() { return <Routes><Route path="/" element={<Home />} /><Route path="/login" element={<Login />} /><Route path="/signup" element={<Signup />} /><Route path="/forgot-password" element={<ForgotPassword />} /><Route path="/*" element={<AuthenticatedApp />} /></Routes> }
