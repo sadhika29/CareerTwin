@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { Play } from 'lucide-react'
-import robot from '../../assets/careertwin-robot.png'
+import AIMascot from '../AIMascot'
 
 export default function Hero() {
   return (
@@ -63,76 +63,10 @@ export default function Hero() {
             </motion.div>
           </div>
 
-          {/* Right Content - Robot */}
-          <motion.div
-            initial={{
-              opacity: 0,
-              y: 300,
-              scale: 0.85
-            }}
-            animate={{
-              opacity: 1,
-              y: [300, 0],
-              scale: [0.85, 1]
-            }}
-            transition={{
-              duration: 1.5,
-              ease: "easeOut"
-            }}
-            className="flex-1 relative w-full max-w-lg lg:max-w-none mx-auto"
-          >
-            {/* Soft background glow for robot */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/20 to-blue-500/20 rounded-full blur-[100px] -z-10 animate-pulse"></div>
-            
-            <motion.div
-              animate={{ y: [0, -12, 0] }}
-              transition={{ 
-                repeat: Infinity, 
-                duration: 3, 
-                ease: "easeInOut",
-                delay: 1.5
-              }}
-              className="relative"
-            >
-              {/* Fallback styling for robot if image is missing */}
-              <img 
-                src={robot} 
-                alt="CareerTwin AI Robot" 
-                className="w-full h-auto object-contain drop-shadow-[0_0_30px_rgba(168,85,247,0.3)]"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.nextSibling.style.display = 'flex';
-                }}
-              />
-              <div className="hidden flex-col items-center justify-center w-64 h-80 bg-white/5 border border-white/10 rounded-3xl mx-auto shadow-[0_0_40px_rgba(168,85,247,0.2)]">
-                <span className="text-4xl mb-4">🤖</span>
-                <span className="text-gray-400 text-sm">Robot Asset Needed</span>
-              </div>
-            </motion.div>
-
-            {/* Subtle floating particles */}
-            {[...Array(5)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute w-2 h-2 rounded-full bg-purple-400/50"
-                style={{
-                  top: `${Math.random() * 100}%`,
-                  left: `${Math.random() * 100}%`,
-                }}
-                animate={{
-                  y: [0, -20, 0],
-                  opacity: [0.2, 0.8, 0.2],
-                  scale: [1, 1.5, 1],
-                }}
-                transition={{
-                  repeat: Infinity,
-                  duration: 3 + Math.random() * 2,
-                  delay: Math.random() * 2,
-                  ease: "easeInOut",
-                }}
-              />
-            ))}
-          </motion.div>
+          {/* Right Content - Mascot */}
+          <div className="flex-1 relative w-full flex justify-center lg:justify-end">
+            <AIMascot />
+          </div>
           
         </div>
       </div>
