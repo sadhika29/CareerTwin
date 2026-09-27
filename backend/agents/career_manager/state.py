@@ -1,45 +1,39 @@
-from typing import Any, Dict, List, Optional
-
+from typing import TypedDict, Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 
-
-class AgentResult(BaseModel):
-	agent: str
-	status: str = "success"
-	data: Dict[str, Any] = Field(default_factory=dict)
-	error: Optional[str] = None
-
-
-class CareerState(BaseModel):
-	"""Shared, serializable state passed between CareerTwin agents."""
-
-	user_id: str
-	target_role: Optional[str] = None
-	target_job_id: Optional[str] = None
-	profile: Dict[str, Any] = Field(default_factory=dict)
-	resume_analysis: Dict[str, Any] = Field(default_factory=dict)
-	job_analysis: Dict[str, Any] = Field(default_factory=dict)
-	skills: List[str] = Field(default_factory=list)
-	skill_gaps: List[str] = Field(default_factory=list)
-	job_match_score: Optional[float] = None
-	resume_score: Optional[float] = None
-	dsa_score: Optional[float] = None
-	aptitude_score: Optional[float] = None
-	communication_score: Optional[float] = None
-	technical_score: Optional[float] = None
-	interview_score: Optional[float] = None
-	digital_twin_score: Optional[float] = None
-	pipeline_stage: str = "created"
-	performance_history: List[Dict[str, Any]] = Field(default_factory=list)
-	recommendations: List[str] = Field(default_factory=list)
-	next_action: Optional[str] = None
-	errors: List[str] = Field(default_factory=list)
-	metadata: Dict[str, Any] = Field(default_factory=dict)
-
-
-class AgentRequest(BaseModel):
-	user_id: str
-	target_role: Optional[str] = None
-	target_job_id: Optional[str] = None
-	request: str = "full career analysis"
-	data: Dict[str, Any] = Field(default_factory=dict)
+class CareerState(TypedDict, total=False):
+    """
+    Shared state for the Career Manager LangGraph workflow.
+    """
+    user_id: str
+    target_role: Optional[str]
+    target_job_id: Optional[str]
+    
+    # Profile & Resume
+    profile: Optional[Dict[str, Any]]
+    resume_analysis: Optional[Dict[str, Any]]
+    
+    # Job & Skills
+    job_analysis: Optional[Dict[str, Any]]
+    skills: Optional[List[str]]
+    skill_gaps: Optional[List[str]]
+    
+    # Scores
+    job_match_score: Optional[float]
+    resume_score: Optional[float]
+    dsa_score: Optional[float]
+    aptitude_score: Optional[float]
+    communication_score: Optional[float]
+    technical_score: Optional[float]
+    interview_score: Optional[float]
+    digital_twin_score: Optional[float]
+    
+    # Execution context
+    pipeline_stage: Optional[str]
+    performance_history: Optional[List[Dict[str, Any]]]
+    
+    # Outcomes
+    recommendations: Optional[List[str]]
+    next_action: Optional[str]
+    errors: Optional[List[str]]
+    metadata: Optional[Dict[str, Any]]

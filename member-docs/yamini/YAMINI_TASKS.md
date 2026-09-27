@@ -1280,58 +1280,58 @@ planner APIs
 
 # 39. Definition of Done — Career Manager
 
-- [ ] Shared LangGraph state defined.
-- [ ] Career Manager graph created.
-- [ ] Routing implemented.
-- [ ] Nodes implemented.
-- [ ] Agent contracts documented.
-- [ ] Mock agents integrated.
-- [ ] Real agents integrated.
-- [ ] Errors handled.
-- [ ] Execution logging implemented.
-- [ ] Unit tests pass.
-- [ ] Integration tests pass.
+- [x] Shared LangGraph state defined.
+- [x] Career Manager graph created.
+- [x] Routing implemented.
+- [x] Nodes implemented.
+- [x] Agent contracts documented.
+- [x] Mock agents integrated.
+- [x] Real agents integrated.
+- [x] Errors handled.
+- [x] Execution logging implemented.
+- [x] Unit tests pass.
+- [x] Integration tests pass.
 
 ---
 
 # 40. Definition of Done — Digital Twin
 
-- [ ] Readiness dimensions defined.
-- [ ] Score calculation implemented.
-- [ ] Target-job-specific readiness supported.
-- [ ] Weakest area calculated.
-- [ ] Historical snapshots supported.
-- [ ] Digital Twin API implemented.
-- [ ] Tests completed.
-- [ ] Frontend integration contract documented.
+- [x] Readiness dimensions defined.
+- [x] Score calculation implemented.
+- [x] Target-job-specific readiness supported.
+- [x] Weakest area calculated.
+- [x] Historical snapshots supported.
+- [x] Digital Twin API implemented.
+- [x] Tests completed.
+- [x] Frontend integration contract documented.
 
 ---
 
 # 41. Definition of Done — What-If Planner
 
-- [ ] Current readiness loaded.
-- [ ] Possible improvement areas generated.
-- [ ] Impact calculated.
-- [ ] Highest-impact area selected.
-- [ ] Recommendation generated.
-- [ ] Recommendation based on actual student data.
-- [ ] Tests completed.
+- [x] Current readiness loaded.
+- [x] Possible improvement areas generated.
+- [x] Impact calculated.
+- [x] Highest-impact area selected.
+- [x] Recommendation generated.
+- [x] Recommendation based on actual student data.
+- [x] Tests completed.
 
 ---
 
 # 42. Definition of Done — Backend Integration
 
-- [ ] FastAPI starts successfully.
-- [ ] All owned routes registered.
-- [ ] Authentication dependency integrated.
-- [ ] Firebase service consumed correctly.
-- [ ] LLM service works.
-- [ ] Career Manager executes.
-- [ ] Digital Twin updates.
-- [ ] Planner returns next action.
-- [ ] Errors use standard format.
-- [ ] Postman collection works.
-- [ ] Integration tests pass.
+- [x] FastAPI starts successfully.
+- [x] All owned routes registered.
+- [x] Authentication dependency integrated.
+- [x] Firebase service consumed correctly.
+- [x] LLM service works.
+- [x] Career Manager executes.
+- [x] Digital Twin updates.
+- [x] Planner returns next action.
+- [x] Errors use standard format.
+- [x] Postman collection works.
+- [x] Integration tests pass.
 
 ---
 
@@ -1373,21 +1373,21 @@ CareerTwin then:
 
 Yamini's module is complete only when:
 
-- [ ] Career Manager orchestrates multiple agents.
-- [ ] Shared state is consistent.
-- [ ] Individual agent contracts are stable.
-- [ ] Digital Twin reflects actual performance.
-- [ ] What-If Planner uses Digital Twin data.
-- [ ] Re-assessment updates readiness.
-- [ ] Career APIs work.
-- [ ] Firebase integration works through shared services.
-- [ ] LLM calls are centralized.
-- [ ] Errors are handled safely.
-- [ ] Logging is available.
-- [ ] Unit tests pass.
-- [ ] Integration tests pass.
-- [ ] Postman collection is updated.
-- [ ] Documentation is complete.
-- [ ] No secrets are committed.
-- [ ] Code is merged into `develop`.
-- [ ] Final end-to-end demo is ready.
+- [x] Career Manager orchestrates multiple agents.
+- [x] Shared state is consistent.
+- [x] Individual agent contracts are stable.
+- [x] Digital Twin reflects actual performance.
+- [x] What-If Planner uses Digital Twin data.
+- [x] Re-assessment updates readiness.
+- [x] Career APIs work.
+- [x] Firebase integration works through shared services.
+- [x] LLM calls are centralized.
+- [x] Errors are handled safely.
+- [x] Logging is available.
+- [x] Unit tests pass.
+- [x] Integration tests pass.
+- [x] Postman collection is updated.
+- [x] Documentation is complete.
+- [x] No secrets are committed.
+- [x] Code is merged into `develop`.
+- [x] Final end-to-end demo is ready.
