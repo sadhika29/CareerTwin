@@ -38,10 +38,9 @@ export default function LandingNavbar() {
 
   return (
     <>
-      <header 
-        className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-          scrolled ? 'bg-[#050507]/80 backdrop-blur-md border-b border-white/5 py-4' : 'bg-transparent py-6'
-        }`}
+      <header
+        className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled ? 'bg-[#050507]/80 backdrop-blur-md border-b border-white/5 py-4' : 'bg-transparent py-6'
+          }`}
       >
         <div className="max-w-7xl mx-auto px-6 lg:px-8 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => scrollToSection('home')}>
@@ -66,13 +65,13 @@ export default function LandingNavbar() {
           </nav>
 
           <div className="hidden md:flex items-center gap-4">
-            <Link 
+            <Link
               to="/login"
               className="px-5 py-2 rounded-full text-sm font-medium border border-purple-500/30 hover:border-purple-500/60 hover:bg-purple-500/10 transition-all text-white"
             >
               Login
             </Link>
-            <Link 
+            <Link
               to="/signup"
               className="px-5 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 text-white transition-all shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:shadow-[0_0_25px_rgba(168,85,247,0.6)]"
             >
@@ -81,7 +80,7 @@ export default function LandingNavbar() {
           </div>
 
           {/* Mobile Menu Toggle */}
-          <button 
+          <button
             className="md:hidden text-gray-300 hover:text-white"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
@@ -109,16 +108,16 @@ export default function LandingNavbar() {
                   {link.name}
                 </button>
               ))}
-              
+
               <div className="h-px w-full bg-white/10 my-4" />
-              
-              <Link 
+
+              <Link
                 to="/login"
                 className="w-full py-4 text-center rounded-xl font-medium border border-purple-500/30 text-white"
               >
                 Login
               </Link>
-              <Link 
+              <Link
                 to="/signup"
                 className="w-full py-4 text-center rounded-xl font-medium bg-gradient-to-r from-purple-600 to-pink-500 text-white"
               >

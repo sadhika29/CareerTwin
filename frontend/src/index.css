@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -38,8 +38,7 @@
 
     0% {
       transform:
-        translateY(180px)
-        scale(0.82);
+        translateY(180px) scale(0.82);
 
       opacity: 0;
     }
@@ -50,8 +49,7 @@
 
     100% {
       transform:
-        translateY(0)
-        scale(1);
+        translateY(0) scale(1);
 
       opacity: 1;
     }
@@ -188,21 +186,18 @@
     0% {
       opacity: 0;
       transform:
-        translateY(20px)
-        scale(0.8);
+        translateY(20px) scale(0.8);
     }
 
     70% {
       transform:
-        translateY(-4px)
-        scale(1.03);
+        translateY(-4px) scale(1.03);
     }
 
     100% {
       opacity: 1;
       transform:
-        translateY(0)
-        scale(1);
+        translateY(0) scale(1);
     }
 
   }
@@ -216,14 +211,12 @@
 
     from {
       transform:
-        translateX(-50%)
-        rotate(-12deg);
+        translateX(-50%) rotate(-12deg);
     }
 
     to {
       transform:
-        translateX(-50%)
-        rotate(348deg);
+        translateX(-50%) rotate(348deg);
     }
 
   }
@@ -233,14 +226,12 @@
 
     from {
       transform:
-        translateX(-50%)
-        rotate(10deg);
+        translateX(-50%) rotate(10deg);
     }
 
     to {
       transform:
-        translateX(-50%)
-        rotate(-350deg);
+        translateX(-50%) rotate(-350deg);
     }
 
   }
@@ -267,8 +258,30 @@
 
 }
 
-:root { font-family: 'Inter', sans-serif; color: #172033; background: #f5f8fc; font-synthesis: none; }
-* { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; }
-button, input, select, textarea { font: inherit; }
-a { color: inherit; text-decoration: none; }
+:root {
+  font-family: 'Inter', sans-serif;
+  color: #ffffff;
+  background: #0B041C;
+  font-synthesis: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}

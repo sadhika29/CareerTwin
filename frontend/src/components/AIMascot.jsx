@@ -1,4 +1,5 @@
 import React from "react";
+import { User, Target, Briefcase } from 'lucide-react';
 
 const AIMascot = () => {
   return (
@@ -106,45 +107,41 @@ const AIMascot = () => {
         top-[18%]
         z-30
 
-        rounded-2xl
+        rounded-3xl
         border
-        border-purple-400/30
-        bg-[#151022]/80
-        px-5
-        py-3
+        border-purple-200/50
+        bg-white
+        px-6
+        py-4
 
-        text-sm
+        text-base
         font-medium
-        text-white
+        text-gray-800
 
-        shadow-[0_0_25px_rgba(168,85,247,0.25)]
-        backdrop-blur-md
+        shadow-[0_0_25px_rgba(255,255,255,0.4)]
 
         animate-speech
       ">
 
-        <span className="text-purple-300">
+        <span className="font-bold text-gray-900">
           Hi! 👋
         </span>
 
         <br />
 
-        <span className="text-gray-300">
-          I'm your Career Twin ✨
+        <span className="font-bold text-gray-900">
+          I'm your <span className="text-[#a64aff] font-['Fredoka',_sans-serif]">Career Twin</span> 💜
         </span>
 
         {/* bubble tail */}
         <div className="
           absolute
-          bottom-[-7px]
-          left-7
-          h-4
-          w-4
+          bottom-[-8px]
+          left-10
+          h-5
+          w-5
           rotate-45
-          border-b
-          border-r
-          border-purple-400/30
-          bg-[#151022]
+          bg-white
         " />
       </div>
 
@@ -684,6 +681,38 @@ const AIMascot = () => {
 
         </div>
 
+      </div>
+
+      {/* ================= SIDE BADGES ================= */}
+
+      {/* Plan */}
+      <div className="absolute right-[0%] top-[45%] z-20 flex items-center gap-2 rounded-full border border-purple-500/30 bg-[#1e1335]/80 px-4 py-2 backdrop-blur-md shadow-[0_0_15px_rgba(168,85,247,0.2)] animate-float" style={{ animationDelay: '0s' }}>
+        <User size={16} className="text-pink-400" />
+        <span className="text-sm font-medium text-white">Plan</span>
+      </div>
+
+      {/* Connecting Dotted Line 1 */}
+      <svg className="absolute right-[10%] top-[53%] z-10 h-16 w-16 opacity-50" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M80 0 C 80 50, 20 50, 20 100" stroke="#d946ef" strokeWidth="2" strokeDasharray="4 4" fill="none" strokeLinecap="round" />
+        <polygon points="15,95 20,100 25,95" fill="#d946ef" />
+      </svg>
+
+      {/* Grow */}
+      <div className="absolute right-[8%] top-[62%] z-20 flex items-center gap-2 rounded-full border border-purple-500/30 bg-[#1e1335]/80 px-4 py-2 backdrop-blur-md shadow-[0_0_15px_rgba(168,85,247,0.2)] animate-float" style={{ animationDelay: '1s' }}>
+        <Target size={16} className="text-pink-400" />
+        <span className="text-sm font-medium text-white">Grow</span>
+      </div>
+
+      {/* Connecting Dotted Line 2 */}
+      <svg className="absolute right-[2%] top-[70%] z-10 h-16 w-24 opacity-50" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20 0 C 20 50, 80 50, 80 100" stroke="#d946ef" strokeWidth="2" strokeDasharray="4 4" fill="none" strokeLinecap="round" />
+        <polygon points="75,95 80,100 85,95" fill="#d946ef" />
+      </svg>
+
+      {/* Succeed */}
+      <div className="absolute right-[-2%] top-[78%] z-20 flex items-center gap-2 rounded-full border border-purple-500/30 bg-[#1e1335]/80 px-4 py-2 backdrop-blur-md shadow-[0_0_15px_rgba(168,85,247,0.2)] animate-float" style={{ animationDelay: '2s' }}>
+        <Briefcase size={16} className="text-pink-400" />
+        <span className="text-sm font-medium text-white">Succeed</span>
       </div>
 
     </div>
