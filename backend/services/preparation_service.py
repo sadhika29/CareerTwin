@@ -113,17 +113,38 @@ class PreparationService:
                     "question_id": "dsa-1",
                     "topic": payload.topic or "Arrays",
                     "question": "Find the maximum sum subarray using Kadane's algorithm.",
-                    "options": [],
-                    "correct_answer": "Use Kadane's algorithm.",
-                    "explanation": "Track the maximum sum ending at each index and carry the best prefix.",
+                    "options": ["Kadane's algorithm", "Binary search", "Dijkstra's algorithm", "Depth-first search"],
+                    "correct_answer": "Kadane's algorithm",
+                    "explanation": "Track the maximum sum ending at each index and maintain the running maximum in O(n).",
                 },
                 {
                     "question_id": "dsa-2",
                     "topic": payload.topic or "Hashing",
                     "question": "Given a list of integers, find duplicates in O(n) time.",
-                    "options": [],
-                    "correct_answer": "Use a hash set.",
-                    "explanation": "A hash-based lookup is the standard linear-time solution.",
+                    "options": ["Use a hash set", "Nested loops O(n^2)", "Bubble sort", "Binary search tree"],
+                    "correct_answer": "Use a hash set",
+                    "explanation": "A hash-based lookup provides O(1) average lookup and insertion time.",
+                },
+                {
+                    "question_id": "dsa-3",
+                    "topic": payload.topic or "Sliding Window",
+                    "question": "Which data structure paired with sliding window is best for min/max sliding window questions?",
+                    "options": ["Monotonic deque", "Min heap with log n removal", "Stack", "Linked list"],
+                    "correct_answer": "Monotonic deque",
+                    "explanation": "A monotonic deque preserves indices in sorted order and allows O(1) amortized min/max queries.",
+                },
+                {
+                    "question_id": "dsa-4",
+                    "topic": payload.topic or "Dynamic Programming",
+                    "question": "What is the optimal substructure property in dynamic programming?",
+                    "options": [
+                        "Optimal solution to a problem contains optimal solutions to its subproblems",
+                        "Subproblems do not overlap",
+                        "Greedy choice at every step leads to global optimum",
+                        "Memory can be reduced to O(0)"
+                    ],
+                    "correct_answer": "Optimal solution to a problem contains optimal solutions to its subproblems",
+                    "explanation": "Optimal substructure allows building the global optimal solution from previously solved subproblems.",
                 },
             ],
             "Aptitude": [
@@ -131,9 +152,17 @@ class PreparationService:
                     "question_id": "apt-1",
                     "topic": payload.topic or "Percentages",
                     "question": "A product's price increases by 20% and then decreases by 20%. What is the net effect?",
-                    "options": [],
+                    "options": ["4% decrease", "0% change", "2% decrease", "4% increase"],
                     "correct_answer": "4% decrease",
-                    "explanation": "A 20% rise followed by 20% fall results in a 4% net decrease.",
+                    "explanation": "A 20% rise followed by 20% fall results in (1.2 * 0.8) = 0.96, or a 4% net decrease.",
+                },
+                {
+                    "question_id": "apt-2",
+                    "topic": payload.topic or "Time and Work",
+                    "question": "Pipe A fills a tank in 4 hours and Pipe B empties it in 6 hours. Open together, the tank fills in:",
+                    "options": ["12 hours", "10 hours", "8 hours", "5 hours"],
+                    "correct_answer": "12 hours",
+                    "explanation": "Net rate = 1/4 - 1/6 = (3 - 2)/12 = 1/12 per hour, taking 12 hours total.",
                 },
             ],
             "Technical": [
@@ -141,9 +170,27 @@ class PreparationService:
                     "question_id": "tech-1",
                     "topic": payload.topic or "SQL",
                     "question": "Write a query to fetch the top 3 highest salaries from a table.",
-                    "options": [],
+                    "options": [
+                        "SELECT * FROM employees ORDER BY salary DESC LIMIT 3;",
+                        "SELECT TOP 3 FROM employees;",
+                        "SELECT MAX(salary, 3) FROM employees;",
+                        "SELECT * FROM employees WHERE salary > 3;"
+                    ],
                     "correct_answer": "SELECT * FROM employees ORDER BY salary DESC LIMIT 3;",
-                    "explanation": "Sort descending and limit the rows to the required top count.",
+                    "explanation": "Sort descending on salary and limit the rows to 3.",
+                },
+                {
+                    "question_id": "tech-2",
+                    "topic": payload.topic or "System Design",
+                    "question": "What is the primary benefit of adding a read-replica to a relational database?",
+                    "options": [
+                        "Offload read traffic from primary database to scale read throughput",
+                        "Speed up complex write transactions",
+                        "Eliminate all network latency",
+                        "Replace application-level caching entirely"
+                    ],
+                    "correct_answer": "Offload read traffic from primary database to scale read throughput",
+                    "explanation": "Read replicas receive replicated data and serve high-volume read queries without blocking writes.",
                 },
             ],
             "Communication": [
@@ -151,14 +198,18 @@ class PreparationService:
                     "question_id": "comm-1",
                     "topic": payload.topic or "Professional Communication",
                     "question": "Rewrite this sentence in a professional tone: 'I need the report soon.'",
-                    "options": [],
+                    "options": [
+                        "I would appreciate the report at your earliest convenience.",
+                        "Send me the report ASAP!",
+                        "Where is the report I asked for?",
+                        "Give me the file immediately."
+                    ],
                     "correct_answer": "I would appreciate the report at your earliest convenience.",
-                    "explanation": "Professional communication uses polite, specific wording.",
+                    "explanation": "Professional communication uses polite, respectful, and clear wording.",
                 },
             ],
         }
         questions = question_bank.get(payload.category, question_bank["Technical"])[: max(1, payload.number_of_questions)]
-        # Ensure the actual response object matches the schema contract.
         payload_questions = [
             {
                 "question_id": item["question_id"],
@@ -189,49 +240,159 @@ class PreparationService:
         )
 
     def evaluate_submission(self, assessment: AssessmentResponse, submission: AssessmentSubmission) -> Dict[str, Any]:
-        correct = 0
         total = len(assessment.questions)
+        correct_count = 0
+        incorrect_count = 0
+        unattempted_count = 0
+
+        question_results: List[Dict[str, Any]] = []
+        passed_questions: List[Dict[str, Any]] = []
+        failed_questions: List[Dict[str, Any]] = []
+        skipped_questions: List[Dict[str, Any]] = []
+        weak_topics_set = set()
+        per_topic: Dict[str, Dict[str, int]] = {}
+
         for question in assessment.questions:
-            submitted = submission.answers.get(question["question_id"], "")
-            if submitted and question.get("correct_answer") and str(submitted).strip().lower() == str(question["correct_answer"]).strip().lower():
-                correct += 1
-        accuracy = round((correct / total) * 100, 2) if total else 0.0
-        score = round((correct / total) * 100, 2) if total else 0.0
-        weak_topics = []
-        per_topic = {}
-        for question in assessment.questions:
-            topic_name = question.get("topic", "General")
-            per_topic.setdefault(topic_name, {"correct": 0, "total": 0})
-            per_topic[topic_name]["total"] += 1
-            submitted = submission.answers.get(question["question_id"], "")
-            if question.get("correct_answer") and str(submitted).strip().lower() == str(question["correct_answer"]).strip().lower():
-                per_topic[topic_name]["correct"] += 1
+            q_dict = question if isinstance(question, dict) else question.model_dump()
+            qid = q_dict["question_id"]
+            topic = q_dict.get("topic", "General")
+            correct_ans = str(q_dict.get("correct_answer", "")).strip().lower()
+            user_val = submission.answers.get(qid)
+            user_ans = str(user_val).strip() if user_val is not None else ""
+
+            per_topic.setdefault(topic, {"correct": 0, "total": 0})
+            per_topic[topic]["total"] += 1
+
+            is_skipped = user_val is None or user_ans == ""
+            is_passed = not is_skipped and (user_ans.lower() == correct_ans or correct_ans in user_ans.lower())
+
+            if is_passed:
+                status = "passed"
+                correct_count += 1
+                per_topic[topic]["correct"] += 1
+            elif is_skipped:
+                status = "skipped"
+                unattempted_count += 1
+                weak_topics_set.add(topic)
+            else:
+                status = "failed"
+                incorrect_count += 1
+                weak_topics_set.add(topic)
+
+            result_item = {
+                "question_id": qid,
+                "category": q_dict.get("category", assessment.category),
+                "topic": topic,
+                "difficulty": q_dict.get("difficulty", "medium"),
+                "question": q_dict.get("question", ""),
+                "options": q_dict.get("options", []),
+                "user_answer": user_val,
+                "correct_answer": q_dict.get("correct_answer"),
+                "status": status,
+                "explanation": q_dict.get("explanation", ""),
+            }
+            question_results.append(result_item)
+
+            if status == "passed":
+                passed_questions.append(result_item)
+            elif status == "failed":
+                failed_questions.append(result_item)
+            else:
+                skipped_questions.append(result_item)
+
         for topic_name, stats in per_topic.items():
             topic_accuracy = (stats["correct"] / stats["total"]) * 100 if stats["total"] else 0
             if topic_accuracy < 60:
-                weak_topics.append(topic_name)
+                weak_topics_set.add(topic_name)
+
+        score = round((correct_count / total) * 100, 2) if total else 0.0
+        attempted = total - unattempted_count
+        accuracy = round((correct_count / attempted) * 100, 2) if attempted > 0 else 0.0
+
+        remediation_tasks = []
+        for item in failed_questions:
+            remediation_tasks.append(f"Remediate failed concept in {item['topic']}: review explanation and re-attempt")
+        for item in skipped_questions:
+            remediation_tasks.append(f"Complete skipped question in {item['topic']}: practice under timed conditions")
+
         return {
             "assessment_id": assessment.assessment_id,
             "user_id": submission.user_id,
+            "category": assessment.category,
             "score": score,
             "accuracy": accuracy,
-            "correct_answers": correct,
-            "incorrect_answers": total - correct - self._count_unattempted(assessment, submission),
-            "unattempted": self._count_unattempted(assessment, submission),
+            "total_questions": total,
+            "correct_answers": correct_count,
+            "incorrect_answers": incorrect_count,
+            "unattempted": unattempted_count,
             "time_taken": submission.time_taken,
-            "weak_topics": weak_topics,
-            "topic_wise_performance": {k: round((v["correct"] / v["total"]) * 100, 2) if v["total"] else 0 for k, v in per_topic.items()},
+            "weak_topics": sorted(list(weak_topics_set)),
+            "topic_wise_performance": {k: round((v["correct"] / v["total"]) * 100, 2) if v["total"] else 0.0 for k, v in per_topic.items()},
+            "question_results": question_results,
+            "passed_questions": passed_questions,
+            "failed_questions": failed_questions,
+            "skipped_questions": skipped_questions,
+            "remediation_tasks": remediation_tasks,
             "status": "submitted",
+            "completed_at": datetime.utcnow().isoformat(),
         }
+
+    def create_remediation_assessment(
+        self,
+        original_assessment: AssessmentResponse,
+        submission: AssessmentSubmission,
+        include_skipped: bool = True,
+        include_failed: bool = True,
+    ) -> AssessmentResponse:
+        report = self.evaluate_submission(original_assessment, submission)
+        needed_ids = set()
+        if include_failed:
+            needed_ids.update(item["question_id"] for item in report["failed_questions"])
+        if include_skipped:
+            needed_ids.update(item["question_id"] for item in report["skipped_questions"])
+
+        filtered_questions = [
+            q for q in original_assessment.questions
+            if (q.question_id if hasattr(q, "question_id") else q.get("question_id")) in needed_ids
+        ]
+
+        return AssessmentResponse(
+            assessment_id=f"remediation_{original_assessment.assessment_id}",
+            user_id=submission.user_id,
+            category=original_assessment.category,
+            topic=original_assessment.topic,
+            difficulty=original_assessment.difficulty,
+            questions=filtered_questions,
+            duration=max(5, len(filtered_questions) * 5),
+            created_at=datetime.utcnow(),
+        )
 
     def summarize_performance(self, attempts: Iterable[Dict[str, Any]]) -> PerformanceResponse:
         attempts = list(attempts)
         if not attempts:
-            return PerformanceResponse(strong_topics=[], weak_topics=[], slow_topics=[], trend="stable")
+            return PerformanceResponse(
+                strong_topics=[],
+                weak_topics=[],
+                slow_topics=[],
+                trend="stable",
+                score=0.0,
+                total_assessments=0,
+                total_passed=0,
+                total_failed=0,
+                total_skipped=0,
+            )
         per_topic: Dict[str, List[float]] = {}
+        total_passed = 0
+        total_failed = 0
+        total_skipped = 0
+
         for attempt in attempts:
-            for topic, score in (attempt.get("topic_scores") or {}).items():
+            total_passed += int(attempt.get("correct_answers", 0) or 0)
+            total_failed += int(attempt.get("incorrect_answers", 0) or 0)
+            total_skipped += int(attempt.get("unattempted", 0) or 0)
+            for topic, score in (attempt.get("topic_wise_performance") or attempt.get("topic_scores") or {}).items():
                 per_topic.setdefault(topic, []).append(float(score))
+
         strong_topics = [topic for topic, scores in per_topic.items() if scores and sum(scores) / len(scores) >= 75]
         weak_topics = [topic for topic, scores in per_topic.items() if scores and sum(scores) / len(scores) < 55]
         slow_topics = [topic for topic in weak_topics[:3]]
@@ -247,13 +408,16 @@ class PreparationService:
             slow_topics=slow_topics,
             trend=trend,
             score=round(sum(float(item.get("score", 0) or 0) for item in attempts) / max(len(attempts), 1), 2),
+            total_assessments=len(attempts),
+            total_passed=total_passed,
+            total_failed=total_failed,
+            total_skipped=total_skipped,
         )
 
     def _prioritize_topics(self, payload: PreparationPlanRequest) -> List[str]:
         skill_gaps = [topic for topic in payload.skill_gaps if topic]
         if not skill_gaps:
             skill_gaps = ROLE_TOPIC_MAP.get(payload.target_role.lower(), []) + GENERIC_DEMANDS
-        # Prefer role-specific relevance and actual weak areas before generic topics.
         weighted: Dict[str, float] = {}
         for topic in skill_gaps:
             weighted[topic] = 5.0
@@ -282,7 +446,14 @@ class PreparationService:
 
     def _count_unattempted(self, assessment: AssessmentResponse, submission: AssessmentSubmission) -> int:
         total = len(assessment.questions)
-        answered = sum(1 for question in assessment.questions if submission.answers.get(question["question_id"]) is not None)
+        answered = sum(
+            1 for question in assessment.questions
+            if submission.answers.get(
+                question.question_id if hasattr(question, "question_id") else question.get("question_id")
+            ) is not None and str(submission.answers.get(
+                question.question_id if hasattr(question, "question_id") else question.get("question_id")
+            )).strip() != ""
+        )
         return max(0, total - answered)
 
 
@@ -301,5 +472,17 @@ def evaluate_assessment(assessment: AssessmentResponse, submission: AssessmentSu
     return preparation_service.evaluate_submission(assessment, submission)
 
 
+def create_remediation_assessment(
+    original_assessment: AssessmentResponse,
+    submission: AssessmentSubmission,
+    include_skipped: bool = True,
+    include_failed: bool = True,
+) -> AssessmentResponse:
+    return preparation_service.create_remediation_assessment(
+        original_assessment, submission, include_skipped, include_failed
+    )
+
+
 def summarize_performance(attempts: Iterable[Dict[str, Any]]) -> PerformanceResponse:
     return preparation_service.summarize_performance(attempts)
+

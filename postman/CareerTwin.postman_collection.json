@@ -1,18 +1,677 @@
 {
-	"info": {
-		"name": "CareerTwin API",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-	},
-	"variable": [{"key": "baseUrl", "value": "http://localhost:8000"}, {"key": "userId", "value": "demo-user"}],
-	"item": [
-		{"name": "Health", "request": {"method": "GET", "url": "{{baseUrl}}/health"}},
-		{"name": "Career Analysis", "request": {"method": "POST", "header": [{"key": "X-User-ID", "value": "{{userId}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\n  \"target_role\": \"Software Engineer\",\n  \"scores\": {\"resume\": 80, \"dsa\": 60, \"aptitude\": 75, \"communication\": 70, \"technical\": 78, \"interview\": 65, \"job_match\": 82}\n}"}, "url": "{{baseUrl}}/api/v1/career/analyze"}},
-		{"name": "Readiness", "request": {"method": "GET", "header": [{"key": "X-User-ID", "value": "{{userId}}"}], "url": "{{baseUrl}}/api/v1/career/readiness"}},
-		{"name": "What If", "request": {"method": "POST", "header": [{"key": "X-User-ID", "value": "{{userId}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{}"}, "url": "{{baseUrl}}/api/v1/career/what-if"}},
-		{"name": "Next Action", "request": {"method": "POST", "header": [{"key": "X-User-ID", "value": "{{userId}}"}], "url": "{{baseUrl}}/api/v1/career/next-action"}},
-		{"name": "Reassess", "request": {"method": "POST", "header": [{"key": "X-User-ID", "value": "{{userId}}"}, {"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"scores\": {\"dsa\": 70}}"}, "url": "{{baseUrl}}/api/v1/career/reassess"}},
-		{"name": "Digital Twin", "request": {"method": "GET", "header": [{"key": "X-User-ID", "value": "{{userId}}"}], "url": "{{baseUrl}}/api/v1/digital-twin"}},
-		{"name": "Digital Twin History", "request": {"method": "GET", "header": [{"key": "X-User-ID", "value": "{{userId}}"}], "url": "{{baseUrl}}/api/v1/digital-twin/history"}},
-		{"name": "Recalculate Digital Twin", "request": {"method": "POST", "header": [{"key": "X-User-ID", "value": "{{userId}}"}], "url": "{{baseUrl}}/api/v1/digital-twin/recalculate"}}
-	]
+    "info": {
+        "_postman_id": "c8a4128f-514d-4e92-bbf1-897bcf596280",
+        "name": "CareerTwin API Collection",
+        "description": "Postman API Collection for CareerTwin Resume, Job Intelligence & Skill Gap Module.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:8000",
+            "type": "string",
+            "description": "Base URL of the CareerTwin API backend"
+        },
+        {
+            "key": "userId",
+            "value": "usr_demo123",
+            "type": "string",
+            "description": "Active user ID for session testing"
+        },
+        {
+            "key": "resumeId",
+            "value": "",
+            "type": "string",
+            "description": "Auto-populated dynamically by Upload Resume response"
+        },
+        {
+            "key": "jobId",
+            "value": "",
+            "type": "string",
+            "description": "Auto-populated dynamically by Create Job response"
+        }
+    ],
+    "item": [
+        {
+            "name": "Career Manager & Digital Twin",
+            "item": [
+                {
+                    "name": "Health",
+                    "request": {
+                        "method": "GET",
+                        "url": "{{baseUrl}}/health"
+                    }
+                },
+                {
+                    "name": "Career Analysis",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "X-User-ID",
+                                "value": "{{userId}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"target_role\": \"Software Engineer\",\n  \"scores\": {\"resume\": 80, \"dsa\": 60, \"aptitude\": 75, \"communication\": 70, \"technical\": 78, \"interview\": 65, \"job_match\": 82}\n}"
+                        },
+                        "url": "{{baseUrl}}/api/v1/career/analyze"
+                    }
+                },
+                {
+                    "name": "Readiness",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "X-User-ID",
+                                "value": "{{userId}}"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/v1/career/readiness"
+                    }
+                },
+                {
+                    "name": "What If",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "X-User-ID",
+                                "value": "{{userId}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{}"
+                        },
+                        "url": "{{baseUrl}}/api/v1/career/what-if"
+                    }
+                },
+                {
+                    "name": "Next Action",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "X-User-ID",
+                                "value": "{{userId}}"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/v1/career/next-action"
+                    }
+                },
+                {
+                    "name": "Reassess",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "X-User-ID",
+                                "value": "{{userId}}"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"scores\": {\"dsa\": 70}}"
+                        },
+                        "url": "{{baseUrl}}/api/v1/career/reassess"
+                    }
+                },
+                {
+                    "name": "Digital Twin",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "X-User-ID",
+                                "value": "{{userId}}"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/v1/digital-twin"
+                    }
+                },
+                {
+                    "name": "Digital Twin History",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "X-User-ID",
+                                "value": "{{userId}}"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/v1/digital-twin/history"
+                    }
+                },
+                {
+                    "name": "Recalculate Digital Twin",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "X-User-ID",
+                                "value": "{{userId}}"
+                            }
+                        ],
+                        "url": "{{baseUrl}}/api/v1/digital-twin/recalculate"
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Resume Intelligence",
+            "item": [
+                {
+                    "name": "Upload Resume",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200 || pm.response.code === 201) {",
+                                    "    var data = pm.response.json();",
+                                    "    if (data.resume_id) {",
+                                    "        pm.collectionVariables.set('resumeId', data.resume_id);",
+                                    "        console.log('Auto-saved resumeId:', data.resume_id);",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "user_id",
+                                    "value": "{{userId}}",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "file",
+                                    "type": "file",
+                                    "src": ""
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/resumes/upload",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "resumes",
+                                "upload"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "List User Resumes",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/resumes?user_id={{userId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "resumes"
+                            ],
+                            "query": [
+                                {
+                                    "key": "user_id",
+                                    "value": "{{userId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Resume Details",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/resumes/{{resumeId}}?user_id={{userId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "resumes",
+                                "{{resumeId}}"
+                            ],
+                            "query": [
+                                {
+                                    "key": "user_id",
+                                    "value": "{{userId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Analyze Resume (AI Agent)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"target_role\": \"Python Backend Developer\",\n  \"target_job_id\": \"{{jobId}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/resumes/{{resumeId}}/analyze",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "resumes",
+                                "{{resumeId}}",
+                                "analyze"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Calculate ATS Score",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"job_id\": \"{{jobId}}\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/resumes/{{resumeId}}/ats",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "resumes",
+                                "{{resumeId}}",
+                                "ats"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Job Intelligence",
+            "item": [
+                {
+                    "name": "Create Job",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200 || pm.response.code === 201) {",
+                                    "    var data = pm.response.json();",
+                                    "    if (data.job_id) {",
+                                    "        pm.collectionVariables.set('jobId', data.job_id);",
+                                    "        console.log('Auto-saved jobId:', data.job_id);",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"title\": \"Backend Software Engineer\",\n  \"company\": \"Tech Solutions Inc\",\n  \"location\": \"Bangalore / Remote\",\n  \"description\": \"We are looking for a backend software engineer experienced in Python, FastAPI, SQL, and Docker to build distributed services.\",\n  \"required_skills\": [\"Python\", \"FastAPI\", \"SQL\"],\n  \"preferred_skills\": [\"Docker\", \"AWS\"],\n  \"experience_requirements\": [\"1-3 years\"],\n  \"qualifications\": [\"B.Tech or equivalent degree\"]\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/jobs",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "jobs"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Parse Job Description",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200 || pm.response.code === 201) {",
+                                    "    var data = pm.response.json();",
+                                    "    if (data.job_id) {",
+                                    "        pm.collectionVariables.set('jobId', data.job_id);",
+                                    "        console.log('Auto-saved jobId:', data.job_id);",
+                                    "    }",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"title\": \"Software Engineer\",\n  \"description\": \"Responsibilities: Develop backend microservices. Requirements: Python, FastAPI, PostgreSQL. Preferred: Docker. Experience: 2 years.\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/jobs/parse",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "jobs",
+                                "parse"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "List Jobs",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/jobs?user_id={{userId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "jobs"
+                            ],
+                            "query": [
+                                {
+                                    "key": "user_id",
+                                    "value": "{{userId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Job by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/jobs/{{jobId}}?user_id={{userId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "jobs",
+                                "{{jobId}}"
+                            ],
+                            "query": [
+                                {
+                                    "key": "user_id",
+                                    "value": "{{userId}}"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Analyze Job (AI Agent)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"target_role\": \"Software Engineer\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/jobs/{{jobId}}/analyze",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "jobs",
+                                "{{jobId}}",
+                                "analyze"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Calculate Job Match Score",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"resume_id\": \"{{resumeId}}\",\n  \"candidate_skills\": [\"Python\", \"FastAPI\", \"SQL\"],\n  \"education\": \"B.Tech Computer Science\",\n  \"experience_years\": 2.0,\n  \"target_role\": \"Backend Software Engineer\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/jobs/{{jobId}}/match",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "jobs",
+                                "{{jobId}}",
+                                "match"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Check Job Eligibility",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"candidate_skills\": [\"Python\", \"SQL\"],\n  \"education\": \"B.Tech\",\n  \"experience_years\": 2.0\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/jobs/{{jobId}}/eligibility",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "jobs",
+                                "{{jobId}}",
+                                "eligibility"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Skill Intelligence",
+            "item": [
+                {
+                    "name": "Get Skills Catalog",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/skills",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "skills"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Analyze Skills & Recommendations",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"current_skills\": [\"Python\", \"FastAPI\"],\n  \"job_required_skills\": [\"Python\", \"FastAPI\", \"System Design\", \"Docker\"],\n  \"target_role\": \"Backend Engineer\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/skills/analyze",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "skills",
+                                "analyze"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Detect Skill Gaps (POST)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"user_id\": \"{{userId}}\",\n  \"current_skills\": [\"js\", \"react\"],\n  \"job_required_skills\": [\"JavaScript\", \"React\", \"TypeScript\", \"Node.js\"],\n  \"target_role\": \"Frontend Developer\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/skills/gaps",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "skills",
+                                "gaps"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Skill Gaps for Job (GET)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{baseUrl}}/api/v1/skills/gaps?user_id={{userId}}&job_id={{jobId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "skills",
+                                "gaps"
+                            ],
+                            "query": [
+                                {
+                                    "key": "user_id",
+                                    "value": "{{userId}}"
+                                },
+                                {
+                                    "key": "job_id",
+                                    "value": "{{jobId}}"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
 }

@@ -39,3 +39,56 @@ def test_preparation_assessment_route_requires_authentication():
         },
     )
     assert response.status_code == 401
+
+
+def test_submit_assessment_returns_test_report():
+    response = client.post(
+        "/api/v1/preparation/assessment/submit",
+        json={
+            "assessment_id": "asmt_dsa_1",
+            "user_id": "user_123",
+            "answers": {
+                "dsa-1": "Kadane's algorithm",
+                "dsa-2": "Wrong answer",
+            },
+            "time_taken": 120,
+        },
+    )
+    assert response.status_code == 200
+    report = response.json()
+    assert report["total_questions"] >= 2
+    assert report["correct_answers"] >= 1
+    assert "question_results" in report
+    assert "weak_topics" in report
+
+
+def test_reattempt_incomplete_questions():
+    response = client.post(
+        "/api/v1/preparation/assessment/reattempt-incomplete",
+        json={
+            "user_id": "user_123",
+            "assessment_id": "asmt_dsa_1",
+            "category": "DSA",
+            "include_skipped": True,
+            "include_failed": True,
+            "specific_question_ids": ["dsa-2", "dsa-3"],
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["questions"]) == 2
+
+
+def test_get_test_reports():
+    response = client.get(
+        "/api/v1/preparation/reports",
+        headers={"X-User-ID": "user_123"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "reports" in data
+    assert len(data["reports"]) >= 1
+    assert "correct_answers" in data["reports"][0]
+    assert "incorrect_answers" in data["reports"][0]
+    assert "unattempted" in data["reports"][0]
+

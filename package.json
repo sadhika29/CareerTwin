@@ -1,4 +1,9 @@
 {
+  "name": "careertwin",
+  "private": true,
+  "scripts": {
+    "dev": "python -m uvicorn backend.main:app --reload"
+  },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "axios": "^1.19.0",
