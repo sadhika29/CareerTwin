@@ -4,7 +4,7 @@ from typing import List
 ROUTE_AGENTS = {
 	"resume": ["resume"],
 	"job": ["jobs"],
-	"skill": ["skills"],
+	"skill": ["skills", "skill"],
 	"preparation": ["preparation"],
 	"interview": ["interview"],
 	"readiness": ["digital_twin"],
@@ -20,7 +20,7 @@ def select_route(request: str) -> List[str]:
 		raise ValueError("A career request is required")
 	if "what should" in text or "what-if" in text or "improve first" in text:
 		return ROUTE_AGENTS["what-if"]
-	if "full" in text or "complete" in text or "career analysis" in text:
+	if "full" in text or "complete" in text or "career analysis" in text or "career" in text or "update" in text:
 		return ROUTE_AGENTS["full"]
 	if "readiness" in text or "ready" in text:
 		return ROUTE_AGENTS["readiness"]

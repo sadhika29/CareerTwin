@@ -14,6 +14,8 @@ async def get_digital_twin(user_id: str = Depends(get_current_user)):
 		history = await DigitalTwinService(firebase_service).history(user_id)
 		if history:
 			return history[-1]
+		if user_id != "demo-student":
+			raise HTTPException(status_code=404, detail="Digital Twin not found")
 		# Create baseline state
 		default_state = CareerState(
 			user_id=user_id,

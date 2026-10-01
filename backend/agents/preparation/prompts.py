@@ -1,4 +1,4 @@
-﻿"""
+"""
 LLM prompts for the Preparation Agent: assessment generation,
 recommendation planning, performance analysis, and remediation.
 All processing is done by LLM agents only.
@@ -435,3 +435,213 @@ KNOWN SKILL GAPS: {', '.join(skill_gaps) if skill_gaps else 'None identified'}
 
 Provide a data-driven weak topic analysis. Return ONLY the JSON object.
 """
+
+
+# ---------------------------------------------------------------------------
+# MULTI-AGENT PROFILE & CAREER INTENT REFINEMENT
+# ---------------------------------------------------------------------------
+
+CAREER_INTENT_ANALYZER_SYSTEM_PROMPT = """
+You are the Career Ambition & Intent Analysis Agent for CareerTwin.
+Your task is to analyze a student's unstructured raw input, current skills, background, and vague goals.
+Predict what they truly want to be (target career trajectory), uncover their implicit strengths,
+identify their underlying passion, and define the optimal target role level.
+
+Return ONLY a valid JSON object:
+{
+    "predicted_target_role": "string (e.g. Full Stack AI Engineer, Cloud Solutions Architect)",
+    "underlying_intention": "string (clear 2-sentence synthesis of what they want to achieve)",
+    "ambition_level": "Entry Level or Mid Level or Specialized Lead",
+    "implicit_strengths": ["strength1", "strength2", "strength3"],
+    "hidden_interests": ["area1", "area2"],
+    "career_archetype": "string (e.g. Systems Builder, Product Innovator, Data Pioneer)"
+}
+"""
+
+def build_career_intent_analyzer_prompt(
+    raw_input: str,
+    current_skills: list[str] | None = None,
+    education: str | None = None,
+    interests: str | None = None,
+) -> str:
+    return f"""
+Analyze the student's background and raw input to diagnose their true career intention:
+- Student Raw Input: {raw_input}
+- Known Skills: {', '.join(current_skills or []) or 'Not specified'}
+- Education / Background: {education or 'Not specified'}
+- Stated Interests: {interests or 'Not specified'}
+
+Diagnose their ambition, underlying intent, and predicted target role. Return ONLY the JSON object.
+"""
+
+
+CAREER_ROADMAP_SYNTHESIZER_SYSTEM_PROMPT = """
+You are the Career Roadmap Synthesizer Agent for CareerTwin.
+Given a student's diagnosed career intent and predicted target role, generate a comprehensive,
+customized milestone plan and technical competencies breakdown.
+
+Return ONLY a valid JSON object:
+{
+    "role_title": "string",
+    "required_competencies": [
+        {"domain": "string", "skills": ["skill1", "skill2"], "criticality": "Essential or High"}
+    ],
+    "milestones": [
+        {"phase": "Phase 1: Foundation (Weeks 1-4)", "focus": "string", "key_deliverable": "string"},
+        {"phase": "Phase 2: Core Projects (Weeks 5-8)", "focus": "string", "key_deliverable": "string"},
+        {"phase": "Phase 3: Interview Readiness (Weeks 9-12)", "focus": "string", "key_deliverable": "string"}
+    ],
+    "recommended_certifications_or_topics": ["topic1", "topic2", "topic3"]
+}
+"""
+
+def build_career_roadmap_synthesizer_prompt(
+    intent_analysis: dict,
+    current_skills: list[str] | None = None,
+) -> str:
+    import json
+    return f"""
+Synthesize a career roadmap based on this diagnosed intent:
+INTENT DIAGNOSIS:
+{json.dumps(intent_analysis, indent=2)}
+
+CURRENT SKILLS: {', '.join(current_skills or []) or 'None'}
+
+Return ONLY the synthesized roadmap JSON object.
+"""
+
+
+CAREER_EXECUTIVE_REFINER_SYSTEM_PROMPT = """
+You are the Executive Career Twin Refiner Agent.
+You take the diagnosed intention and synthesized roadmap, and polish them into a stellar,
+refined Executive Career Persona with a personal elevator pitch, target profile summary,
+and high-impact immediate action items.
+
+Return ONLY a valid JSON object:
+{
+    "career_persona_title": "string (e.g. Aspiring Cloud Native Systems Specialist)",
+    "executive_summary": "string (polished, compelling 3-sentence career bio)",
+    "elevator_pitch": "string (ready-to-use 30-second introduction for networking/interviews)",
+    "target_role": "string",
+    "top_priority_skills": ["skill1", "skill2", "skill3", "skill4", "skill5"],
+    "immediate_actions": [
+        {"action": "string", "impact": "High or Critical", "timeframe": "string"}
+    ],
+    "target_industry_alignment": "string (which companies/sectors value this profile most)"
+}
+"""
+
+def build_career_executive_refiner_prompt(
+    intent_analysis: dict,
+    roadmap_analysis: dict,
+) -> str:
+    import json
+    return f"""
+Refine these analyses into a polished, executive Career Persona for the student:
+INTENT:
+{json.dumps(intent_analysis, indent=2)}
+
+ROADMAP:
+{json.dumps(roadmap_analysis, indent=2)}
+
+Generate the refined Executive Career Persona. Return ONLY the JSON object.
+"""
+
+
+# ---------------------------------------------------------------------------
+# MULTI-AGENT JOB APPLICATION COACH & TAILORED STRATEGY
+# ---------------------------------------------------------------------------
+
+APPLICATION_STRATEGY_SYSTEM_PROMPT = """
+You are the Senior Recruiter & Application Strategy Coach Agent for CareerTwin.
+Your job is to generate a comprehensive, tailored application strategy for a student applying to a specific job.
+
+Return ONLY a valid JSON object:
+{
+    "company_overview": "string (brief insight into what this company looks for in candidates)",
+    "tailored_pitch": "string (custom 3-paragraph application pitch/cover note tailored to this role)",
+    "key_talking_points": [
+        "string (talking point 1 highlighting how candidate skills solve company problems)",
+        "string (talking point 2)",
+        "string (talking point 3)"
+    ],
+    "predicted_interview_questions": [
+        {
+            "question": "string",
+            "type": "Technical or Behavioral or Architecture",
+            "suggested_approach": "string (how candidate should structure their answer)"
+        }
+    ],
+    "application_checklist": [
+        {"task": "string", "done": false, "importance": "Critical or Recommended"}
+    ],
+    "estimated_readiness_score": 85
+}
+"""
+
+def build_application_strategy_prompt(
+    company: str,
+    job_title: str,
+    job_description: str | None,
+    candidate_skills: list[str] | None,
+    candidate_profile: dict | None = None,
+) -> str:
+    return f"""
+Develop a winning application and interview strategy for this opportunity:
+
+COMPANY: {company}
+JOB TITLE: {job_title}
+JOB DESCRIPTION / REQUIREMENTS:
+{job_description or 'Standard requirements for ' + job_title}
+
+CANDIDATE SKILLS: {', '.join(candidate_skills or []) or 'General software development skills'}
+CANDIDATE PROFILE DETAILS: {candidate_profile or {}}
+
+Generate the tailored application strategy, cover pitch, talking points, and interview questions. Return ONLY the JSON object.
+"""
+
+
+# ---------------------------------------------------------------------------
+# MULTI-AGENT JOB FIT & SUITABILITY ANALYSIS
+# ---------------------------------------------------------------------------
+
+JOB_FIT_ANALYZER_SYSTEM_PROMPT = """
+You are the Job Fit & Career Suitability Intelligence Agent for CareerTwin.
+Perform a thorough, multi-dimensional fit analysis of a candidate against a job opportunity.
+
+Return ONLY a valid JSON object:
+{
+    "match_percentage": 82,
+    "verdict": "Strong Match or Competitive Match or Growth Match",
+    "fit_summary": "string (concise 2-sentence summary of why the candidate is or isn't a fit)",
+    "matched_strengths": [
+        {"skill": "string", "relevance": "string (how it directly satisfies the role)"}
+    ],
+    "critical_gaps": [
+        {"skill": "string", "impact": "High or Medium", "bridging_strategy": "string (how to quickly learn or project-proof this)"}
+    ],
+    "interview_focus_areas": [
+        "string (area 1)", "string (area 2)", "string (area 3)"
+    ],
+    "tailored_advice": "string (actionable advice to maximize interview callbacks for this role)"
+}
+"""
+
+def build_job_fit_prompt(
+    job_title: str,
+    company: str,
+    description: str | None,
+    required_skills: list[str] | None,
+    candidate_skills: list[str] | None,
+) -> str:
+    return f"""
+Analyze the candidate's deep fit for this job:
+JOB TITLE: {job_title}
+COMPANY: {company}
+DESCRIPTION: {description or 'N/A'}
+REQUIRED SKILLS: {', '.join(required_skills or []) or 'N/A'}
+CANDIDATE SKILLS: {', '.join(candidate_skills or []) or 'N/A'}
+
+Provide an in-depth fit assessment. Return ONLY the JSON object.
+"""
+

@@ -16,19 +16,33 @@ DEFAULT_WEIGHTS = {
 def calculate_readiness(scores: Dict[str, Optional[float]], weights: Optional[Dict[str, float]] = None) -> Dict[str, object]:
 	"""Calculate a weighted readiness score from the student's available scores."""
 	configured = weights or DEFAULT_WEIGHTS
-	normalized = {name: _clamp(scores.get(name)) for name in DIMENSIONS}
+
+	def _get_val(k: str) -> Optional[float]:
+		if hasattr(scores, f"{k}_score"):
+			val = getattr(scores, f"{k}_score")
+			if val is not None:
+				return val
+		if hasattr(scores, "get"):
+			val = scores.get(k)
+			if val is not None:
+				return val
+		return getattr(scores, k, None)
+
+	normalized = {name: _clamp(_get_val(name)) for name in DIMENSIONS}
 	available = {name: value for name, value in normalized.items() if value is not None}
 	if not available:
 		raise ValueError("At least one performance score is required")
 	total_weight = sum(configured.get(name, 0.0) for name in available)
 	overall = sum(value * configured.get(name, 0.0) for name, value in available.items()) / total_weight
 	weakest = min(available, key=available.get)
+	weakest_label = weakest.upper() if weakest in ("dsa", "cv") else weakest
 	return {
 		"overall_score": round(overall, 2),
 		**{name: value for name, value in normalized.items() if value is not None},
-		"weakest_area": weakest,
+		"weakest_area": weakest_label,
 		"recommended_action": f"Improve {weakest.replace('_', ' ')} performance by 10 points",
 	}
+
 
 
 def _clamp(value: Optional[float]) -> Optional[float]:

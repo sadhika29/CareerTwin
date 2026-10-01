@@ -47,6 +47,21 @@ class CareerState(BaseModel):
     errors: List[str] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
+    def get(self, key: str, default: Any = None) -> Any:
+        if hasattr(self, key):
+            val = getattr(self, key)
+            return val if val is not None else default
+        if hasattr(self, f"{key}_score"):
+            val = getattr(self, f"{key}_score")
+            return val if val is not None else default
+        return self.metadata.get(key, default)
+
+    def __getitem__(self, key: str) -> Any:
+        val = self.get(key)
+        if val is None and key not in self.__dict__:
+            raise KeyError(key)
+        return val
+
 
 class AgentRequest(BaseModel):
     user_id: str

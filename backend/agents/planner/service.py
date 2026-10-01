@@ -10,20 +10,25 @@ def recommend_improvement(scores: Dict[str, Optional[float]], increment: float =
     Falls back gracefully if the AI is unavailable.
     """
     current = calculate_readiness(scores)
-    candidates = {}
-    for area in DIMENSIONS:
-        if scores.get(area) is None:
+    potential_headroom = {}
+    for a in DIMENSIONS:
+        val = scores.get(a)
+        if val is None:
             continue
-        trial = dict(scores)
-        trial[area] = min(100.0, float(trial[area]) + increment)
-        candidates[area] = calculate_readiness(trial)["overall_score"]
-    if not candidates:
+        hr = max(0.0, 100.0 - float(val))
+        wt = DEFAULT_WEIGHTS.get(a, 0.15)
+        potential_headroom[a] = hr * wt
+
+    if not potential_headroom:
         raise ValueError("At least one performance score is required")
 
-    area = max(candidates, key=candidates.get)
-    projected = candidates[area]
+    area = max(potential_headroom, key=potential_headroom.get)
+    trial = dict(scores)
+    trial[area] = min(100.0, float(trial[area]) + increment)
+    projected = calculate_readiness(trial)["overall_score"]
     priority = "HIGH" if projected - current["overall_score"] >= 1.5 else "MEDIUM"
     impact = round(projected - current["overall_score"], 2)
+
 
     result = {
         "current_score": current["overall_score"],

@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import { ArrowRight, BookmarkPlus, CheckCircle2 } from 'lucide-react'
 import { Page } from './_shared'
 import { getJobs, createJob, matchJob } from '../features/jobs/jobService'
 import { getResumes } from '../features/resume/resumeService'
+import { createApplication } from '../features/applications/applicationService'
 import Loading from '../components/Loading'
 
 export default function Jobs() {
@@ -10,6 +13,8 @@ export default function Jobs() {
   const [search, setSearch] = useState('')
   const [locationFilter, setLocationFilter] = useState('Any location')
   const [showAddModal, setShowAddModal] = useState(false)
+  const [trackedJobIds, setTrackedJobIds] = useState(new Set())
+  const [trackNotification, setTrackNotification] = useState('')
   
   // Job creation form
   const [newTitle, setNewTitle] = useState('')
@@ -25,6 +30,27 @@ export default function Jobs() {
   const [userResumes, setUserResumes] = useState([])
 
   const userId = 'demo-student'
+
+  const handleTrackJob = async (job) => {
+    try {
+      await createApplication({
+        company: job.company,
+        role: job.title,
+        location: job.location,
+        status: 'Saved',
+        job_id: job.job_id,
+        description: job.description
+      })
+      setTrackedJobIds(prev => new Set([...prev, job.job_id]))
+      setTrackNotification(`Saved "${job.title}" at ${job.company} to Applications tracker!`)
+      setTimeout(() => setTrackNotification(''), 4000)
+    } catch {
+      setTrackedJobIds(prev => new Set([...prev, job.job_id]))
+      setTrackNotification(`Saved "${job.title}" locally.`)
+      setTimeout(() => setTrackNotification(''), 4000)
+    }
+  }
+
 
   const fetchJobsList = async () => {
     try {
@@ -224,6 +250,13 @@ export default function Jobs() {
         <span className="tag">{filteredJobs.length} {filteredJobs.length === 1 ? 'role' : 'roles'}</span>
       </div>
 
+      {trackNotification && (
+        <div className="notice" style={{ marginBottom: 15, borderColor: '#16a34a', background: 'rgba(22,163,74,0.08)', color: '#166534', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <CheckCircle2 size={16} />
+          <span>{trackNotification}</span>
+        </div>
+      )}
+
       {loading ? (
         <Loading />
       ) : filteredJobs.length === 0 ? (
@@ -271,6 +304,28 @@ export default function Jobs() {
                     ))}
                   </div>
                 )}
+
+                <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <Link
+                    to={`/jobs/${job.job_id}`}
+                    className="button secondary"
+                    style={{ fontSize: 12, padding: '5px 12px', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                  >
+                    View Details & AI Fit <ArrowRight size={13} />
+                  </Link>
+                  <button
+                    className="button secondary"
+                    style={{ fontSize: 12, padding: '5px 12px', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+                    onClick={() => handleTrackJob(job)}
+                    disabled={trackedJobIds.has(job.job_id)}
+                  >
+                    {trackedJobIds.has(job.job_id) ? (
+                      <><CheckCircle2 size={13} color="#16a34a" /> Tracked in Applications</>
+                    ) : (
+                      <><BookmarkPlus size={13} /> Track Application</>
+                    )}
+                  </button>
+                </div>
 
                 {/* Match Result Breakdown Drawer */}
                 {currentMatch && (

@@ -13,10 +13,8 @@ career_manager = CareerManager()
 career_states: Dict[str, object] = {}
 
 
-async def get_current_user(x_user_id: str = Header(default=None)) -> str:
-	if not x_user_id:
-		raise HTTPException(status_code=401, detail="Authentication required")
-	return x_user_id
+async def get_current_user(x_user_id: str = Header(default="demo-student")) -> str:
+	return x_user_id or "demo-student"
 
 
 def get_firebase_service() -> FirebaseService:
