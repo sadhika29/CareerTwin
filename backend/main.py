@@ -2,15 +2,11 @@ from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.api.routes.applications import router as applications_router
 from backend.api.routes.auth import router as auth_router
 from backend.api.routes.career import router as career_router
-from backend.api.routes.dashboard import router as dashboard_router
 from backend.api.routes.digital_twin import router as digital_twin_router
-from backend.api.routes.interview import router as interview_router
 from backend.api.routes.jobs import router as jobs_router
 from backend.api.routes.preparation import router as preparation_router
-from backend.api.routes.profile import router as profile_router
 from backend.api.routes.resume import router as resume_router
 from backend.api.routes.skills import router as skills_router
 from backend.utils.errors import CareerTwinError, career_twin_error_handler, validation_error_handler
@@ -35,15 +31,36 @@ app.add_middleware(
 app.add_exception_handler(CareerTwinError, career_twin_error_handler)
 app.add_exception_handler(RequestValidationError, validation_error_handler)
 
-# Core & teammate routes
+# Core routes
 app.include_router(career_router)
 app.include_router(digital_twin_router)
 app.include_router(auth_router)
 app.include_router(preparation_router)
-app.include_router(interview_router)
-app.include_router(dashboard_router)
-app.include_router(profile_router)
-app.include_router(applications_router)
+
+# Optional teammate routes if defined
+try:
+    from backend.api.routes.applications import router as applications_router
+    app.include_router(applications_router)
+except (ImportError, AttributeError):
+    pass
+
+try:
+    from backend.api.routes.dashboard import router as dashboard_router
+    app.include_router(dashboard_router)
+except (ImportError, AttributeError):
+    pass
+
+try:
+    from backend.api.routes.interview import router as interview_router
+    app.include_router(interview_router)
+except (ImportError, AttributeError):
+    pass
+
+try:
+    from backend.api.routes.profile import router as profile_router
+    app.include_router(profile_router)
+except (ImportError, AttributeError):
+    pass
 
 # Resume, Job, and Skill intelligence routes (both root and /api/v1 prefix)
 app.include_router(resume_router)
