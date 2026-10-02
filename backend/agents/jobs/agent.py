@@ -126,6 +126,31 @@ class JobAgent:
         """
         Use Gemini LLM and RAG to dynamically discover and generate live market job opportunities.
         """
+        # 1. Priority: Retrieve live verified market job postings from OpenWebNinja JSearch
+        try:
+            from backend.services.jsearch_client import JSearchClient
+            jsearch = JSearchClient()
+            search_query = target_role or query or (f"{candidate_skills[0]} Developer" if candidate_skills else "Software Engineer")
+            live_jobs = jsearch.search_jobs(
+                query=search_query,
+                location=location,
+                num_pages=1,
+            )
+            if live_jobs:
+                # Cache live postings to Firestore for seamless details & match tracking
+                try:
+                    from backend.database.firestore import FirestoreDatabase
+                    db = FirestoreDatabase()
+                    for j in live_jobs[:count]:
+                        if j.get("job_id"):
+                            db.set(collection="jobs", document_id=j["job_id"], data=j)
+                except Exception:
+                    pass
+                return live_jobs[:count]
+        except Exception:
+            pass
+
+        # 2. Secondary: Dynamic LLM market generation if live API query is unavailable
         rag_context = self._get_rag_context(
             query=f"{target_role or query or 'Software Engineer'} career market openings",
             role=target_role,
@@ -159,50 +184,22 @@ class JobAgent:
             except Exception:
                 pass
 
-        # Dynamic algorithmic generator if LLM is temporarily unreachable
-        skills = candidate_skills or ["Python", "React", "FastAPI", "SQL", "Git"]
-        role = target_role or "Full Stack Developer"
-        loc = location or "Remote / Bengaluru"
-        return [
-            {
-                "title": f"Associate {role}",
-                "company": "Nexus Systems",
-                "location": loc,
-                "job_url": "https://careers.nexus.io/jobs/associate-dev",
-                "description": f"Nexus Systems is looking for an agile {role} to build high-performance microservices, user interfaces, and modern cloud applications.",
-                "required_skills": skills[:4],
-                "preferred_skills": skills[4:6] if len(skills) > 4 else ["Docker", "PostgreSQL"],
-                "experience_requirements": ["0-2 years software development experience"],
-                "qualifications": ["B.Tech/B.E. in Computer Science or related degree"],
-                "responsibilities": [
-                    "Design and implement responsive features and API contracts",
-                    "Ensure code quality and write comprehensive unit tests",
-                ],
-                "keywords": skills[:6],
-                "salary_range": "₹7,00,000 - ₹12,00,000 / year",
-                "work_type": "Full-time",
-                "match_reason": f"Strong alignment with your core skills ({', '.join(skills[:3])}).",
-            },
-            {
-                "title": f"Junior {role}",
-                "company": "Apex Cloud Labs",
-                "location": "Remote",
-                "job_url": "https://apexcloud.dev/careers/jr-engineer",
-                "description": f"Join our engineering team to build scalable data pipelines and web APIs using modern stacks.",
-                "required_skills": skills[:3] + ["REST APIs"],
-                "preferred_skills": ["Kubernetes", "AWS"],
-                "experience_requirements": ["1+ years experience or strong project portfolio"],
-                "qualifications": ["Bachelor's in Engineering/IT or equivalent project portfolio"],
-                "responsibilities": [
-                    "Develop and maintain robust backend workflows and frontend integration",
-                    "Optimize system throughput and participate in agile sprints",
-                ],
-                "keywords": skills[:5],
-                "salary_range": "₹8,50,000 - ₹14,00,000 / year",
-                "work_type": "Full-time",
-                "match_reason": f"Direct match for your proficiency in {skills[0] if skills else 'Modern Software'}.",
-            },
-        ]
+        # If LLM is unreachable, retrieve authentic stored jobs from database rather than fabricating listings
+        try:
+            from backend.database.firestore import FirestoreDatabase
+            db = FirestoreDatabase()
+            stored = db.list(collection="jobs", limit=count or 10)
+            if stored:
+                target_lower = (target_role or query or "").lower()
+                filtered = [
+                    j for j in stored
+                    if not target_lower or target_lower in j.get("title", "").lower()
+                ]
+                return filtered[:count] if filtered else stored[:count]
+        except Exception:
+            pass
+
+        return []
 
     def match_with_ai(
         self,

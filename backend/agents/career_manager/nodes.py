@@ -36,6 +36,19 @@ def apply_agent_result(state: CareerState, agent: str, result: Dict[str, Any]) -
 	for field in mappings.get(agent, ()):
 		if field in data:
 			setattr(state, field, data[field])
+
+	# Handle agent specific envelope shapes
+	if agent == "resume":
+		if not state.resume_analysis and isinstance(data, dict):
+			state.resume_analysis = data
+		if not state.skills and isinstance(data, dict) and "resume_skills" in data:
+			state.skills = data["resume_skills"]
+	elif agent == "jobs":
+		if not state.job_analysis and isinstance(data, dict):
+			state.job_analysis = data
+	elif agent == "skills":
+		if not state.skills and isinstance(data, dict) and "detected_skills" in data:
+			state.skills = data["detected_skills"]
 	return state
 
 

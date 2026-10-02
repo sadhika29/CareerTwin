@@ -4,7 +4,7 @@ from typing import List
 ROUTE_AGENTS = {
 	"resume": ["resume"],
 	"job": ["jobs"],
-	"skill": ["skills", "skill"],
+	"skill": ["skills"],
 	"preparation": ["preparation"],
 	"interview": ["interview"],
 	"readiness": ["digital_twin"],

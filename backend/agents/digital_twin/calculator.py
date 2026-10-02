@@ -33,9 +33,12 @@ def calculate_readiness(scores: Dict[str, Optional[float]], weights: Optional[Di
 	if not available:
 		raise ValueError("At least one performance score is required")
 	total_weight = sum(configured.get(name, 0.0) for name in available)
-	overall = sum(value * configured.get(name, 0.0) for name, value in available.items()) / total_weight
+	if total_weight <= 0.0:
+		overall = sum(available.values()) / len(available)
+	else:
+		overall = sum(value * configured.get(name, 0.0) for name, value in available.items()) / total_weight
 	weakest = min(available, key=available.get)
-	weakest_label = weakest.upper() if weakest in ("dsa", "cv") else weakest
+	weakest_label = weakest
 	return {
 		"overall_score": round(overall, 2),
 		**{name: value for name, value in normalized.items() if value is not None},
