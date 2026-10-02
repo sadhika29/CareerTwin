@@ -326,7 +326,7 @@ def test_preparation_and_assessment_endpoints():
         "assessment_id": asmt_data["assessment_id"],
         "user_id": user_id,
         "answers": {
-            asmt_data["questions"][0]["question_id"]: asmt_data["questions"][0]["correct_answer"],
+            asmt_data["questions"][0]["question_id"]: asmt_data["questions"][0].get("correct_answer") or "Answer A",
             asmt_data["questions"][1]["question_id"]: "Wrong Answer",
         },
         "time_taken": 12,
@@ -376,7 +376,7 @@ def test_preparation_and_assessment_endpoints():
         "skill_gaps": ["Docker"],
         "current_skills": ["Python"],
         "available_time": 45,
-    })
+    }, headers=headers)
     assert res_rec.status_code == 200
 
 
