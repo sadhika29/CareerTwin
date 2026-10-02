@@ -69,6 +69,36 @@ SKILL_ALIASES: dict[str, str] = {
     "advanced excel": "Excel",
     "pandas": "Pandas",
     "numpy": "NumPy",
+    "java": "Java",
+    "c": "C",
+    "c++": "C++",
+    "cpp": "C++",
+    "c#": "C#",
+    "csharp": "C#",
+    "html": "HTML",
+    "html5": "HTML",
+    "css": "CSS",
+    "css3": "CSS",
+    "mern": "MERN Stack",
+    "mern stack": "MERN Stack",
+    "mean": "MEAN Stack",
+    "mean stack": "MEAN Stack",
+    "generative ai": "Generative AI",
+    "genai": "Generative AI",
+    "gen ai": "Generative AI",
+    "gemini": "Gemini API",
+    "stable diffusion": "Stable Diffusion",
+    "jwt": "JWT",
+    "spring": "Spring Boot",
+    "spring boot": "Spring Boot",
+    "vs code": "VS Code",
+    "vscode": "VS Code",
+    "visual studio code": "VS Code",
+    "leetcode": "LeetCode",
+    "networking": "Computer Networks",
+    "computer networks": "Computer Networks",
+    "operating systems": "Operating Systems",
+    "sklearn": "Scikit-Learn",
     "scikit-learn": "Scikit-Learn",
     "tensorflow": "TensorFlow",
     "pytorch": "PyTorch",
@@ -242,6 +272,19 @@ SKILL_METADATA: dict[str, dict] = {
 
 class SkillService:
     """Service handling skill normalization, gap analysis, and priority ranking."""
+
+    @classmethod
+    def extract_skills(cls, text: str) -> list[str]:
+        """Extract all known canonical skills from text based on aliases and boundaries."""
+        if not text:
+            return []
+        lower_text = text.lower()
+        detected = set()
+        for alias, canonical in SKILL_ALIASES.items():
+            pattern = r"\b" + re.escape(alias) + r"\b"
+            if re.search(pattern, lower_text):
+                detected.add(canonical)
+        return sorted(list(detected))
 
     def normalize_skill_name(self, name: str) -> str:
         """Clean and normalize a skill name to its canonical form."""

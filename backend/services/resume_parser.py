@@ -38,6 +38,23 @@ def extract_text_from_docx(file_path: str) -> str:
 
 #to noramlize the text obtained from both the pdfs and docx files
 def normalize_text(text: str) -> str:
+    if not text:
+        return ""
+    text = (
+        text.replace("\u200b", "")
+        .replace("\u200c", "")
+        .replace("\u200d", "")
+        .replace("\ufeff", "")
+        .replace("\u00a0", " ")
+        .replace("\u2013", "-")
+        .replace("\u2014", "-")
+        .replace("\u2018", "'")
+        .replace("\u2019", "'")
+        .replace("\u201c", '"')
+        .replace("\u201d", '"')
+        .replace("\u2022", "•")
+        .replace("\u25cf", "•")
+    )
     lines = []
     for line in text.splitlines():
         cleaned_line = " ".join(line.split())

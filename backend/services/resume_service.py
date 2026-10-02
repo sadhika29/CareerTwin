@@ -137,6 +137,9 @@ class ResumeService:
             document_id=resume_id,
             data={
                 "analysis": analysis_data,
+                "skills": analysis_data.get("resume_skills", []),
+                "resume_score": analysis_data.get("resume_score", 0.0),
+                "ats_score": analysis_data.get("ats_score", 0.0),
                 "updated_at": now,
             },
         )

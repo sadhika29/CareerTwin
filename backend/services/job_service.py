@@ -18,8 +18,8 @@ class JobService:
         title: str,
         company: str,
         location: str,
-        job_url: str,
-        description: str,
+        job_url: str = "",
+        description: str = "",
         required_skills: list[str] | None = None,
         preferred_skills: list[str] | None = None,
         experience_requirements: list[str] | None = None,
@@ -291,13 +291,23 @@ class JobService:
 
         # 3. Required skills check (at least 50% threshold for base eligibility)
         if job.required_skills:
+            from backend.services.skill_service import SkillService
+            skill_svc = SkillService()
+            candidate_canonical = {
+                skill_svc.normalize_skill_name(s).strip().lower() for s in candidate_skills if s.strip()
+            }
+            def _skill_matches(s: str) -> bool:
+                sl = s.strip().lower()
+                sc = skill_svc.normalize_skill_name(s).strip().lower()
+                return sl in candidate_skills_norm or sl in candidate_canonical or sc in candidate_skills_norm or sc in candidate_canonical
+
             matched_req_skills = [
                 s for s in job.required_skills
-                if s.strip().lower() in candidate_skills_norm
+                if _skill_matches(s)
             ]
             missing_req_skills = [
                 s for s in job.required_skills
-                if s.strip().lower() not in candidate_skills_norm
+                if not _skill_matches(s)
             ]
 
             req_ratio = len(matched_req_skills) / len(job.required_skills)
@@ -352,15 +362,25 @@ class JobService:
         cand_skills_norm = {
             s.strip().lower() for s in candidate_skills if s.strip()
         }
+        from backend.services.skill_service import SkillService
+        skill_svc = SkillService()
+        cand_canonical = {
+            skill_svc.normalize_skill_name(s).strip().lower() for s in candidate_skills if s.strip()
+        }
+
+        def _matches(s: str) -> bool:
+            sl = s.strip().lower()
+            sc = skill_svc.normalize_skill_name(s).strip().lower()
+            return sl in cand_skills_norm or sl in cand_canonical or sc in cand_skills_norm or sc in cand_canonical
 
         # 1. Required Skills Match
         matched_required = [
             s for s in job.required_skills
-            if s.strip().lower() in cand_skills_norm
+            if _matches(s)
         ]
         missing_required = [
             s for s in job.required_skills
-            if s.strip().lower() not in cand_skills_norm
+            if not _matches(s)
         ]
         if job.required_skills:
             skill_match_score = round(
@@ -372,11 +392,11 @@ class JobService:
         # 2. Preferred Skills Match
         matched_preferred = [
             s for s in job.preferred_skills
-            if s.strip().lower() in cand_skills_norm
+            if _matches(s)
         ]
         missing_preferred = [
             s for s in job.preferred_skills
-            if s.strip().lower() not in cand_skills_norm
+            if not _matches(s)
         ]
         if job.preferred_skills:
             preferred_match_score = round(

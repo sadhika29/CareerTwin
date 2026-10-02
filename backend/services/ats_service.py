@@ -90,8 +90,7 @@ def calculate_section_completeness(
     resume_text: str,
     required_sections: list[str] | None = None,
 ) -> float:
-    """Calculate resume section completeness."""
-
+    """Calculate resume section completeness with support for fresher/student project and certification sections."""
     if required_sections is None:
         required_sections = [
             "education",
@@ -102,11 +101,17 @@ def calculate_section_completeness(
 
     normalized_resume = normalize_keyword(resume_text)
 
-    completed_sections = sum(
-        1
-        for section in required_sections
-        if normalize_keyword(section) in normalized_resume
-    )
+    completed_sections = 0
+    for section in required_sections:
+        sec_norm = normalize_keyword(section)
+        if sec_norm in normalized_resume:
+            completed_sections += 1
+        elif sec_norm == "experience" and any(k in normalized_resume for k in ["projects", "certifications", "achievements"]):
+            # For students/freshers without full-time jobs, projects and certifications fulfill practical experience
+            completed_sections += 1
+        elif sec_norm == "projects" and any(k in normalized_resume for k in ["experience", "employment", "work history"]):
+            # For experienced professionals, real-world industry experience fulfills practical projects
+            completed_sections += 1
 
     if not required_sections:
         return 0.0
@@ -148,7 +153,7 @@ def validate_resume_document(resume_text: str) -> dict:
     )
     
     # Contact patterns (email, phone)
-    email_present = bool(re.search(r"[\w\.-]+@[\w\.-]+\.\w+", resume_text))
+    email_present = bool(re.search(r"[\w\.-]+@[\w\.-]+\.\w+", resume_text)) or bool(re.search(r"\b[a-zA-Z0-9_\.-]+\s+(?:Gmail|Outlook|Yahoo)\b", resume_text, re.I))
     phone_present = bool(re.search(r"(\+?\d{1,3}[-.\s]?)?(\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}", resume_text))
     
     # Non-resume indicators (e.g. invoices, academic papers without career info, random scripts)
@@ -184,29 +189,57 @@ def validate_resume_document(resume_text: str) -> dict:
 
 def detect_contact_info(resume_text: str) -> dict:
     """Detect contact information and professional links in the resume."""
+    # Email detection (standard regex + handle + platform)
     email_match = re.search(r"[\w\.-]+@[\w\.-]+\.\w+", resume_text)
-    phone_match = re.search(r"(\+?\d{1,3}[-.\s]?)?(\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}", resume_text)
-    linkedin_match = re.search(r"linkedin\.com/in/[\w\-]+", resume_text, re.I)
-    github_match = re.search(r"github\.com/[\w\-]+", resume_text, re.I)
-    portfolio_match = re.search(r"(https?://)?[\w\-]+(\.dev|\.io|\.com|\.me|portfolio)", resume_text, re.I)
+    detected_email = email_match.group(0) if email_match else None
+    if not detected_email:
+        alt_email = re.search(r"\b([a-zA-Z0-9_\.-]+)\s*(?:@|\bat\b|\s+)(gmail|outlook|yahoo|hotmail|protonmail|icloud)(?:\.com)?\b", resume_text, re.I)
+        if alt_email:
+            detected_email = f"{alt_email.group(1)}@{alt_email.group(2).lower()}.com"
 
-    has_email = bool(email_match)
-    has_phone = bool(phone_match)
-    has_linkedin = bool(linkedin_match)
-    has_links = bool(github_match or portfolio_match or linkedin_match)
+    # Phone detection
+    phone_match = re.search(r"(\+?\d{1,3}[-.\s]?)?(\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}", resume_text)
+    detected_phone = phone_match.group(0) if phone_match else None
+
+    # LinkedIn detection (URL or handle + platform)
+    linkedin_match = re.search(r"(?:https?://)?(?:www\.)?linkedin\.com/in/([\w\-]+)", resume_text, re.I)
+    detected_linkedin = linkedin_match.group(0) if linkedin_match else None
+    if not detected_linkedin:
+        alt_li = re.search(r"\b([a-zA-Z0-9_\-]+)\s+Linkedin\b|\bLinkedin\s*[:|-]?\s*([a-zA-Z0-9_\-]+)\b", resume_text, re.I)
+        if alt_li:
+            handle = alt_li.group(1) or alt_li.group(2)
+            detected_linkedin = f"linkedin.com/in/{handle}"
+
+    # GitHub detection
+    github_match = re.search(r"(?:https?://)?(?:www\.)?github\.com/([\w\-]+)", resume_text, re.I)
+    detected_github = github_match.group(0) if github_match else None
+    if not detected_github:
+        alt_gh = re.search(r"\b([a-zA-Z0-9_\-]+)\s+GitHub\b|\bGitHub\s*[:|-]?\s*([a-zA-Z0-9_\-]+)\b", resume_text, re.I)
+        if alt_gh:
+            handle = alt_gh.group(1) or alt_gh.group(2)
+            detected_github = f"github.com/{handle}"
+
+    portfolio_match = re.search(r"(https?://)?[\w\-]+(\.dev|\.io|\.com|\.me|portfolio)", resume_text, re.I)
+    coding_platforms = bool(re.search(r"\b(leetcode|hackerrank|codeforces|codechef|kaggle)\b", resume_text, re.I))
+
+    has_email = bool(detected_email)
+    has_phone = bool(detected_phone)
+    has_linkedin = bool(detected_linkedin)
+    has_links = bool(detected_github or portfolio_match or coding_platforms or has_linkedin)
 
     completeness = (
-        (40.0 if has_email else 0.0)
+        (35.0 if has_email else 0.0)
         + (30.0 if has_phone else 0.0)
-        + (15.0 if has_linkedin else 0.0)
+        + (20.0 if has_linkedin else 0.0)
         + (15.0 if has_links else 0.0)
     )
 
     return {
-        "email": email_match.group(0) if email_match else None,
-        "phone": phone_match.group(0) if phone_match else None,
-        "linkedin": linkedin_match.group(0) if linkedin_match else None,
-        "contact_score": round(completeness, 1),
+        "email": detected_email,
+        "phone": detected_phone,
+        "linkedin": detected_linkedin,
+        "github": detected_github,
+        "contact_score": round(min(100.0, completeness), 1),
     }
 
 
@@ -231,21 +264,23 @@ def calculate_action_verbs_score(resume_text: str) -> tuple[float, list[str]]:
 def calculate_quantifiable_metrics_score(resume_text: str) -> tuple[float, list[str]]:
     """Detect metrics, percentages, and quantifiable achievements in the resume."""
     metrics_patterns = [
-        r"\b\d+%\b",                           # e.g., 25%
-        r"\$\s*\d+[\d,]*(\.\d+)?\s*(k|m|b)?\b", # e.g., $50k, $1.2M
-        r"\b\d+\s*(x|times)\b",                # e.g., 3x, 5 times
-        r"\b\d+\+\b",                          # e.g., 100+
-        r"\b(reduced|increased|saved|grew|scaled)\s+by\s+\d+", # e.g. reduced by 40%
-        r"\b(revenue|budget|cost|time)\s*(of)?\s*\$?\d+",
+        r"\b\d+(?:\.\d+)?%(?!\w)",                                                     # e.g., 85.1%, 25%, 99.999%
+        r"\b(?:cgpa|gpa)\s*[:|=|-]?\s*\d+(?:\.\d+)?(?:\s*/\s*\d+(?:\.\d+)?)?\b",       # e.g., CGPA: 8.24
+        r"\$\s*\d+[\d,]*(?:\.\d+)?\s*(?:k|m|b)?\b",                                   # e.g., $50k, $1.2M
+        r"\b\d+\s*(?:x|times)\b",                                                      # e.g., 3x, 5 times
+        r"\b\d+\+\b",                                                                  # e.g., 100+, 12+
+        r"\b(?:top\s*\d+%?|rank\s*\d+|qualified\s+to\s+second\s+level|level\s*\d+|1st\s+place|2nd\s+place|finalist)\b",
+        r"\b(?:reduced|increased|saved|grew|scaled|improved)\s+(?:by\s+)?\d+(?:\.\d+)?%?",
+        r"\b(?!(?:19|20)\d{2}\b)\d+[\d,]*(?:\.\d+)?\s*(?:k|m|b)?\s*(?:ops/sec|qps|nodes|datacenters|servers|hosts|engineers|users|clients|students|projects|models|endpoints|commits|stars|hires|roles|publications|papers|years|yrs)\b",
+        r"\b(?:revenue|budget|cost|time)\s*(?:of)?\s*\$?\d+",
     ]
     
     found_metrics = []
     for pat in metrics_patterns:
-        matches = re.findall(pat, resume_text, re.I)
-        for m in matches:
-            val = m if isinstance(m, str) else m[0]
-            if val and len(val.strip()) > 1 and val.strip() not in found_metrics:
-                found_metrics.append(val.strip())
+        for match in re.finditer(pat, resume_text, re.I):
+            val = match.group(0).strip()
+            if val and len(val) > 1 and val not in found_metrics:
+                found_metrics.append(val)
 
     # Target is at least 3-4 quantifiable outcome mentions
     score = min(100.0, (len(found_metrics) / 3.0) * 100.0)
