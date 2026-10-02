@@ -7,7 +7,10 @@ const axiosClient = axios.create({
 })
 
 axiosClient.interceptors.request.use((config) => {
-  config.headers['X-User-ID'] = localStorage.getItem('career_user') || 'demo-student'
+  const user = localStorage.getItem('career_user')
+  if (user) {
+    config.headers['X-User-ID'] = user
+  }
   const token = localStorage.getItem('career_access_token')
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config

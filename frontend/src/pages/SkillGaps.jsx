@@ -12,7 +12,7 @@ export default function SkillGaps() {
   const [loading, setLoading] = useState(false)
   const [taxonomy, setTaxonomy] = useState([])
 
-  const userId = 'demo-student'
+  const userId = localStorage.getItem('career_user') || ''
 
   const roleTemplates = {
     'Software Engineer': ['Python', 'FastAPI', 'SQL', 'Docker', 'System Design', 'Git', 'Data Structures & Algorithms'],

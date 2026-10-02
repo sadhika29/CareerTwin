@@ -26,10 +26,10 @@ export default function Jobs() {
   // Matching state
   const [matchingJobId, setMatchingJobId] = useState(null)
   const [matchResult, setMatchResult] = useState(null)
-  const [candidateSkills, setCandidateSkills] = useState(['Python', 'React', 'FastAPI', 'PostgreSQL', 'Docker', 'Git'])
+  const [candidateSkills, setCandidateSkills] = useState([])
   const [userResumes, setUserResumes] = useState([])
 
-  const userId = 'demo-student'
+  const userId = localStorage.getItem('career_user') || ''
 
   const handleTrackJob = async (job) => {
     try {
