@@ -52,71 +52,15 @@ class GenerateStrategyRequest(BaseModel):
     description: Optional[str] = None
 
 
-# In-memory storage for applications seeded with initial real-world examples
-_applications: Dict[str, List[Dict[str, Any]]] = {
-    "demo-student": [
-        {
-            "id": "app-1",
-            "company": "Northstar Labs",
-            "role": "Frontend Engineer",
-            "location": "Bengaluru or Remote",
-            "status": "Interviewing",
-            "date": "2026-09-24",
-            "salary": "$115k - $135k",
-            "notes": "Technical screening cleared. Next round: Systems Architecture & React Performance.",
-            "next_step": "System design round scheduled for Thursday",
-            "match_score": 88,
-            "description": "Building high-performance design system and web platform components using React, TypeScript, and modern browser standards."
-        },
-        {
-            "id": "app-2",
-            "company": "TechNova Systems",
-            "role": "Full Stack Engineer",
-            "location": "Remote",
-            "status": "Applied",
-            "date": "2026-09-28",
-            "salary": "$120k - $140k",
-            "notes": "Applied with AI-tailored resume via referral.",
-            "next_step": "Awaiting recruiter response",
-            "match_score": 82,
-            "description": "Developing FastAPI and PostgreSQL microservices with React frontends in an agile cloud ecosystem."
-        },
-        {
-            "id": "app-3",
-            "company": "Orbit Systems",
-            "role": "Product Engineer",
-            "location": "San Francisco / Remote",
-            "status": "Saved",
-            "date": "2026-09-29",
-            "salary": "$130k - $155k",
-            "notes": "High growth startup in enterprise developer tools.",
-            "next_step": "Tailor resume before submitting application",
-            "match_score": 75,
-            "description": "Collaborate with designers and founders to ship user-facing products with React and distributed cloud backends."
-        },
-        {
-            "id": "app-4",
-            "company": "Fieldwork AI",
-            "role": "Cloud Platform Engineer",
-            "location": "Bengaluru",
-            "status": "Offer",
-            "date": "2026-09-15",
-            "salary": "$125k + Equity",
-            "notes": "Received written offer! Reviewing compensation package.",
-            "next_step": "Respond with negotiation parameters by Monday",
-            "match_score": 92,
-            "description": "Scale Kubernetes, Docker pipelines, and automated cloud workflows."
-        }
-    ]
-}
+# In-memory storage for applications per user
+_applications: Dict[str, List[Dict[str, Any]]] = {}
 
 
 @router.get("")
 async def get_applications(user_id: str = Depends(get_current_user)) -> Dict[str, Any]:
     """Retrieve all tracked applications and aggregate analytics."""
-    apps = _applications.get(user_id)
-    if apps is None:
-        apps = list(_applications["demo-student"])
+    apps = _applications.get(user_id, [])
+    if user_id not in _applications:
         _applications[user_id] = apps
 
     total = len(apps)
@@ -240,8 +184,10 @@ async def generate_app_ai_strategy(
     description = (payload.description if payload and payload.description else target.get("description")) if target else None
 
     # Retrieve candidate profile skills
-    profile = _user_profiles.get(user_id, _user_profiles["demo-student"])
-    skills = profile.get("skills", ["Python", "React", "FastAPI", "PostgreSQL", "Docker"])
+    profile = _user_profiles.get(user_id, {})
+    from backend.api.dependencies import career_states
+    user_state = career_states.get(user_id)
+    skills = profile.get("skills") or getattr(user_state, "skills", None) or []
 
     agent = _get_agent()
     strategy = agent.generate_application_strategy(

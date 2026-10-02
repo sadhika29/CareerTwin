@@ -45,32 +45,8 @@ class ProfileAdvisorRequest(BaseModel):
     current_skills: Optional[List[str]] = None
 
 
-# In-memory storage for user profiles with rich default demo-student profile
-_user_profiles: Dict[str, Dict[str, Any]] = {
-    "demo-student": {
-        "full_name": "Navya Sharma",
-        "username": "navya",
-        "email": "navya@example.com",
-        "target_role": "Full Stack Engineer",
-        "education": "B.Tech Computer Science & Engineering",
-        "graduation_year": "2027",
-        "skills": ["Python", "FastAPI", "React", "PostgreSQL", "Docker", "Git"],
-        "interests": "Scalable cloud distributed systems, modern AI-native applications, web performance",
-        "dream_companies": ["Google", "Stripe", "Microsoft", "Atlassian"],
-        "bio": "Passionate engineering student building high-performance web applications and mastering distributed systems.",
-        "ai_persona": {
-            "career_persona_title": "Aspiring Full Stack & Cloud Systems Engineer",
-            "executive_summary": "High-potential software engineering student combining strong Python/React full-stack acumen with deep passion for distributed cloud architecture. Actively preparing for top-tier software engineering roles.",
-            "elevator_pitch": "I build robust, full-stack web applications with Python, FastAPI, and React, focusing on resilient system architecture and seamless user experiences.",
-            "predicted_target_role": "Full Stack Engineer",
-            "top_priority_skills": ["System Design", "Docker", "PostgreSQL", "FastAPI", "React"],
-            "immediate_actions": [
-                {"action": "Simulate technical architecture mock interview", "impact": "Critical", "timeframe": "This week"},
-                {"action": "Complete Docker containerization project", "impact": "High", "timeframe": "Next 7 days"}
-            ]
-        }
-    }
-}
+# In-memory storage for user profiles per authenticated user
+_user_profiles: Dict[str, Dict[str, Any]] = {}
 
 
 @router.get("")
@@ -78,14 +54,23 @@ async def get_profile(user_id: str = Depends(get_current_user)) -> Dict[str, Any
     """Retrieve the current user profile, career twin summary, and active AI persona."""
     profile = _user_profiles.get(user_id)
     if not profile:
-        profile = dict(_user_profiles["demo-student"])
-        profile["username"] = user_id
-        profile["email"] = f"{user_id}@example.com"
+        profile = {
+            "username": user_id,
+            "full_name": user_id.replace("_", " ").replace("-", " ").title(),
+            "email": f"{user_id}@example.com",
+            "target_role": "Software Engineer",
+            "education": "",
+            "graduation_year": "",
+            "skills": [],
+            "interests": "",
+            "dream_companies": [],
+            "bio": "",
+        }
         _user_profiles[user_id] = profile
 
     # Attach live digital twin score if available
     state = career_states.get(user_id)
-    twin_score = getattr(state, "digital_twin_score", None) if state else 76
+    twin_score = getattr(state, "digital_twin_score", None) if state else None
 
     return {
         "user_id": user_id,
@@ -130,7 +115,7 @@ async def ai_profile_advisor(
     Takes raw student input -> AI diagnoses true career intent -> AI synthesizes roadmap ->
     AI refines into executive career persona with immediate actions.
     """
-    profile = _user_profiles.get(user_id, _user_profiles["demo-student"])
+    profile = _user_profiles.get(user_id, {})
     agent = _get_agent()
 
     skills = payload.current_skills or profile.get("skills", [])
@@ -163,7 +148,7 @@ async def apply_ai_persona(
     user_id: str = Depends(get_current_user),
 ) -> Dict[str, Any]:
     """Apply the latest AI persona recommendations directly to the student profile."""
-    profile = _user_profiles.get(user_id, _user_profiles["demo-student"])
+    profile = _user_profiles.get(user_id, {})
     persona = profile.get("ai_persona", {})
 
     if persona:

@@ -49,7 +49,17 @@ async def upload_resume(
     """Upload, parse, store, and persist a resume."""
     resolved_user_id = user_id.strip() if user_id and user_id.strip() else request.headers.get("X-User-ID", "").strip()
     if not resolved_user_id:
-        resolved_user_id = "demo-student"
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1].strip()
+            from backend.api.routes.auth import _tokens
+            resolved_user_id = _tokens.get(token, "")
+
+    if not resolved_user_id or resolved_user_id in ("null", "undefined", "string"):
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required. Please provide a valid user_id or authentication token.",
+        )
 
     if not file.filename:
         raise HTTPException(
@@ -141,7 +151,7 @@ async def analyze_resume(
     request: ResumeAnalysisRequest,
 ):
     try:
-        storage = LocalResumeStorage()
+        storage = get_resume_storage()
         database = FirestoreDatabase()
 
         service = ResumeService(

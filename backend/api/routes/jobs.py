@@ -317,6 +317,31 @@ async def get_job_by_id(job_id: str):
     except Exception:
         pass
 
+    # If not found in database, query live OpenWebNinja JSearch details
+    try:
+        from backend.services.jsearch_client import JSearchClient
+        live_details = JSearchClient().get_job_details(job_id)
+        if live_details:
+            return JobResponse(
+                job_id=live_details.get("job_id", job_id),
+                user_id="live_market",
+                title=live_details.get("title", "Software Engineer"),
+                company=live_details.get("company", "Company"),
+                location=live_details.get("location", "Remote"),
+                job_url=live_details.get("job_url", ""),
+                description=live_details.get("description", ""),
+                required_skills=live_details.get("required_skills", []),
+                preferred_skills=live_details.get("preferred_skills", []),
+                experience_requirements=live_details.get("experience_requirements", []),
+                qualifications=live_details.get("qualifications", []),
+                responsibilities=live_details.get("responsibilities", []),
+                keywords=live_details.get("keywords", []),
+                created_at=live_details.get("posted_at"),
+                updated_at=live_details.get("posted_at"),
+            )
+    except Exception:
+        pass
+
     sample_jobs = {
         "job_sample_1": {
             "job_id": "job_sample_1",
@@ -521,4 +546,61 @@ async def check_job_eligibility(
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+# ==============================================================================
+# LIVE MARKET INTELLIGENCE (OPENWEBNINJA JSEARCH API)
+# ==============================================================================
+
+@router.get("/live/search")
+async def search_live_jobs(
+    query: str = Query(..., description="Job search query, e.g. Python Developer"),
+    location: str | None = Query(None, description="Location filter, e.g. Bengaluru, India"),
+    num_pages: int = Query(1, ge=1, le=5),
+    is_remote: bool = Query(False, description="Filter remote positions"),
+):
+    """Search live verified current market job postings across the web."""
+    try:
+        from backend.services.jsearch_client import JSearchClient
+        client = JSearchClient()
+        jobs = client.search_jobs(
+            query=query,
+            location=location,
+            num_pages=num_pages,
+            is_remote=is_remote,
+        )
+        return {"query": query, "location": location, "count": len(jobs), "jobs": jobs}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Live job search failed: {exc}")
+
+
+@router.get("/live/salary-estimate")
+async def get_estimated_salary(
+    job_title: str = Query(..., description="Job title, e.g. Python Developer"),
+    location: str | None = Query("India", description="Location benchmark"),
+    radius: int = Query(100, ge=10, le=500),
+):
+    """Retrieve compensation benchmarks from live market data."""
+    try:
+        from backend.services.jsearch_client import JSearchClient
+        client = JSearchClient()
+        data = client.get_estimated_salary(job_title=job_title, location=location, radius=radius)
+        return data or {"status": "unavailable", "message": "Salary data not available for this role."}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Salary estimation failed: {exc}")
+
+
+@router.get("/live/company-salary")
+async def get_company_salary(
+    company: str = Query(..., description="Company name, e.g. Cognizant, Google"),
+    job_title: str = Query(..., description="Job title, e.g. Software Engineer"),
+):
+    """Retrieve reported compensation for a specific company and role."""
+    try:
+        from backend.services.jsearch_client import JSearchClient
+        client = JSearchClient()
+        data = client.get_company_salary(company=company, job_title=job_title)
+        return data or {"status": "unavailable", "message": "Company compensation not reported."}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Company salary query failed: {exc}")

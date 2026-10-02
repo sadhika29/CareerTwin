@@ -35,6 +35,9 @@ router = APIRouter(prefix="/api/v1/preparation", tags=["preparation"])
 # Shared agent instance (lazy LLM init)
 _agent: PreparationAgent | None = None
 
+# In-memory report storage (would be Firestore in production)
+_user_test_reports: Dict[str, List[Dict[str, Any]]] = {}
+
 
 def _get_agent() -> PreparationAgent:
     global _agent
@@ -243,8 +246,8 @@ async def create_assessment(payload: AssessmentRequest, user_id: str = Depends(g
                 difficulty=q.get("difficulty", payload.difficulty),
                 question=q.get("question", ""),
                 options=q.get("options", []),
-                correct_answer=q.get("correct_answer"),
-                explanation=q.get("explanation"),
+                correct_answer=None,  # NEVER send to browser
+                explanation=None,     # NEVER send to browser
             )
             for i, q in enumerate(questions_raw)
         ]
@@ -308,7 +311,9 @@ async def submit_assessment(payload: AssessmentSubmission):
             ))
             report = svc_eval(asmt, payload)
 
-        return {**report, "user_id": payload.user_id}
+        final_report = {**report, "user_id": payload.user_id}
+        _user_test_reports.setdefault(payload.user_id, []).append(final_report)
+        return final_report
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Assessment evaluation failed: {str(e)}")
 
@@ -324,10 +329,11 @@ async def reattempt_incomplete(payload: ReattemptIncompleteRequest):
     """
     try:
         agent = _get_agent()
+        desired_count = len(payload.specific_question_ids) if payload.specific_question_ids else 5
         questions_raw = agent.generate_assessment(
             category=payload.category,
             difficulty="medium",
-            count=max(len(payload.specific_question_ids or []), 5),
+            count=desired_count,
             topic="Remediation — failed and skipped topics",
         )
         questions = [
@@ -363,9 +369,10 @@ async def reattempt_incomplete(payload: ReattemptIncompleteRequest):
 
 @router.get("/reports")
 async def get_test_reports(user_id: str = Depends(get_current_user)):
+    reports = _user_test_reports.get(user_id, [])
     return {
         "user_id": user_id,
-        "reports": [],
+        "reports": reports,
     }
 
 
