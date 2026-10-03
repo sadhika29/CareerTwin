@@ -16,4 +16,6 @@ async def career_twin_error_handler(request: Request, exc: CareerTwinError) -> J
 
 
 async def validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
-	return JSONResponse(status_code=422, content={"success": False, "error": {"code": "INVALID_REQUEST", "message": "Request validation failed"}})
+	errors = exc.errors()
+	msg = f"{errors[0]['loc'][-1]}: {errors[0]['msg']}" if errors else "Request validation failed"
+	return JSONResponse(status_code=422, content={"success": False, "error": {"code": "INVALID_REQUEST", "message": msg}})

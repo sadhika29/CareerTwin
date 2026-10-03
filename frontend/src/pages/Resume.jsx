@@ -1,396 +1,389 @@
-import { useState, useEffect } from 'react'
-import { Page } from './_shared'
-import { uploadResume, analyzeResume, listResumes } from '../features/resume/resumeService'
-import { UploadCloud, FileText, CheckCircle2, AlertTriangle, RefreshCw, ShieldCheck } from 'lucide-react'
-
+import { useState, useEffect, useRef } from 'react';
+import { uploadResume, analyzeResume, listResumes } from '../features/resume/resumeService';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import { 
+  UploadCloud, FileText, CheckCircle2, AlertTriangle, RefreshCw, 
+  ShieldCheck, Sparkles, Check, ChevronRight 
+} from 'lucide-react';
 
 export default function Resume() {
-  const [file, setFile] = useState(null)
-  const [uploading, setUploading] = useState(false)
-  const [analyzing, setAnalyzing] = useState(false)
-  const [analysisResult, setAnalysisResult] = useState(null)
-  const [message, setMessage] = useState('')
-  const [isError, setIsError] = useState(false)
-  const [pastResumes, setPastResumes] = useState([])
+  const [file, setFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState(null);
+  const [message, setMessage] = useState('');
+  const [isError, setIsError] = useState(false);
+  const [pastResumes, setPastResumes] = useState([]);
+  const [targetRole, setTargetRole] = useState('');
+  const fileInputRef = useRef(null);
 
-  // Load past resumes if available
   useEffect(() => {
     async function fetchPast() {
       try {
-        const data = await listResumes()
+        const data = await listResumes();
         if (data && data.resumes) {
-          setPastResumes(data.resumes)
+          setPastResumes(data.resumes);
         }
       } catch {
-        // Silently fallback if local storage empty
+        // Silently fallback
       }
     }
-    fetchPast()
-  }, [])
+    fetchPast();
+  }, []);
 
   const handleFileChange = (e) => {
-    const selected = e.target.files[0]
+    const selected = e.target.files[0];
     if (selected) {
-      const ext = selected.name.split('.').pop().toLowerCase()
+      const ext = selected.name.split('.').pop().toLowerCase();
       if (ext !== 'pdf' && ext !== 'docx') {
-        setIsError(true)
-        setMessage('Only PDF (.pdf) and Word (.docx) resumes are supported.')
-        setFile(null)
-        return
+        setIsError(true);
+        setMessage('Only PDF (.pdf) and Word (.docx) resumes are supported.');
+        setFile(null);
+        return;
       }
-      setFile(selected)
-      setMessage('')
-      setIsError(false)
+      setFile(selected);
+      setMessage('');
+      setIsError(false);
     }
-  }
-
-  const [targetRole, setTargetRole] = useState('')
+  };
 
   const handleUpload = async () => {
     if (!file) {
-      setIsError(true)
-      return setMessage('Please select a PDF or DOCX resume file first.')
+      setIsError(true);
+      return setMessage('Please select a PDF or DOCX resume file first.');
     }
 
-    setUploading(true)
-    setMessage('')
-    setIsError(false)
+    setUploading(true);
+    setMessage('');
+    setIsError(false);
 
     try {
-      const result = await uploadResume(file)
-      setIsError(false)
-      setMessage(`Resume "${result.filename}" uploaded and parsed successfully!`)
-      setPastResumes((prev) => [result, ...prev.filter((r) => r.resume_id !== result.resume_id)])
-
-      // Automatically run ATS & Skill Analysis
-      await runAnalysis(result.resume_id)
+      const result = await uploadResume(file);
+      setIsError(false);
+      setMessage(`Resume "${result.filename}" uploaded and parsed successfully!`);
+      setPastResumes((prev) => [result, ...prev.filter((r) => r.resume_id !== result.resume_id)]);
+      await runAnalysis(result.resume_id);
     } catch (err) {
-      console.error('Upload error:', err)
-      setIsError(true)
-      const detail = err.response?.data?.detail || err.message || 'Failed to upload resume.'
-      setMessage(typeof detail === 'string' ? detail : 'Resume upload failed. Please ensure the backend server is running.')
+      console.error('Upload error:', err);
+      setIsError(true);
+      const detail = err.response?.data?.detail || err.message || 'Failed to upload resume.';
+      setMessage(typeof detail === 'string' ? detail : 'Resume upload failed. Please ensure the backend server is running.');
     } finally {
-      setUploading(false)
+      setUploading(false);
     }
-  }
+  };
 
   const runAnalysis = async (resumeId, customRole) => {
-    setAnalyzing(true)
+    setAnalyzing(true);
     try {
-      const roleToSend = customRole !== undefined ? customRole : targetRole
+      const roleToSend = customRole !== undefined ? customRole : targetRole;
       const result = await analyzeResume(resumeId, {
         target_role: roleToSend && roleToSend !== 'auto' ? roleToSend : undefined,
-      })
-      setAnalysisResult(result)
+      });
+      setAnalysisResult(result);
     } catch (err) {
-      console.error('Analysis error:', err)
-      setIsError(true)
-      setMessage('Failed to complete real-time resume analysis.')
+      console.error('Analysis error:', err);
+      setIsError(true);
+      setMessage('Failed to complete real-time resume analysis.');
     } finally {
-      setAnalyzing(false)
+      setAnalyzing(false);
     }
-  }
+  };
 
   return (
-    <Page
-      eyebrow="CareerTwin · Resume Intelligence"
-      title="Resume Health & ATS Intelligence"
-      subtitle="Upload any candidate resume to extract skills, compute ATS compatibility scores, and discover missing keywords."
-    >
-      <div className="grid grid-2">
+    <div className="animate-in fade-in duration-500 pb-12">
+      <div className="mb-8">
+        <h1 className="text-3xl font-heading font-bold text-text-primary mb-2 flex items-center gap-3">
+          Resume Intelligence
+          <Sparkles size={24} className="text-ai" />
+        </h1>
+        <p className="text-text-secondary text-base">
+          Upload any candidate resume to extract skills, compute ATS compatibility scores, and discover missing keywords.
+        </p>
+      </div>
 
-        {/* Upload Card */}
-        <div className="card">
-          <h2>Upload Resume</h2>
-          <p style={{ fontSize: 13, color: 'var(--muted)', margin: '0 0 16px', lineHeight: 1.5 }}>
-            Upload a PDF or Word document. Our parser extracts clean text, identifies sections, and triggers the Resume Intelligence Agent.
-          </p>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Left Side - Upload Workspace */}
+        <div className="lg:col-span-5 flex flex-col gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Upload Resume</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-text-muted mb-6">
+                Upload a PDF or Word document. Our parser extracts clean text, identifies sections, and triggers the AI Agent.
+              </p>
 
-          <div
-            style={{
-              border: '2px dashed #cbd5e1',
-              borderRadius: 10,
-              padding: '28px 20px',
-              textAlign: 'center',
-              background: '#f8fafc',
-              cursor: 'pointer',
-              marginBottom: 16,
-            }}
-            onClick={() => document.getElementById('resume-file-input').click()}
-          >
-            <input
-              id="resume-file-input"
-              type="file"
-              accept=".pdf,.docx"
-              style={{ display: 'none' }}
-              onChange={handleFileChange}
-            />
-            <div style={{ display: 'grid', placeItems: 'center', marginBottom: 10, color: 'var(--blue)' }}>
-              <UploadCloud size={36} />
-            </div>
-            {file ? (
-              <div>
-                <strong style={{ color: 'var(--navy)', fontSize: 14 }}>{file.name}</strong>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>
-                  {(file.size / 1024).toFixed(1)} KB · Ready to upload
+              <div
+                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors mb-6 ${
+                  file ? 'border-primary bg-primary/5' : 'border-border bg-background hover:bg-border/30 hover:border-text-muted'
+                }`}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.docx"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                <div className="flex justify-center mb-4 text-primary">
+                  <UploadCloud size={40} strokeWidth={1.5} />
                 </div>
+                {file ? (
+                  <div>
+                    <strong className="text-text-primary text-sm font-semibold">{file.name}</strong>
+                    <div className="text-xs text-text-muted mt-1">
+                      {(file.size / 1024).toFixed(1)} KB · Ready to upload
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <strong className="text-text-primary text-sm font-semibold block">Click to choose a file or drag & drop</strong>
+                    <div className="text-xs text-text-muted mt-1">Supported formats: PDF, DOCX (Max 10MB)</div>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div>
-                <strong style={{ color: 'var(--ink)', fontSize: 14 }}>Click to choose a file or drag & drop</strong>
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>Supported formats: PDF, DOCX (Max 10MB)</div>
+
+              <div className="mb-6">
+                <label className="block text-xs font-bold text-text-primary mb-2 uppercase tracking-wide">
+                  Target Industry / Role (Optional)
+                </label>
+                <select
+                  value={targetRole}
+                  onChange={(e) => setTargetRole(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-sm text-text-primary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                >
+                  <option value="">🎯 Auto-Detect from Resume Content</option>
+                  <option value="Software Engineer">💻 Software Engineer</option>
+                  <option value="Frontend Developer">🎨 Frontend Developer</option>
+                  <option value="Backend Developer">⚙️ Backend Developer</option>
+                  <option value="Data Scientist">📊 Data Scientist / AI Engineer</option>
+                  <option value="Product Manager">🚀 Product Manager</option>
+                  <option value="UI/UX Designer">🖌️ UI/UX & Product Design</option>
+                </select>
               </div>
-            )}
-          </div>
 
-          {/* Target Role Selector */}
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
-              Target Industry / Role (Optional)
-            </label>
-            <select
-              value={targetRole}
-              onChange={(e) => setTargetRole(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                borderRadius: 8,
-                border: '1px solid #cbd5e1',
-                fontSize: 13,
-                background: '#fff',
-                color: 'var(--ink)',
-              }}
-            >
-              <option value="">🎯 Auto-Detect from Resume Content</option>
-              <option value="Software Engineer">💻 Software Engineer</option>
-              <option value="Frontend Developer">🎨 Frontend Developer</option>
-              <option value="Backend Developer">⚙️ Backend Developer</option>
-              <option value="Data Scientist">📊 Data Scientist / AI Engineer</option>
-              <option value="Product Manager">🚀 Product Manager</option>
-              <option value="Human Resources">👥 Human Resources (HR / Recruiter)</option>
-              <option value="Digital Marketing">📈 Digital Marketing / Growth</option>
-              <option value="Sales">💼 Sales & Business Development</option>
-              <option value="Finance">💰 Finance & Accounting</option>
-              <option value="UI/UX Designer">🖌️ UI/UX & Product Design</option>
-              <option value="Operations Manager">📦 Operations & Supply Chain</option>
-            </select>
-          </div>
+              <button
+                className="w-full bg-primary hover:bg-primary-hover text-white font-semibold py-3 rounded-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                disabled={!file || uploading}
+                onClick={handleUpload}
+              >
+                {uploading ? (
+                  <>
+                    <RefreshCw size={18} className="animate-spin" />
+                    Parsing & Uploading...
+                  </>
+                ) : (
+                  <>
+                    <FileText size={18} />
+                    Upload & Process Resume
+                  </>
+                )}
+              </button>
 
-          <button
-            className="button"
-            style={{ width: '100%', padding: '12px 18px', fontSize: 13 }}
-            disabled={!file || uploading}
-            onClick={handleUpload}
-          >
-            {uploading ? (
-              <>
-                <RefreshCw size={15} className="spin" style={{ marginRight: 8 }} />
-                Parsing & Uploading Resume...
-              </>
-            ) : (
-              <>
-                <FileText size={15} style={{ marginRight: 8 }} />
-                Upload & Process Resume
-              </>
-            )}
-          </button>
+              {message && (
+                <div className={`mt-4 p-3 rounded-lg flex items-start gap-3 text-sm ${isError ? 'bg-error/10 text-error border border-error/20' : 'bg-success/10 text-success border border-success/20'}`}>
+                  {isError ? <AlertTriangle size={18} className="mt-0.5 shrink-0" /> : <CheckCircle2 size={18} className="mt-0.5 shrink-0" />}
+                  <span className="font-medium leading-relaxed">{message}</span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-          {message && (
-            <div
-              className={`notice ${isError ? 'error' : ''}`}
-              style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 8 }}
-            >
-              {isError ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}
-              <span>{message}</span>
-            </div>
-          )}
-
-          {/* Past Uploads History */}
           {pastResumes.length > 0 && (
-            <div style={{ marginTop: 24, borderTop: '1px solid var(--line)', paddingTop: 16 }}>
-              <h3 style={{ fontSize: 13, textTransform: 'uppercase', color: 'var(--muted)', letterSpacing: 0.5 }}>
-                Recent Resume Uploads
-              </h3>
-              <ul className="list" style={{ marginTop: 10 }}>
-                {pastResumes.slice(0, 3).map((r) => (
-                  <li key={r.resume_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <FileText size={15} color="var(--blue)" />
-                      <div>
-                        <strong>{r.filename}</strong>
-                        <div style={{ fontSize: 11, color: 'var(--muted)' }}>
-                          {r.file_type.toUpperCase()} · Status: {r.status}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-xs uppercase tracking-widest text-text-muted">Recent Uploads</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <ul className="flex flex-col gap-3">
+                  {pastResumes.slice(0, 3).map((r) => (
+                    <li key={r.resume_id} className="flex justify-between items-center p-3 rounded-lg border border-border bg-background hover:border-primary/30 transition-colors">
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="p-2 bg-primary/10 rounded-md shrink-0">
+                          <FileText size={16} className="text-primary" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-text-primary truncate">{r.filename}</div>
+                          <div className="text-xs text-text-muted mt-0.5">
+                            {r.file_type.toUpperCase()} · {r.status}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <button
-                      className="button secondary"
-                      style={{ padding: '4px 10px', fontSize: 11 }}
-                      onClick={() => runAnalysis(r.resume_id)}
-                    >
-                      Analyze
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-
-        {/* Live Analysis Snapshot Card */}
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <div>
-              <h2 style={{ margin: 0 }}>ATS & Skill Intelligence</h2>
-              {analysisResult?.inferred_domain && (
-                <span className="tag blue" style={{ marginTop: 4, display: 'inline-block' }}>
-                  Industry Domain: {analysisResult.inferred_domain}
-                </span>
-              )}
-            </div>
-            {analyzing && (
-              <span className="tag" style={{ background: '#e0f2fe', color: 'var(--blue)' }}>
-                <RefreshCw size={12} className="spin" style={{ display: 'inline', marginRight: 4 }} /> Analyzing...
-              </span>
-            )}
-          </div>
-
-          {analysisResult ? (
-            <div style={{ display: 'grid', gap: 18 }}>
-              {/* Document Validity Warning */}
-              {analysisResult.is_valid_resume === false && (
-                <div
-                  style={{
-                    padding: 14,
-                    background: '#fef2f2',
-                    border: '1px solid #fecaca',
-                    borderRadius: 8,
-                    color: '#991b1b',
-                    fontSize: 13,
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 10,
-                  }}
-                >
-                  <AlertTriangle size={18} style={{ flexShrink: 0, marginTop: 2 }} />
-                  <div>
-                    <strong>Non-Resume Document Detected</strong>
-                    <div style={{ fontSize: 12, marginTop: 4 }}>
-                      {analysisResult.diagnostics?.validation_reason ||
-                        'The uploaded file does not look like a standard career resume or CV. Please upload a document with experience, education, and skill sections.'}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Score Rings / Metrics */}
-              <div className="grid grid-2">
-                <div style={{ background: '#f8fafc', padding: 14, borderRadius: 8, textAlign: 'center' }}>
-                  <div style={{ font: "800 32px 'Manrope'", color: 'var(--navy)' }}>
-                    {Math.round(analysisResult.ats_score || 0)}%
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase' }}>
-                    ATS Compatibility
-                  </div>
-                </div>
-
-                <div style={{ background: '#f8fafc', padding: 14, borderRadius: 8, textAlign: 'center' }}>
-                  <div style={{ font: "800 32px 'Manrope'", color: 'var(--teal)' }}>
-                    {Math.round(analysisResult.resume_score || 0)}%
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase' }}>
-                    Overall Resume Quality
-                  </div>
-                </div>
-              </div>
-
-              {/* ATS Formatting & Impact Diagnostics */}
-              {analysisResult.diagnostics && (
-                <div style={{ background: '#f8fafc', padding: 12, borderRadius: 8 }}>
-                  <h4 style={{ fontSize: 12, textTransform: 'uppercase', color: 'var(--muted)', margin: '0 0 8px' }}>
-                    ATS Health Diagnostics
-                  </h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, fontSize: 12 }}>
-                    <div>
-                      <strong>Action Verbs:</strong> {analysisResult.diagnostics.action_verbs_found?.length || 0} detected
-                    </div>
-                    <div>
-                      <strong>Impact Metrics:</strong> {analysisResult.diagnostics.quantifiable_metrics?.length || 0} detected
-                    </div>
-                    <div>
-                      <strong>Contact Completeness:</strong> {analysisResult.diagnostics.contact_completeness || 0}%
-                    </div>
-                    <div>
-                      <strong>Section Structure:</strong> {Math.round(analysisResult.section_completeness || 0)}%
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Detected Skills */}
-              <div>
-                <h3 style={{ fontSize: 13, margin: '0 0 8px', color: 'var(--ink)' }}>
-                  Extracted Domain Skills ({analysisResult.resume_skills?.length || 0})
-                </h3>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {(analysisResult.resume_skills || []).map((skill, i) => (
-                    <span key={i} className="tag">
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Keyword Gaps */}
-              {analysisResult.keyword_gaps?.length > 0 && (
-                <div>
-                  <h3 style={{ fontSize: 13, margin: '0 0 8px', color: 'var(--warning)' }}>Missing Industry Keywords</h3>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {analysisResult.keyword_gaps.map((gap, i) => (
-                      <span key={i} className="tag orange">
-                        + {gap}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Strengths */}
-              {analysisResult.resume_strengths?.length > 0 && (
-                <div>
-                  <h3 style={{ fontSize: 13, margin: '0 0 8px', color: 'var(--teal)' }}>Identified Strengths</h3>
-                  <ul className="list">
-                    {analysisResult.resume_strengths.map((str, i) => (
-                      <li key={i} style={{ padding: '6px 0', fontSize: 12 }}>
-                        <span>{str}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Recommendations */}
-              <div>
-                <h3 style={{ fontSize: 13, margin: '0 0 8px', color: 'var(--navy)' }}>Actionable Recommendations</h3>
-                <ul className="list">
-                  {(analysisResult.recommendations || []).map((rec, i) => (
-                    <li key={i} style={{ padding: '6px 0', fontSize: 12 }}>
-                      <span>{rec}</span>
+                      <button
+                        className="shrink-0 ml-4 px-3 py-1.5 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary hover:text-white rounded-md transition-colors"
+                        onClick={() => runAnalysis(r.resume_id)}
+                      >
+                        Analyze
+                      </button>
                     </li>
                   ))}
                 </ul>
-              </div>
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--muted)' }}>
-              <ShieldCheck size={36} style={{ color: '#cbd5e1', marginBottom: 10 }} />
-              <p style={{ margin: 0, fontSize: 13 }}>
-                Upload a resume on the left to see instant ATS matching, domain skill extraction, and keyword gap analysis across any profession.
-              </p>
-            </div>
+              </CardContent>
+            </Card>
           )}
         </div>
+
+        {/* Right Side - Analysis Results */}
+        <div className="lg:col-span-7">
+          <Card className="h-full border-primary/20 bg-gradient-to-br from-background to-ai/5">
+            <CardContent className="p-6 md:p-8 h-full flex flex-col">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-xl font-heading font-bold text-text-primary">ATS & Skill Intelligence</h2>
+                  {analysisResult?.inferred_domain && (
+                    <span className="inline-flex mt-2 items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-ai/10 text-ai border border-ai/20">
+                      Domain: {analysisResult.inferred_domain}
+                    </span>
+                  )}
+                </div>
+                {analyzing && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary animate-pulse">
+                    <RefreshCw size={14} className="animate-spin" /> Analyzing...
+                  </span>
+                )}
+              </div>
+
+              {analysisResult ? (
+                <div className="flex flex-col gap-6">
+                  {analysisResult.is_valid_resume === false && (
+                    <div className="p-4 bg-error/10 border border-error/20 rounded-xl text-error text-sm flex items-start gap-3">
+                      <AlertTriangle size={20} className="shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="block mb-1 font-bold">Non-Resume Document Detected</strong>
+                        <div className="text-error/80 leading-relaxed">
+                          {analysisResult.diagnostics?.validation_reason ||
+                            'The uploaded file does not look like a standard career resume or CV. Please upload a document with experience, education, and skill sections.'}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Core Scores */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white border border-border p-5 rounded-2xl flex flex-col items-center justify-center text-center shadow-sm">
+                      <div className="text-4xl font-heading font-black text-text-primary mb-1">
+                        {Math.round(analysisResult.ats_score || 0)}%
+                      </div>
+                      <div className="text-xs font-bold text-text-muted uppercase tracking-wider">
+                        ATS Compatibility
+                      </div>
+                    </div>
+                    <div className="bg-white border border-border p-5 rounded-2xl flex flex-col items-center justify-center text-center shadow-sm">
+                      <div className="text-4xl font-heading font-black text-ai mb-1">
+                        {Math.round(analysisResult.resume_score || 0)}%
+                      </div>
+                      <div className="text-xs font-bold text-text-muted uppercase tracking-wider">
+                        Overall Quality
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Skills & Gaps */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h3 className="text-sm font-bold text-text-primary mb-3">Extracted Skills</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {(analysisResult.resume_skills || []).map((skill, i) => (
+                          <span key={i} className="px-2.5 py-1 bg-background border border-border text-text-secondary text-xs rounded-md font-medium">
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {analysisResult.keyword_gaps?.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-bold text-warning mb-3">Missing Keywords</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {analysisResult.keyword_gaps.map((gap, i) => (
+                            <span key={i} className="px-2.5 py-1 bg-warning/10 border border-warning/20 text-warning text-xs rounded-md font-medium">
+                              + {gap}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Diagnostics */}
+                  {analysisResult.diagnostics && (
+                    <div className="bg-white border border-border p-5 rounded-xl mt-2">
+                      <h4 className="text-xs font-bold uppercase tracking-widest text-text-muted mb-4">
+                        ATS Health Diagnostics
+                      </h4>
+                      <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-text-muted">Action Verbs</span>
+                          <span className="font-semibold text-text-primary">{analysisResult.diagnostics.action_verbs_found?.length || 0} detected</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-text-muted">Impact Metrics</span>
+                          <span className="font-semibold text-text-primary">{analysisResult.diagnostics.quantifiable_metrics?.length || 0} detected</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-text-muted">Contact Info</span>
+                          <span className="font-semibold text-text-primary">{analysisResult.diagnostics.contact_completeness || 0}% complete</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-text-muted">Structure</span>
+                          <span className="font-semibold text-text-primary">{Math.round(analysisResult.section_completeness || 0)}% complete</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Strengths & Recommendations */}
+                  <div className="grid grid-cols-1 gap-6 mt-2">
+                    {analysisResult.resume_strengths?.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-bold text-success mb-3 flex items-center gap-2">
+                          <CheckCircle2 size={16} /> Identified Strengths
+                        </h3>
+                        <ul className="flex flex-col gap-2">
+                          {analysisResult.resume_strengths.map((str, i) => (
+                            <li key={i} className="text-sm text-text-secondary flex items-start gap-2">
+                              <Check size={14} className="text-success mt-1 shrink-0" />
+                              <span className="leading-relaxed">{str}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {analysisResult.recommendations?.length > 0 && (
+                      <div className="pt-4 border-t border-border/50">
+                        <h3 className="text-sm font-bold text-primary mb-3 flex items-center gap-2">
+                          <Sparkles size={16} /> Actionable Recommendations
+                        </h3>
+                        <ul className="flex flex-col gap-2">
+                          {(analysisResult.recommendations || []).map((rec, i) => (
+                            <li key={i} className="text-sm text-text-secondary flex items-start gap-2">
+                              <ChevronRight size={14} className="text-primary mt-1 shrink-0" />
+                              <span className="leading-relaxed">{rec}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-8 text-text-muted">
+                  <div className="w-20 h-20 bg-background border border-border rounded-full flex items-center justify-center mb-6">
+                    <ShieldCheck size={40} className="text-border" />
+                  </div>
+                  <h3 className="text-lg font-heading font-bold text-text-primary mb-2">Awaiting Resume</h3>
+                  <p className="text-sm max-w-sm mx-auto leading-relaxed">
+                    Upload a resume on the left to see instant ATS matching, domain skill extraction, and keyword gap analysis across any profession.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </Page>
-  )
+    </div>
+  );
 }

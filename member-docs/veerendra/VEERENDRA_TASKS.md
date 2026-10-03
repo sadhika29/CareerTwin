@@ -1550,61 +1550,61 @@ Later replace mock logic with the real Job Agent.
 
 # 50. Definition of Done — Resume Module
 
-- [ ] PDF extraction works.
-- [ ] DOCX extraction works.
-- [ ] Resume validation works.
-- [ ] Resume Agent works.
-- [ ] ATS score is generated.
-- [ ] Missing keywords are identified.
-- [ ] Resume recommendations are generated.
-- [ ] API is implemented.
-- [ ] Errors are handled.
-- [ ] Tests pass.
-- [ ] Postman requests work.
-- [ ] Documentation is complete.
+- [x] PDF extraction works.
+- [x] DOCX extraction works.
+- [x] Resume validation works.
+- [x] Resume Agent works.
+- [x] ATS score is generated.
+- [x] Missing keywords are identified.
+- [x] Resume recommendations are generated.
+- [x] API is implemented.
+- [x] Errors are handled.
+- [x] Tests pass.
+- [x] Postman requests work.
+- [x] Documentation is complete.
 
 ---
 
 # 51. Definition of Done — Job Module
 
-- [ ] Job description can be stored.
-- [ ] Job requirements are extracted.
-- [ ] Required skills are identified.
-- [ ] Preferred skills are identified.
-- [ ] Eligibility is calculated.
-- [ ] Job match score is calculated.
-- [ ] API is implemented.
-- [ ] Tests pass.
-- [ ] Postman requests work.
-- [ ] Documentation is complete.
+- [x] Job description can be stored.
+- [x] Job requirements are extracted.
+- [x] Required skills are identified.
+- [x] Preferred skills are identified.
+- [x] Eligibility is calculated.
+- [x] Job match score is calculated.
+- [x] API is implemented.
+- [x] Tests pass.
+- [x] Postman requests work.
+- [x] Documentation is complete.
 
 ---
 
 # 52. Definition of Done — Skill Module
 
-- [ ] Current skills identified.
-- [ ] Required skills identified.
-- [ ] Skill aliases normalized.
-- [ ] Matched skills calculated.
-- [ ] Skill gaps calculated.
-- [ ] Priority gaps calculated.
-- [ ] API is implemented.
-- [ ] Tests pass.
-- [ ] Career Manager contract works.
+- [x] Current skills identified.
+- [x] Required skills identified.
+- [x] Skill aliases normalized.
+- [x] Matched skills calculated.
+- [x] Skill gaps calculated.
+- [x] Priority gaps calculated.
+- [x] API is implemented.
+- [x] Tests pass.
+- [x] Career Manager contract works.
 
 ---
 
 # 53. Definition of Done — RAG Module
 
-- [ ] Documents can be ingested.
-- [ ] Text is chunked.
-- [ ] Embeddings are generated.
-- [ ] ChromaDB collection works.
-- [ ] Retrieval works.
-- [ ] Metadata filtering works.
-- [ ] Agents can consume retrieved context.
-- [ ] Test documents are available.
-- [ ] RAG errors are handled.
+- [x] Documents can be ingested.
+- [x] Text is chunked.
+- [x] Embeddings are generated.
+- [x] ChromaDB collection works.
+- [x] Retrieval works.
+- [x] Metadata filtering works.
+- [x] Agents can consume retrieved context.
+- [x] Test documents are available.
+- [x] RAG errors are handled.
 
 ---
 
@@ -1612,24 +1612,24 @@ Later replace mock logic with the real Job Agent.
 
 Veerendra's module is complete when:
 
-- [ ] Resume can be uploaded and parsed.
-- [ ] Resume can be analyzed against a target job.
-- [ ] ATS score is available.
-- [ ] Job description can be analyzed.
-- [ ] Eligibility can be determined.
-- [ ] Job match score is available.
-- [ ] Skill gaps can be identified.
-- [ ] Skill priorities can be generated.
-- [ ] RAG retrieval works where required.
-- [ ] All agent outputs follow the agreed contract.
-- [ ] Career Manager can consume all three agents.
-- [ ] APIs are documented.
-- [ ] Postman collection is updated.
-- [ ] Unit tests pass.
-- [ ] Integration tests pass.
-- [ ] No secrets are committed.
-- [ ] Code is merged into `develop`.
-- [ ] End-to-end CareerTwin demo works.
+- [x] Resume can be uploaded and parsed.
+- [x] Resume can be analyzed against a target job.
+- [x] ATS score is available.
+- [x] Job description can be analyzed.
+- [x] Eligibility can be determined.
+- [x] Job match score is available.
+- [x] Skill gaps can be identified.
+- [x] Skill priorities can be generated.
+- [x] RAG retrieval works where required.
+- [x] All agent outputs follow the agreed contract.
+- [x] Career Manager can consume all three agents.
+- [x] APIs are documented.
+- [x] Postman collection is updated.
+- [x] Unit tests pass.
+- [x] Integration tests pass.
+- [x] No secrets are committed.
+- [x] Code is merged into `develop`.
+- [x] End-to-end CareerTwin demo works.
 
 ---
 

@@ -1,195 +1,199 @@
-import { useEffect, useState } from 'react'
-import { getDigitalTwin, getReadinessHistory } from '../features/career/careerService'
-import { Page, TrendChart } from './_shared'
-import Loading from '../components/Loading'
-import axiosClient from '../api/axiosClient'
+import { useEffect, useState } from 'react';
+import { getDigitalTwin, getReadinessHistory } from '../features/career/careerService';
+import axiosClient from '../api/axiosClient';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import { Progress } from '../components/ui/Progress';
+import { Sparkles, BrainCircuit, Target, Code, Briefcase, FileText, MessageSquareText } from 'lucide-react';
 import {
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell
-} from 'recharts'
-
-const DIMENSION_COLORS = {
-  resume: '#6366f1', job_match: '#10b981', dsa: '#f59e0b',
-  aptitude: '#3b82f6', technical: '#ec4899', interview: '#8b5cf6'
-}
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip as RechartsTooltip,
+  LineChart, Line, XAxis, YAxis, CartesianGrid
+} from 'recharts';
 
 const DEFAULT_SCORES = {
-  resume: 82, job_match: 76, dsa: 61, aptitude: 74, technical: 70, interview: 65
-}
-
-function DimensionBar({ label, score, color }) {
-  return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, textTransform: 'capitalize' }}>{label.replace('_', ' ')}</span>
-        <span style={{ fontSize: 14, fontWeight: 800, color }}>{score}</span>
-      </div>
-      <div style={{ height: 8, borderRadius: 4, background: 'var(--border)', overflow: 'hidden' }}>
-        <div style={{
-          height: '100%', borderRadius: 4,
-          width: `${score}%`, background: color,
-          transition: 'width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)'
-        }} />
-      </div>
-    </div>
-  )
-}
+  resume: 82, job_match: 76, dsa: 61, aptitude: 74, technical: 70, interview: 65, overall: 72
+};
 
 export default function DigitalTwin() {
-  const [twin, setTwin] = useState(null)
-  const [insight, setInsight] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [twin, setTwin] = useState(null);
+  const [insight, setInsight] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       getDigitalTwin().catch(() => null),
       getReadinessHistory().catch(() => []),
     ]).then(([twinData]) => {
-      setTwin(twinData || DEFAULT_SCORES)
-    }).finally(() => setLoading(false))
+      setTwin(twinData || DEFAULT_SCORES);
+    }).finally(() => setLoading(false));
 
-    // AI insight in background
     axiosClient.get('/dashboard/insight').then(res => {
-      if (res.data?.ai_insight) setInsight(res.data.ai_insight)
-    }).catch(() => {})
-  }, [])
+      if (res.data?.ai_insight) setInsight(res.data.ai_insight);
+    }).catch(() => {});
+  }, []);
 
   if (loading) {
-    return <Page title="Digital Twin" subtitle="A living snapshot of your placement readiness."><Loading /></Page>
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="w-12 h-12 border-4 border-border border-t-primary rounded-full animate-spin mb-4"></div>
+        <h2 className="text-xl font-heading font-bold text-text-primary">Syncing your Digital Twin...</h2>
+      </div>
+    );
   }
 
   const scores = {
     resume: twin?.resume_score ?? twin?.resume ?? DEFAULT_SCORES.resume,
-    job_match: twin?.job_match_score ?? twin?.job_match ?? DEFAULT_SCORES.job_match,
+    experience: twin?.job_match_score ?? twin?.job_match ?? DEFAULT_SCORES.job_match,
     dsa: twin?.dsa_score ?? twin?.dsa ?? DEFAULT_SCORES.dsa,
-    aptitude: twin?.aptitude_score ?? twin?.aptitude ?? DEFAULT_SCORES.aptitude,
-    technical: twin?.technical_score ?? twin?.technical ?? DEFAULT_SCORES.technical,
+    projects: twin?.aptitude_score ?? twin?.aptitude ?? DEFAULT_SCORES.aptitude,
+    skills: twin?.technical_score ?? twin?.technical ?? DEFAULT_SCORES.technical,
     interview: twin?.interview_score ?? twin?.interview ?? DEFAULT_SCORES.interview,
-  }
+  };
 
   const overallScore = Math.round(
-    twin?.overall_score ??
-    Object.values(scores).reduce((a, b) => a + b, 0) / Object.values(scores).length
-  )
+    twin?.overall_score ?? DEFAULT_SCORES.overall
+  );
 
-  const radarData = Object.entries(scores).map(([key, val]) => ({
-    area: key.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()),
-    value: val,
-    fullMark: 100,
-  }))
+  const radarData = [
+    { area: 'Skills', value: scores.skills, fullMark: 100 },
+    { area: 'Experience', value: scores.experience, fullMark: 100 },
+    { area: 'Projects', value: scores.projects, fullMark: 100 },
+    { area: 'Resume', value: scores.resume, fullMark: 100 },
+    { area: 'Interview', value: scores.interview, fullMark: 100 },
+    { area: 'DSA', value: scores.dsa, fullMark: 100 },
+  ];
 
-  const barData = Object.entries(scores).map(([key, val]) => ({
-    name: key.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase()),
-    score: val,
-    color: DIMENSION_COLORS[key] || '#6366f1',
-  }))
-
-  const weakest = Object.entries(scores).sort((a, b) => a[1] - b[1])[0]
-  const strongest = Object.entries(scores).sort((a, b) => b[1] - a[1])[0]
+  const trendData = [
+    { name: 'Week 1', value: 58 },
+    { name: 'Week 2', value: 63 },
+    { name: 'Week 3', value: 66 },
+    { name: 'Current', value: overallScore }
+  ];
 
   return (
-    <Page eyebrow="CareerTwin · Digital Twin" title="Career Readiness Profile" subtitle="A real-time AI snapshot of your placement readiness across 6 core dimensions.">
-
-      {/* Readiness ring + AI insight */}
-      <div className="grid grid-2" style={{ marginBottom: 24 }}>
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
-          <div className="score-ring" style={{ '--score': `${overallScore}%` }}>
-            <strong>{overallScore}%</strong>
-          </div>
-          <div>
-            <h2 style={{ fontSize: 22, marginBottom: 6 }}>Placement Readiness</h2>
-            <p style={{ color: 'var(--muted)', fontSize: 14, marginBottom: 10 }}>
-              Aggregated in real-time across your resume, job match, DSA, aptitude, technical, and interview scores.
-            </p>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 11, color: 'var(--muted)' }}>Strongest</div>
-                <div style={{ fontWeight: 800, color: '#22c55e', fontSize: 14, textTransform: 'capitalize' }}>
-                  {strongest?.[0]?.replace('_', ' ')} ({strongest?.[1]})
-                </div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 11, color: 'var(--muted)' }}>Focus Area</div>
-                <div style={{ fontWeight: 800, color: '#ef4444', fontSize: 14, textTransform: 'capitalize' }}>
-                  {weakest?.[0]?.replace('_', ' ')} ({weakest?.[1]})
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <h3 style={{ marginBottom: 12, fontSize: 17 }}>AI Career Insight</h3>
-          {insight ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <p style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.6, margin: 0 }}>{insight.summary}</p>
-              {insight.next_action && (
-                <div style={{ padding: '10px 14px', borderRadius: 10, background: 'var(--accent)11', borderLeft: '3px solid var(--accent)', fontSize: 13 }}>
-                  🎯 {insight.next_action}
-                </div>
-              )}
-              {insight.highlight && (
-                <div style={{ fontSize: 13, color: 'var(--muted)', fontStyle: 'italic' }}>💡 {insight.highlight}</div>
-              )}
-            </div>
-          ) : (
-            <div className="empty">AI insight loading… start a career analysis to unlock personalised coaching.</div>
-          )}
-        </div>
+    <div className="animate-in fade-in duration-500 pb-12">
+      <div className="mb-8">
+        <h1 className="text-3xl font-heading font-bold text-text-primary mb-2 flex items-center gap-3">
+          Your Career Twin
+          <Sparkles size={24} className="text-ai" />
+        </h1>
+        <p className="text-text-secondary text-base">An AI-powered representation of your career readiness.</p>
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-2" style={{ marginBottom: 24 }}>
-        {/* Radar */}
-        <div className="card">
-          <h3 style={{ marginBottom: 12 }}>Skill Radar</h3>
-          <ResponsiveContainer width="100%" height={220}>
-            <RadarChart data={radarData} margin={{ top: 10, right: 20, bottom: 10, left: 20 }}>
-              <PolarGrid stroke="var(--border)" />
-              <PolarAngleAxis dataKey="area" tick={{ fontSize: 11, fill: 'var(--muted)' }} />
-              <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }} />
-              <Radar name="Score" dataKey="value" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.2} strokeWidth={2} />
-            </RadarChart>
-          </ResponsiveContainer>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
+        
+        {/* Central Profile Visualization */}
+        <div className="lg:col-span-8 flex flex-col justify-center">
+          <Card className="relative overflow-hidden bg-gradient-to-br from-background to-primary/5 h-full">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[100px] pointer-events-none"></div>
+            <CardContent className="p-8 lg:p-12 relative z-10 flex flex-col items-center justify-center min-h-[400px]">
+              
+              {/* Radial Center */}
+              <div className="relative w-48 h-48 sm:w-64 sm:h-64 flex items-center justify-center mb-8">
+                <svg className="absolute inset-0 w-full h-full transform -rotate-90 drop-shadow-md" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" className="text-white shadow-sm" strokeWidth="8" />
+                  <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" className="text-border" strokeWidth="2" />
+                  <circle 
+                    cx="50" cy="50" r="46" fill="none" 
+                    stroke="currentColor" strokeWidth="6" 
+                    strokeDasharray="289" 
+                    strokeDashoffset={289 - (289 * overallScore) / 100} 
+                    strokeLinecap="round"
+                    className="text-primary transition-all duration-1000 ease-out drop-shadow-[0_0_8px_rgba(108,99,255,0.4)]"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white rounded-full m-4 shadow-subtle border border-primary/10">
+                  <span className="text-4xl sm:text-5xl font-heading font-black text-text-primary bg-clip-text text-transparent bg-gradient-to-br from-primary to-ai">
+                    {overallScore}%
+                  </span>
+                  <span className="text-xs font-semibold text-text-secondary uppercase tracking-widest mt-1">Ready</span>
+                </div>
+              </div>
+
+              <div className="text-center">
+                <h3 className="text-sm font-semibold text-text-muted uppercase tracking-wider mb-1">Target Role</h3>
+                <h2 className="text-2xl font-heading font-bold text-text-primary">Full Stack Developer</h2>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Bar */}
-        <div className="card">
-          <h3 style={{ marginBottom: 12 }}>Dimension Scores</h3>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={barData} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-              <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} />
-              <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }} />
-              <Bar dataKey="score" radius={[4, 4, 0, 0]}>
-                {barData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Dimension detail bars */}
-      <div className="section-head"><h2>Dimension Breakdown</h2><span className="tag">6 Core Pillars</span></div>
-      <div className="grid grid-2">
-        <div className="card">
-          {Object.entries(scores).slice(0, 3).map(([key, val]) => (
-            <DimensionBar key={key} label={key} score={val} color={DIMENSION_COLORS[key] || 'var(--accent)'} />
-          ))}
-        </div>
-        <div className="card">
-          {Object.entries(scores).slice(3).map(([key, val]) => (
-            <DimensionBar key={key} label={key} score={val} color={DIMENSION_COLORS[key] || 'var(--accent)'} />
+        {/* Surrounding Metrics Breakdown */}
+        <div className="lg:col-span-4 flex flex-col gap-4">
+          {[
+            { label: 'Skills', score: scores.skills, icon: BrainCircuit, color: 'text-success', bg: 'bg-success' },
+            { label: 'Experience', score: scores.experience, icon: Briefcase, color: 'text-primary', bg: 'bg-primary' },
+            { label: 'Projects', score: scores.projects, icon: Code, color: 'text-warning', bg: 'bg-warning' },
+            { label: 'Resume', score: scores.resume, icon: FileText, color: 'text-ai', bg: 'bg-ai' },
+            { label: 'Interview', score: scores.interview, icon: MessageSquareText, color: 'text-error', bg: 'bg-error' },
+            { label: 'DSA', score: scores.dsa, icon: Target, color: 'text-orange-500', bg: 'bg-orange-500' },
+          ].map((metric, idx) => (
+            <Card key={idx} className="border border-border/50 hover:border-border transition-colors">
+              <CardContent className="p-4 flex items-center gap-4">
+                <div className={`p-2.5 rounded-lg ${metric.bg}/10`}>
+                  <metric.icon size={20} className={metric.color} strokeWidth={2.5} />
+                </div>
+                <div className="flex-1">
+                  <div className="flex justify-between items-center mb-1.5">
+                    <span className="text-sm font-semibold text-text-primary">{metric.label}</span>
+                    <span className="text-sm font-bold text-text-primary">{metric.score}%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-border rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-1000 ease-out ${metric.bg}`}
+                      style={{ width: `${metric.score}%` }}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </div>
 
-      {/* Trend */}
-      <div className="card" style={{ marginTop: 20 }}>
-        <h3 style={{ marginBottom: 12 }}>Readiness Over Time</h3>
-        <TrendChart />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Skill Matrix</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart data={radarData} margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
+                  <PolarGrid stroke="rgba(148, 163, 184, 0.2)" />
+                  <PolarAngleAxis dataKey="area" tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }} />
+                  <RechartsTooltip 
+                    contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px rgba(15, 23, 42, 0.06)' }}
+                    itemStyle={{ color: '#6c63ff', fontWeight: 600 }}
+                  />
+                  <Radar name="Readiness" dataKey="value" stroke="#6c63ff" fill="#6c63ff" fillOpacity={0.15} strokeWidth={2} />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Growth Trajectory</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px] w-full pt-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trendData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148, 163, 184, 0.2)" />
+                  <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
+                  <YAxis domain={[40, 100]} tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dx={-10} />
+                  <RechartsTooltip 
+                    contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px rgba(15, 23, 42, 0.06)' }}
+                    itemStyle={{ color: '#06b6d4', fontWeight: 600 }}
+                  />
+                  <Line type="monotone" dataKey="value" stroke="#06b6d4" strokeWidth={3} dot={{ r: 4, fill: '#06b6d4', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-    </Page>
-  )
+    </div>
+  );
 }

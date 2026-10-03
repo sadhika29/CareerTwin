@@ -1,17 +1,17 @@
 :root {
-  --ink: #172033;
-  --navy: #173b63;
-  --blue: #2563a6;
-  --teal: #0f766e;
-  --muted: #64748b;
-  --line: #e2e8f0;
+  --ink: #1E293B;
+  --navy: #5B4AEF;
+  --blue: #6C4FF7;
+  --teal: #10B981;
+  --muted: #64748B;
+  --line: #E2E8F0;
   --paper: #ffffff;
-  --canvas: #f5f8fc;
-  --success: #16803c;
-  --warning: #d97706;
-  --error: #dc2626;
+  --canvas: #F7F8FC;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --error: #EF4444;
 }
-.app-shell { min-height: 100vh; display: flex; background: var(--canvas); }
+.app-shell { min-height: 100vh; display: flex; background: var(--canvas); font-family: 'Inter', sans-serif; }
 .sidebar { width: 256px; flex: 0 0 256px; padding: 25px 15px 18px; background: var(--navy); color: #e8f0fa; display: flex; flex-direction: column; gap: 25px; }
 .brand { display: flex; align-items: center; gap: 11px; padding: 0 10px; font: 800 20px 'Manrope', sans-serif; letter-spacing: -.5px; }
 .brand-mark { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 9px; background: #fff; color: var(--navy); font: 800 17px 'Manrope'; }

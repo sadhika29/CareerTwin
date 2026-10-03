@@ -368,242 +368,264 @@ export default function Assessment() {
   const currentQuestion = questions[currentIndex]
 
   return (
-    <Page eyebrow="CareerTwin · Assessment Intelligence" title="Skill Assessments & Test Reports" subtitle="AI generates fresh, role-specific questions every session. No static bank — every test is unique.">
+    <div className="animate-in fade-in duration-500 pb-12 max-w-6xl mx-auto">
+      {/* Header section */}
+      <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+        <div>
+          <span className="px-3 py-1 rounded-full bg-ai/10 text-ai text-xs font-bold uppercase tracking-wider mb-3 inline-block">
+            CareerTwin · Assessment Intelligence
+          </span>
+          <h1 className="text-3xl font-heading font-bold text-text-primary mb-2 flex items-center gap-3">
+            Skill Assessments & Test Reports
+          </h1>
+          <p className="text-text-secondary text-base">
+            AI generates fresh, role-specific questions every session. No static bank — every test is unique.
+          </p>
+        </div>
+      </div>
+
       {generatingQuestions && (
-        <div className="notice" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <RefreshCw size={13} style={{ animation: 'spin 1s linear infinite' }} /> AI is generating your personalised questions…
+        <div className="mb-6 flex items-center gap-3 px-4 py-3 bg-ai/10 border border-ai/20 text-ai-hover rounded-xl shadow-sm animate-in slide-in-from-top-2">
+          <RefreshCw size={18} className="animate-spin text-ai" />
+          <span className="font-medium text-sm">AI is generating your personalised questions…</span>
         </div>
       )}
 
       {/* VIEW 1: Assessment Hub / Category Selection */}
       {!inProgress && !testReport && (
-        <>
-          <div className="section-head" style={{ marginTop: 0 }}>
-            <h2>Available Skill Assessments</h2>
-            <span className="tag">Timed & Auto-Evaluated</span>
-          </div>
+        <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+          <div>
+            <div className="flex items-center gap-3 mb-6">
+              <h2 className="text-xl font-heading font-bold text-text-primary m-0">Available Skill Assessments</h2>
+              <span className="px-2.5 py-1 bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider rounded-md">
+                Timed & Auto-Evaluated
+              </span>
+            </div>
 
-          {/* AI Configuration */}
-          <div className="card" style={{ marginBottom: 20, display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'flex-end' }}>
-            <div style={{ flex: 1, minWidth: 180 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>Target Role (AI tailors questions)</label>
-              <input value={targetRole} onChange={e => setTargetRole(e.target.value)}
-                placeholder="e.g. Software Engineer"
-                style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: 13, boxSizing: 'border-box' }} />
+            {/* AI Configuration */}
+            <div className="bg-background rounded-2xl border border-border shadow-sm p-6 mb-8 flex flex-wrap gap-4 items-end">
+              <div className="flex-1 min-w-[200px]">
+                <label className="text-xs font-bold text-text-muted uppercase tracking-wider block mb-2">Target Role (AI tailors questions)</label>
+                <input 
+                  value={targetRole} 
+                  onChange={e => setTargetRole(e.target.value)}
+                  placeholder="e.g. Software Engineer"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-text-primary focus:outline-none focus:border-ai focus:ring-1 focus:ring-ai transition-all" 
+                />
+              </div>
+              <div className="min-w-[150px]">
+                <label className="text-xs font-bold text-text-muted uppercase tracking-wider block mb-2">Questions</label>
+                <select 
+                  value={numQuestions} 
+                  onChange={e => setNumQuestions(Number(e.target.value))}
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-text-primary focus:outline-none focus:border-ai focus:ring-1 focus:ring-ai transition-all cursor-pointer"
+                >
+                  {[3, 5, 7, 10].map(n => <option key={n} value={n}>{n} questions</option>)}
+                </select>
+              </div>
+              <div className="min-w-[150px]">
+                <label className="text-xs font-bold text-text-muted uppercase tracking-wider block mb-2">Difficulty</label>
+                <select 
+                  value={difficulty} 
+                  onChange={e => setDifficulty(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-text-primary focus:outline-none focus:border-ai focus:ring-1 focus:ring-ai transition-all cursor-pointer capitalize"
+                >
+                  {['easy', 'medium', 'hard'].map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
             </div>
-            <div style={{ minWidth: 130 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>Questions</label>
-              <select value={numQuestions} onChange={e => setNumQuestions(Number(e.target.value))}
-                style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: 13 }}>
-                {[3, 5, 7, 10].map(n => <option key={n} value={n}>{n} questions</option>)}
-              </select>
-            </div>
-            <div style={{ minWidth: 130 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>Difficulty</label>
-              <select value={difficulty} onChange={e => setDifficulty(e.target.value)}
-                style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)', fontSize: 13 }}>
-                {['easy', 'medium', 'hard'].map(d => <option key={d} value={d}>{d.charAt(0).toUpperCase() + d.slice(1)}</option>)}
-              </select>
-            </div>
-          </div>
 
-          <div className="grid grid-4">
-            {[
-              { key: 'DSA', title: 'DSA & Algorithms', badge: 'High Impact', desc: 'Arrays, Trees, DP, Graphs — AI selects based on your role' },
-              { key: 'Technical', title: 'Technical & System Design', badge: 'Core', desc: 'SQL, APIs, architecture — AI matches your target role stack' },
-              { key: 'Aptitude', title: 'Aptitude & Reasoning', badge: 'Placement', desc: 'Quantitative, logical — AI adapts difficulty to your level' },
-              { key: 'Communication', title: 'HR & Communication', badge: 'Essential', desc: 'Professional tone, STAR answers — AI tests real scenarios' },
-            ].map(item => (
-              <div key={item.key} className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <span className="tag">{item.badge}</span>
-                    <span style={{ fontSize: 11, color: 'var(--accent)', fontWeight: 700 }}>AI-Generated</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[
+                { key: 'DSA', title: 'DSA & Algorithms', badge: 'High Impact', desc: 'Arrays, Trees, DP, Graphs — AI selects based on your role', color: 'indigo' },
+                { key: 'Technical', title: 'Technical & System Design', badge: 'Core', desc: 'SQL, APIs, architecture — AI matches your target role stack', color: 'blue' },
+                { key: 'Aptitude', title: 'Aptitude & Reasoning', badge: 'Placement', desc: 'Quantitative, logical — AI adapts difficulty to your level', color: 'emerald' },
+                { key: 'Communication', title: 'HR & Communication', badge: 'Essential', desc: 'Professional tone, STAR answers — AI tests real scenarios', color: 'violet' },
+              ].map(item => (
+                <div key={item.key} className="bg-background rounded-2xl border border-border shadow-sm p-6 flex flex-col justify-between hover:border-border-hover transition-colors group">
+                  <div>
+                    <div className="flex justify-between items-center mb-4">
+                      <span className={`px-2.5 py-1 bg-${item.color}-50 dark:bg-${item.color}-900/20 text-${item.color}-600 dark:text-${item.color}-400 border border-${item.color}-200 dark:border-${item.color}-800 text-[10px] font-black uppercase tracking-widest rounded-md`}>
+                        {item.badge}
+                      </span>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-ai flex items-center gap-1">
+                        <RefreshCw size={10} /> AI-Generated
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-heading font-bold text-text-primary mb-2 group-hover:text-primary transition-colors">{item.title}</h3>
+                    <p className="text-sm text-text-secondary leading-relaxed mb-6">{item.desc}</p>
                   </div>
-                  <h3 style={{ margin: '0 0 6px', fontSize: 16 }}>{item.title}</h3>
-                  <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 16px', lineHeight: 1.5 }}>{item.desc}</p>
+                  <div>
+                    <button
+                      className="w-full py-2.5 bg-background border-2 border-primary/20 text-primary hover:bg-primary hover:text-white hover:border-primary font-bold rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                      disabled={generatingQuestions}
+                      onClick={() => {
+                        setSelectedCategory(item.key)
+                        startAssessment(item.key)
+                      }}
+                    >
+                      {generatingQuestions ? <RefreshCw size={16} className="animate-spin" /> : <ArrowRight size={16} />}
+                      {generatingQuestions ? 'Generating…' : 'Start Assessment'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Quick Info on Skipped & Failed Questions */}
+            <div className="mt-8 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900/50 rounded-2xl p-6">
+              <div className="flex gap-4 items-start">
+                <div className="bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 p-3 rounded-xl shrink-0">
+                  <RefreshCw size={24} />
                 </div>
                 <div>
-                  <button
-                    className="button"
-                    style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                    disabled={generatingQuestions}
-                    onClick={() => {
-                      setSelectedCategory(item.key)
-                      startAssessment(item.key)
-                    }}
-                  >
-                    {generatingQuestions ? <RefreshCw size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <ArrowRight size={13} />}
-                    {generatingQuestions ? 'Generating…' : 'Start AI Assessment'}
-                  </button>
+                  <h3 className="text-lg font-bold text-text-primary mb-2">Mastery Through Remediation</h3>
+                  <p className="text-sm text-text-secondary leading-relaxed m-0">
+                    CareerTwin isolates questions you <strong className="text-text-primary font-bold">left skipped</strong> or <strong className="text-text-primary font-bold">failed</strong> in test reports and creates targeted remediation sessions, helping you achieve 100% mastery without repeating questions you already solved.
+                  </p>
                 </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Quick Info on Skipped & Failed Questions */}
-          <div className="card" style={{ marginTop: 24, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-            <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-              <div style={{ background: '#e0f2fe', color: '#0284c7', padding: 10, borderRadius: 8, marginTop: 2 }}>
-                <RefreshCw size={20} />
-              </div>
-              <div>
-                <h3 style={{ margin: '0 0 4px', fontSize: 15 }}>Mastery Through Remediation</h3>
-                <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>
-                  CareerTwin isolates questions you <strong>left skipped</strong> or <strong>failed</strong> in test reports and creates targeted remediation sessions, helping you achieve 100% mastery without repeating questions you already solved.
-                </p>
               </div>
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* VIEW 2: Active Test Taking Interface */}
       {inProgress && currentQuestion && (
-        <div className="card" style={{ maxWidth: 900, margin: '0 auto' }}>
+        <div className="max-w-4xl mx-auto bg-background rounded-3xl border border-border shadow-lg overflow-hidden animate-in slide-in-from-bottom-4">
+          
           {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--line)', paddingBottom: 16, marginBottom: 20 }}>
+          <div className="bg-background/50 border-b border-border p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <span className="eyebrow">{isRemediation ? 'Remediation Assessment · Complete Incomplete Work' : `${selectedCategory} Assessment`}</span>
-              <h2 style={{ margin: '4px 0 0', fontSize: 18 }}>
-                Question {currentIndex + 1} of {questions.length}
+              <span className="text-xs font-bold text-text-muted uppercase tracking-wider block mb-1">
+                {isRemediation ? 'Remediation Assessment · Complete Incomplete Work' : `${selectedCategory} Assessment`}
+              </span>
+              <h2 className="text-xl font-heading font-black text-text-primary m-0">
+                Question {currentIndex + 1} <span className="text-text-muted font-medium">of {questions.length}</span>
               </h2>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff3e2', color: 'var(--warning)', padding: '6px 12px', borderRadius: 20, fontWeight: 700, fontSize: 13 }}>
-              <Clock size={15} />
-              <span>{formatTime(timeRemaining)}</span>
+            <div className="flex items-center gap-2 bg-warning/10 text-warning-hover px-4 py-2 rounded-xl font-bold text-sm border border-warning/20">
+              <Clock size={16} />
+              <span className="font-mono">{formatTime(timeRemaining)}</span>
             </div>
           </div>
 
-          {/* Question Palette */}
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 20 }}>
-            {questions.map((q, idx) => {
-              const isAnswered = answers[q.question_id] !== undefined && answers[q.question_id] !== ''
-              const isCurrent = idx === currentIndex
-              return (
-                <button
-                  key={q.question_id}
-                  onClick={() => setCurrentIndex(idx)}
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 6,
-                    border: isCurrent ? '2px solid var(--blue)' : '1px solid #cbd5e1',
-                    background: isCurrent ? '#dbeafe' : isAnswered ? '#e6f5f2' : '#f8fafc',
-                    color: isCurrent ? 'var(--blue)' : isAnswered ? 'var(--teal)' : 'var(--muted)',
-                    fontWeight: 700,
-                    fontSize: 12,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {idx + 1}
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Question Prompt */}
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-              <span className="tag">{currentQuestion.topic}</span>
-              <span className="tag orange">{currentQuestion.difficulty}</span>
-            </div>
-            <h3 style={{ fontSize: 16, lineHeight: 1.6, color: 'var(--ink)' }}>{currentQuestion.question}</h3>
-          </div>
-
-          {/* Options */}
-          <div style={{ display: 'grid', gap: 10, marginBottom: 30 }}>
-            {currentQuestion.options && currentQuestion.options.length > 0 ? (
-              currentQuestion.options.map((opt, i) => {
-                const isSelected = answers[currentQuestion.question_id] === opt
+          <div className="p-6 md:p-8">
+            {/* Question Palette */}
+            <div className="flex flex-wrap gap-2 mb-8">
+              {questions.map((q, idx) => {
+                const isAnswered = answers[q.question_id] !== undefined && answers[q.question_id] !== ''
+                const isCurrent = idx === currentIndex
+                
+                let btnClass = "w-10 h-10 rounded-xl font-bold text-sm flex items-center justify-center transition-all cursor-pointer "
+                if (isCurrent) {
+                  btnClass += "bg-primary text-white shadow-md shadow-primary/20 border-2 border-primary"
+                } else if (isAnswered) {
+                  btnClass += "bg-success/10 text-success border border-success/30 hover:bg-success/20"
+                } else {
+                  btnClass += "bg-background border border-border text-text-secondary hover:bg-border/30"
+                }
+                
                 return (
                   <button
-                    key={i}
-                    onClick={() => handleSelectOption(currentQuestion.question_id, opt)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      padding: '12px 16px',
-                      borderRadius: 8,
-                      border: isSelected ? '2px solid var(--blue)' : '1px solid #cbd5e1',
-                      background: isSelected ? '#eff6ff' : '#fff',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      fontSize: 14,
-                      color: isSelected ? 'var(--navy)' : 'var(--ink)',
-                      fontWeight: isSelected ? 600 : 400,
-                      transition: 'all .15s ease',
-                    }}
+                    key={q.question_id}
+                    onClick={() => setCurrentIndex(idx)}
+                    className={btnClass}
                   >
-                    <span
-                      style={{
-                        width: 22,
-                        height: 22,
-                        borderRadius: '50%',
-                        display: 'grid',
-                        placeItems: 'center',
-                        border: isSelected ? '2px solid var(--blue)' : '1px solid #94a3b8',
-                        background: isSelected ? 'var(--blue)' : 'transparent',
-                        color: isSelected ? '#fff' : '#64748b',
-                        fontSize: 11,
-                        fontWeight: 700,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {String.fromCharCode(65 + i)}
-                    </span>
-                    <span>{opt}</span>
+                    {idx + 1}
                   </button>
                 )
-              })
-            ) : (
-              <div className="field">
-                <label>Your reasoning / solution answer</label>
-                <textarea
-                  value={answers[currentQuestion.question_id] || ''}
-                  onChange={e => handleSelectOption(currentQuestion.question_id, e.target.value)}
-                  placeholder="Type your explanation or answer here..."
-                />
+              })}
+            </div>
+
+            {/* Question Prompt */}
+            <div className="mb-8">
+              <div className="flex gap-2 mb-4">
+                <span className="px-2.5 py-1 bg-background border border-border rounded-md text-[10px] font-black uppercase tracking-widest text-text-secondary">
+                  {currentQuestion.topic}
+                </span>
+                <span className="px-2.5 py-1 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 border border-orange-200 dark:border-orange-800 rounded-md text-[10px] font-black uppercase tracking-widest">
+                  {currentQuestion.difficulty}
+                </span>
               </div>
-            )}
-          </div>
+              <h3 className="text-xl leading-relaxed text-text-primary font-medium">{currentQuestion.question}</h3>
+            </div>
 
-          {/* Navigation & Controls */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--line)', paddingTop: 18 }}>
-            <button
-              className="button secondary"
-              disabled={currentIndex === 0}
-              onClick={() => setCurrentIndex(prev => prev - 1)}
-            >
-              <ArrowLeft size={14} style={{ marginRight: 6 }} /> Previous
-            </button>
+            {/* Options */}
+            <div className="flex flex-col gap-3 mb-10">
+              {currentQuestion.options && currentQuestion.options.length > 0 ? (
+                currentQuestion.options.map((opt, i) => {
+                  const isSelected = answers[currentQuestion.question_id] === opt
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleSelectOption(currentQuestion.question_id, opt)}
+                      className={`flex items-center gap-4 p-4 rounded-xl text-left transition-all ${
+                        isSelected 
+                          ? 'bg-primary/10 border-2 border-primary shadow-sm' 
+                          : 'bg-background border border-border hover:border-border-hover hover:bg-border/10'
+                      }`}
+                    >
+                      <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${
+                        isSelected
+                          ? 'bg-primary text-white'
+                          : 'bg-background border border-border text-text-muted'
+                      }`}>
+                        {String.fromCharCode(65 + i)}
+                      </span>
+                      <span className={`text-base ${isSelected ? 'text-primary font-semibold' : 'text-text-primary'}`}>
+                        {opt}
+                      </span>
+                    </button>
+                  )
+                })
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-bold text-text-secondary">Your reasoning / solution answer</label>
+                  <textarea
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-background text-text-primary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all min-h-[120px] resize-y"
+                    value={answers[currentQuestion.question_id] || ''}
+                    onChange={e => handleSelectOption(currentQuestion.question_id, e.target.value)}
+                    placeholder="Type your explanation or answer here..."
+                  />
+                </div>
+              )}
+            </div>
 
-            <div style={{ display: 'flex', gap: 10 }}>
+            {/* Navigation & Controls */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 border-t border-border/50">
               <button
-                className="button secondary"
-                style={{ color: 'var(--warning)', borderColor: '#fed7aa' }}
-                onClick={handleSkipQuestion}
+                className="w-full sm:w-auto px-6 py-2.5 bg-background border border-border text-text-secondary hover:text-text-primary hover:bg-border/30 font-bold rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={currentIndex === 0}
+                onClick={() => setCurrentIndex(prev => prev - 1)}
               >
-                Skip Question
+                <ArrowLeft size={16} /> Previous
               </button>
 
-              {currentIndex < questions.length - 1 ? (
+              <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3">
                 <button
-                  className="button"
-                  onClick={() => setCurrentIndex(prev => prev + 1)}
+                  className="w-full sm:w-auto px-6 py-2.5 bg-background border border-warning/30 text-warning hover:bg-warning/10 font-bold rounded-xl transition-all flex items-center justify-center"
+                  onClick={handleSkipQuestion}
                 >
-                  Next <ArrowRight size={14} style={{ marginLeft: 6 }} />
+                  Skip Question
                 </button>
-              ) : (
-                <button
-                  className="button"
-                  style={{ background: 'var(--success)' }}
-                  onClick={handleSubmitAssessment}
-                >
-                  Submit Assessment
-                </button>
-              )}
+
+                {currentIndex < questions.length - 1 ? (
+                  <button
+                    className="w-full sm:w-auto px-6 py-2.5 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+                    onClick={() => setCurrentIndex(prev => prev + 1)}
+                  >
+                    Next <ArrowRight size={16} />
+                  </button>
+                ) : (
+                  <button
+                    className="w-full sm:w-auto px-6 py-2.5 bg-success hover:bg-success-hover text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+                    onClick={handleSubmitAssessment}
+                  >
+                    <CheckCircle2 size={18} /> Submit Assessment
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -611,134 +633,129 @@ export default function Assessment() {
 
       {/* VIEW 3: Comprehensive Test Report Card */}
       {testReport && (
-        <div style={{ display: 'grid', gap: 24 }}>
+        <div className="flex flex-col gap-8 animate-in zoom-in-95 duration-500">
+          
           {/* Main Score Header Card */}
-          <div className="card" style={{ borderLeft: `6px solid ${testReport.score >= 70 ? 'var(--teal)' : testReport.score >= 50 ? 'var(--warning)' : 'var(--error)'}` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
+          <div className={`bg-background rounded-3xl border shadow-md p-6 md:p-8 border-l-8 ${
+            testReport.score >= 70 ? 'border-l-success' : testReport.score >= 50 ? 'border-l-warning' : 'border-l-error'
+          }`}>
+            <div className="flex flex-col md:flex-row justify-between items-start gap-6">
               <div>
-                <span className="tag">{testReport.category}</span>
-                <h2 style={{ margin: '8px 0 4px', fontSize: 24 }}>Test Report & Evaluation</h2>
-                <p style={{ margin: 0, fontSize: 13, color: 'var(--muted)' }}>Completed at {testReport.completed_at}</p>
+                <span className="px-3 py-1 rounded-full bg-background border border-border text-text-secondary text-xs font-bold uppercase tracking-wider mb-3 inline-block">
+                  {testReport.category}
+                </span>
+                <h2 className="text-2xl md:text-3xl font-heading font-black text-text-primary mb-2">
+                  Test Report & Evaluation
+                </h2>
+                <p className="text-sm text-text-muted m-0 flex items-center gap-2">
+                  <Clock size={14} /> Completed at {testReport.completed_at}
+                </p>
               </div>
 
-              <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ font: "800 36px 'Manrope'", color: testReport.score >= 70 ? 'var(--teal)' : 'var(--navy)' }}>
+              <div className="flex gap-8 bg-background border border-border/50 rounded-2xl p-4 md:p-6 shadow-sm">
+                <div className="text-center">
+                  <div className={`text-4xl md:text-5xl font-black font-heading tracking-tight mb-1 ${
+                    testReport.score >= 70 ? 'text-success' : testReport.score >= 50 ? 'text-warning' : 'text-error'
+                  }`}>
                     {testReport.score}%
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase' }}>Overall Score</div>
+                  <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Overall Score</div>
                 </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ font: "800 36px 'Manrope'", color: 'var(--blue)' }}>
+                <div className="w-px bg-border/50"></div>
+                <div className="text-center">
+                  <div className="text-4xl md:text-5xl font-black font-heading tracking-tight mb-1 text-primary">
                     {testReport.accuracy}%
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700, textTransform: 'uppercase' }}>Attempt Accuracy</div>
+                  <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Attempt Accuracy</div>
                 </div>
               </div>
             </div>
 
             {/* Metric Counters: Passed, Failed, Skipped */}
-            <div className="grid grid-4" style={{ marginTop: 22 }}>
-              <div className="card" style={{ padding: 14, background: '#f8fafc' }}>
-                <div style={{ fontSize: 11, color: 'var(--muted)', fontWeight: 700 }}>TOTAL QUESTIONS</div>
-                <div style={{ font: "800 24px 'Manrope'", color: 'var(--ink)', margin: '4px 0 0' }}>{testReport.total_questions}</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+              <div className="bg-background border border-border rounded-xl p-4 shadow-sm">
+                <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2">TOTAL QUESTIONS</div>
+                <div className="text-3xl font-black font-heading text-text-primary">{testReport.total_questions}</div>
               </div>
 
-              <div className="card" style={{ padding: 14, background: '#f0fdf4', borderColor: '#bbf7d0' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--success)', fontSize: 11, fontWeight: 700 }}>
-                  <CheckCircle2 size={14} /> PASSED / CORRECT
+              <div className="bg-success/5 border border-success/20 rounded-xl p-4 shadow-sm">
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-success uppercase tracking-widest mb-2">
+                  <CheckCircle2 size={14} /> PASSED
                 </div>
-                <div style={{ font: "800 24px 'Manrope'", color: 'var(--success)', margin: '4px 0 0' }}>{testReport.correct_answers}</div>
+                <div className="text-3xl font-black font-heading text-success-hover">{testReport.correct_answers}</div>
               </div>
 
-              <div className="card" style={{ padding: 14, background: '#fef2f2', borderColor: '#fecaca' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--error)', fontSize: 11, fontWeight: 700 }}>
-                  <XCircle size={14} /> FAILED / INCORRECT
+              <div className="bg-error/5 border border-error/20 rounded-xl p-4 shadow-sm">
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-error uppercase tracking-widest mb-2">
+                  <XCircle size={14} /> FAILED
                 </div>
-                <div style={{ font: "800 24px 'Manrope'", color: 'var(--error)', margin: '4px 0 0' }}>{testReport.incorrect_answers}</div>
+                <div className="text-3xl font-black font-heading text-error-hover">{testReport.incorrect_answers}</div>
               </div>
 
-              <div className="card" style={{ padding: 14, background: '#fffbeb', borderColor: '#fde68a' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--warning)', fontSize: 11, fontWeight: 700 }}>
-                  <AlertCircle size={14} /> SKIPPED / UNATTEMPTED
+              <div className="bg-warning/5 border border-warning/20 rounded-xl p-4 shadow-sm">
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-warning uppercase tracking-widest mb-2">
+                  <AlertCircle size={14} /> SKIPPED
                 </div>
-                <div style={{ font: "800 24px 'Manrope'", color: 'var(--warning)', margin: '4px 0 0' }}>{testReport.unattempted}</div>
+                <div className="text-3xl font-black font-heading text-warning-hover">{testReport.unattempted}</div>
               </div>
             </div>
 
             {/* REMEDIATION ACTION CALLOUT IF SKIPPED OR FAILED QUESTIONS EXIST */}
             {(testReport.unattempted > 0 || testReport.incorrect_answers > 0) ? (
-              <div
-                style={{
-                  marginTop: 24,
-                  padding: 18,
-                  borderRadius: 10,
-                  background: 'linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%)',
-                  border: '1px solid #bfdbfe',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: 16,
-                }}
-              >
+              <div className="mt-8 p-5 md:p-6 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border border-blue-200 dark:border-blue-900/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--blue)', fontWeight: 800, fontSize: 15 }}>
-                    <RefreshCw size={18} />
-                    <span>Complete Work Left Skipped & Failed ({testReport.unattempted + testReport.incorrect_answers} questions remaining)</span>
+                  <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400 font-bold text-lg mb-1">
+                    <RefreshCw size={20} />
+                    <span>Complete Work Left Skipped & Failed</span>
                   </div>
-                  <p style={{ margin: '4px 0 0', fontSize: 13, color: '#334155' }}>
+                  <p className="text-sm text-blue-900/70 dark:text-blue-200/70 m-0">
                     Turn your {testReport.unattempted} skipped and {testReport.incorrect_answers} failed items into 100% mastery with a targeted remediation session.
                   </p>
                 </div>
                 <button
-                  className="button"
-                  style={{ background: 'var(--blue)', padding: '12px 20px', fontSize: 13 }}
+                  className="w-full md:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 shrink-0 whitespace-nowrap"
                   onClick={handleReattemptIncomplete}
                 >
-                  <RefreshCw size={14} style={{ marginRight: 8 }} /> Complete Left Skipped & Failed
+                  <RefreshCw size={16} /> Complete {testReport.unattempted + testReport.incorrect_answers} Questions
                 </button>
               </div>
             ) : (
-              <div style={{ marginTop: 24, padding: 16, borderRadius: 10, background: '#f0fdf4', border: '1px solid #bbf7d0', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Award size={20} />
+              <div className="mt-8 p-5 md:p-6 rounded-2xl bg-success/10 border border-success/20 flex items-start gap-4 text-success-hover">
+                <Award size={28} className="shrink-0 mt-1" />
                 <div>
-                  <strong>Outstanding! 100% Completed & Passed</strong>
-                  <div style={{ fontSize: 12 }}>All questions in this test report have been mastered with zero skipped or failed items.</div>
+                  <h4 className="text-lg font-bold mb-1">Outstanding! 100% Completed & Passed</h4>
+                  <p className="text-sm m-0 opacity-90">
+                    All questions in this test report have been mastered with zero skipped or failed items. Excellent work!
+                  </p>
                 </div>
               </div>
             )}
           </div>
 
           {/* Filterable Question Review Card */}
-          <div className="card">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 20, borderBottom: '1px solid var(--line)', paddingBottom: 14 }}>
+          <div className="bg-background rounded-3xl border border-border shadow-md overflow-hidden">
+            <div className="p-6 md:p-8 border-b border-border bg-background/50 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
               <div>
-                <h2 style={{ margin: 0, fontSize: 17 }}>Question Review & Explanations</h2>
-                <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--muted)' }}>Examine correct solutions and learn from skipped or failed questions.</p>
+                <h3 className="text-xl font-heading font-bold text-text-primary mb-1">Question Review & Explanations</h3>
+                <p className="text-sm text-text-muted m-0">Examine correct solutions and learn from skipped or failed questions.</p>
               </div>
 
               {/* Filter Tabs */}
-              <div style={{ display: 'flex', gap: 6 }}>
+              <div className="flex flex-wrap gap-2 bg-background p-1.5 rounded-xl border border-border shadow-sm">
                 {[
                   { key: 'all', label: `All (${testReport.total_questions})` },
-                  { key: 'failed', label: `Failed (${testReport.incorrect_answers})`, color: 'red' },
-                  { key: 'skipped', label: `Skipped (${testReport.unattempted})`, color: 'orange' },
+                  { key: 'failed', label: `Failed (${testReport.incorrect_answers})` },
+                  { key: 'skipped', label: `Skipped (${testReport.unattempted})` },
                   { key: 'passed', label: `Passed (${testReport.correct_answers})` },
                 ].map(tab => (
                   <button
                     key={tab.key}
                     onClick={() => setReportFilter(tab.key)}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: 6,
-                      border: reportFilter === tab.key ? '1px solid var(--blue)' : '1px solid #e2e8f0',
-                      background: reportFilter === tab.key ? '#eff6ff' : '#fff',
-                      color: reportFilter === tab.key ? 'var(--blue)' : 'var(--muted)',
-                      fontWeight: reportFilter === tab.key ? 700 : 500,
-                      fontSize: 12,
-                      cursor: 'pointer',
-                    }}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                      reportFilter === tab.key 
+                        ? 'bg-primary text-white shadow-sm' 
+                        : 'text-text-secondary hover:bg-border/30 hover:text-text-primary'
+                    }`}
                   >
                     {tab.label}
                   </button>
@@ -747,88 +764,95 @@ export default function Assessment() {
             </div>
 
             {/* List of Questions */}
-            <div style={{ display: 'grid', gap: 16 }}>
+            <div className="p-6 md:p-8 flex flex-col gap-6 bg-background/30">
               {filteredReportQuestions.length > 0 ? (
                 filteredReportQuestions.map((item) => (
                   <div
                     key={item.question_id}
-                    style={{
-                      padding: 16,
-                      borderRadius: 8,
-                      border: `1px solid ${item.status === 'passed' ? '#bbf7d0' : item.status === 'failed' ? '#fecaca' : '#fde68a'}`,
-                      background: item.status === 'passed' ? '#f0fdf422' : item.status === 'failed' ? '#fef2f222' : '#fffbeb22',
-                    }}
+                    className={`p-6 rounded-2xl border shadow-sm ${
+                      item.status === 'passed' ? 'border-success/30 bg-success/5' 
+                      : item.status === 'failed' ? 'border-error/30 bg-error/5' 
+                      : 'border-warning/30 bg-warning/5'
+                    }`}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <span className="tag">{item.topic}</span>
-                        <span className="tag orange">{item.difficulty}</span>
+                    <div className="flex flex-wrap justify-between items-center gap-4 mb-4">
+                      <div className="flex flex-wrap gap-2">
+                        <span className="px-2.5 py-1 bg-background border border-border text-text-secondary text-[10px] font-black uppercase tracking-widest rounded-md">
+                          {item.topic}
+                        </span>
+                        <span className="px-2.5 py-1 bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 border border-orange-200 dark:border-orange-800 text-[10px] font-black uppercase tracking-widest rounded-md">
+                          {item.difficulty}
+                        </span>
                       </div>
-                      <span
-                        className="tag"
-                        style={{
-                          background: item.status === 'passed' ? '#dcfce7' : item.status === 'failed' ? '#fee2e2' : '#fef3c7',
-                          color: item.status === 'passed' ? 'var(--success)' : item.status === 'failed' ? 'var(--error)' : 'var(--warning)',
-                          fontWeight: 700,
-                        }}
-                      >
-                        {item.status.toUpperCase()}
+                      <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-md ${
+                        item.status === 'passed' ? 'bg-success/20 text-success-hover' 
+                        : item.status === 'failed' ? 'bg-error/20 text-error-hover' 
+                        : 'bg-warning/20 text-warning-hover'
+                      }`}>
+                        {item.status}
                       </span>
                     </div>
 
-                    <h3 style={{ fontSize: 14, margin: '0 0 10px', color: 'var(--ink)' }}>{item.question}</h3>
+                    <h4 className="text-base font-medium text-text-primary mb-5">{item.question}</h4>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10, background: '#fff', padding: 12, borderRadius: 6, border: '1px solid #e2e8f0', marginBottom: 10, fontSize: 12 }}>
-                      <div>
-                        <span style={{ color: 'var(--muted)', display: 'block', marginBottom: 2 }}>Your Submitted Answer:</span>
-                        <strong style={{ color: item.status === 'passed' ? 'var(--success)' : item.status === 'failed' ? 'var(--error)' : 'var(--warning)' }}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                      <div className="bg-background rounded-xl p-4 border border-border shadow-sm">
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest block mb-1">Your Answer</span>
+                        <strong className={`text-sm ${
+                          item.status === 'passed' ? 'text-success' 
+                          : item.status === 'failed' ? 'text-error' 
+                          : 'text-warning'
+                        }`}>
                           {item.user_answer || '(Left Skipped)'}
                         </strong>
                       </div>
-                      <div>
-                        <span style={{ color: 'var(--muted)', display: 'block', marginBottom: 2 }}>Correct Answer:</span>
-                        <strong style={{ color: 'var(--navy)' }}>{item.correct_answer}</strong>
+                      <div className="bg-background rounded-xl p-4 border border-border shadow-sm">
+                        <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest block mb-1">Correct Answer</span>
+                        <strong className="text-sm text-primary">{item.correct_answer}</strong>
                       </div>
                     </div>
 
-                    <div style={{ fontSize: 12, color: '#475569', background: '#f8fafc', padding: 10, borderRadius: 6 }}>
-                      <strong style={{ color: 'var(--navy)', marginRight: 6 }}>Explanation & Concept:</strong>
+                    <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 text-sm text-text-secondary leading-relaxed">
+                      <strong className="text-primary mr-2">Explanation:</strong>
                       {item.explanation}
                     </div>
                   </div>
                 ))
               ) : (
-                <div style={{ textAlign: 'center', padding: 24, color: 'var(--muted)', fontSize: 13 }}>
-                  No questions in this filter view.
+                <div className="text-center py-12 px-4 border-2 border-dashed border-border rounded-2xl">
+                  <div className="w-16 h-16 rounded-full bg-border/50 flex items-center justify-center text-text-muted mx-auto mb-4">
+                    <RefreshCw size={24} />
+                  </div>
+                  <h4 className="text-lg font-bold text-text-primary mb-2">No Questions Found</h4>
+                  <p className="text-sm text-text-secondary">No questions match the selected filter view.</p>
                 </div>
               )}
             </div>
 
             {/* Back to Assessments Hub */}
-            <div style={{ marginTop: 24, display: 'flex', justifyContent: 'space-between' }}>
+            <div className="p-6 border-t border-border bg-background flex flex-col sm:flex-row justify-between gap-4">
               <button
-                className="button secondary"
+                className="w-full sm:w-auto px-6 py-2.5 bg-background border border-border text-text-secondary hover:text-text-primary hover:bg-border/30 font-bold rounded-xl transition-all flex items-center justify-center gap-2"
                 onClick={() => {
                   setTestReport(null)
                   setInProgress(false)
                 }}
               >
-                ← Back to Assessment Library
+                <ArrowLeft size={16} /> Back to Library
               </button>
 
               {(testReport.unattempted > 0 || testReport.incorrect_answers > 0) && (
                 <button
-                  className="button"
+                  className="w-full sm:w-auto px-6 py-2.5 bg-primary hover:bg-primary-hover text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
                   onClick={handleReattemptIncomplete}
                 >
-                  <RefreshCw size={14} style={{ marginRight: 6 }} /> Complete {testReport.unattempted + testReport.incorrect_answers} Incomplete Questions
+                  <RefreshCw size={16} /> Complete {testReport.unattempted + testReport.incorrect_answers} Incomplete
                 </button>
               )}
             </div>
           </div>
         </div>
       )}
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-    </Page>
+    </div>
   )
 }

@@ -146,231 +146,271 @@ export default function JobDetails() {
     }
   }
 
-  if (loading) return <Page eyebrow="Opportunities" title="Job Details" subtitle="Loading job details..."><Loading /></Page>
+  if (loading) {
+    return (
+      <div className="animate-in fade-in flex flex-col items-center justify-center min-h-[50vh] max-w-6xl mx-auto">
+        <Loading />
+        <p className="mt-4 text-text-muted font-medium">Loading job details...</p>
+      </div>
+    )
+  }
 
   return (
-    <Page eyebrow="Opportunities" title={job?.title || 'Job Opportunity'} subtitle={`${job?.company} · ${job?.location || 'Remote'}`}>
-      {/* Back button */}
-      <div style={{ marginBottom: 16 }}>
-        <Link to="/jobs" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted)', textDecoration: 'none' }}>
-          <ArrowLeft size={15} /> Back to all jobs
-        </Link>
+    <div className="animate-in fade-in duration-500 pb-12 max-w-6xl mx-auto">
+      {/* Header section */}
+      <div className="mb-6 flex flex-col gap-4">
+        <div>
+          <Link to="/jobs" className="inline-flex items-center gap-1.5 text-sm font-bold text-text-secondary hover:text-primary transition-colors">
+            <ArrowLeft size={16} /> Back to all jobs
+          </Link>
+        </div>
       </div>
 
       {savedSuccess && (
-        <div className="notice" style={{ marginBottom: 18, borderColor: '#16a34a', background: 'rgba(22,163,74,0.08)', color: '#166534', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <CheckCircle2 size={16} />
+        <div className="mb-6 p-4 rounded-xl bg-success/10 border border-success/20 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm animate-in slide-in-from-top-4">
+          <div className="flex items-center gap-3 text-success-hover font-bold">
+            <CheckCircle2 size={18} />
             <span>{savedSuccess}</span>
           </div>
-          <Link to="/applications" style={{ color: '#166534', fontWeight: 600, fontSize: 13 }}>View Tracker →</Link>
+          <Link to="/applications" className="text-success-hover font-bold text-sm hover:underline flex items-center gap-1 shrink-0">
+            View Tracker <ArrowRight size={14} />
+          </Link>
         </div>
       )}
 
       {/* Hero Card */}
-      <div className="card" style={{ marginBottom: 24, padding: 24 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <h2 style={{ fontSize: 24, margin: 0 }}>{job?.title}</h2>
+      <div className="bg-background rounded-3xl border border-border shadow-md p-6 md:p-8 mb-8 animate-in slide-in-from-bottom-4">
+        <div className="flex flex-col md:flex-row justify-between items-start gap-6">
+          <div className="flex-1">
+            <div className="flex flex-wrap items-center gap-3 mb-2">
+              <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider block">
+                Opportunities
+              </span>
               {fitReport && (
-                <span className="tag" style={{ fontSize: 13, fontWeight: 700, background: fitReport.match_percentage >= 75 ? 'rgba(22,163,74,0.1)' : 'rgba(37,99,235,0.1)', color: fitReport.match_percentage >= 75 ? '#166534' : '#2563eb' }}>
+                <span className={`px-2.5 py-1 rounded-md text-xs font-black uppercase tracking-widest ${
+                  fitReport.match_percentage >= 75 ? 'bg-success/10 text-success-hover border border-success/20' : 'bg-primary/10 text-primary border border-primary/20'
+                }`}>
                   {fitReport.match_percentage}% AI Fit Match ({fitReport.verdict})
                 </span>
               )}
             </div>
-            <div style={{ display: 'flex', gap: 16, marginTop: 8, color: 'var(--muted)', fontSize: 14, flexWrap: 'wrap' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><Building2 size={15} /> {job?.company}</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><MapPin size={15} /> {job?.location || 'Remote'}</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}><BriefcaseBusiness size={15} /> Full-time</span>
+            
+            <h1 className="text-2xl md:text-3xl font-heading font-black text-text-primary mb-3">
+              {job?.title || 'Job Opportunity'}
+            </h1>
+            
+            <div className="flex flex-wrap gap-4 md:gap-6 text-sm font-medium text-text-secondary">
+              <span className="flex items-center gap-2"><Building2 size={16} className="text-text-muted" /> {job?.company}</span>
+              <span className="flex items-center gap-2"><MapPin size={16} className="text-text-muted" /> {job?.location || 'Remote'}</span>
+              <span className="flex items-center gap-2"><BriefcaseBusiness size={16} className="text-text-muted" /> Full-time</span>
             </div>
           </div>
 
           {/* Action CTAs */}
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div className="flex flex-wrap md:flex-col lg:flex-row gap-3 w-full md:w-auto shrink-0">
             <button
-              className="button"
+              className={`px-5 py-2.5 font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 text-sm w-full lg:w-auto ${
+                applied 
+                  ? 'bg-background border-2 border-success/30 text-success cursor-default' 
+                  : 'bg-primary hover:bg-primary-hover text-white'
+              }`}
               onClick={handleTrackApplication}
               disabled={applied}
-              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
             >
-              {applied ? <><CheckCircle2 size={15} /> Added to Tracker</> : <><BookmarkPlus size={15} /> Track Application</>}
+              {applied ? <><CheckCircle2 size={16} /> Added to Tracker</> : <><BookmarkPlus size={16} /> Track Application</>}
             </button>
             <button
-              className="button secondary"
+              className="px-5 py-2.5 bg-background border border-border text-text-secondary hover:text-text-primary hover:border-border-hover hover:bg-border/10 font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-sm w-full lg:w-auto"
               onClick={() => navigate('/preparation', { state: { target_role: job?.title } })}
-              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
             >
-              <Target size={15} /> Prepare for Role
+              <Target size={16} /> Prepare for Role
             </button>
             <button
-              className="button secondary"
+              className="px-5 py-2.5 bg-ai/10 border border-ai/20 text-ai-hover hover:bg-ai/20 font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-sm w-full lg:w-auto"
               onClick={() => navigate('/interview', { state: { target_role: job?.title } })}
-              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
             >
-              <Sparkles size={15} /> Mock Interview
+              <Sparkles size={16} /> Mock Interview
             </button>
           </div>
         </div>
       </div>
 
       {/* Grid: Left Column (Job Details) & Right Column (AI Fit & Suitability Intelligence) */}
-      <div className="grid grid-2" style={{ alignItems: 'flex-start', gap: 20 }}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in slide-in-from-bottom-8 duration-500 delay-100">
+        
         {/* Left Column: Role Details */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div className="card">
-            <h3 style={{ fontSize: 17, marginBottom: 12 }}>Role Overview</h3>
-            <p style={{ lineHeight: 1.7, color: 'var(--text-secondary, #475569)', fontSize: 14 }}>
+        <div className="lg:col-span-2 flex flex-col gap-6">
+          <div className="bg-background rounded-2xl border border-border shadow-sm p-6 md:p-8">
+            <h3 className="text-xl font-heading font-bold text-text-primary mb-4 flex items-center gap-2">
+              <BriefcaseBusiness size={20} className="text-primary" /> Role Overview
+            </h3>
+            <p className="text-text-secondary leading-relaxed mb-8 whitespace-pre-line">
               {job?.description}
             </p>
 
             {job?.responsibilities && job.responsibilities.length > 0 && (
-              <div style={{ marginTop: 18 }}>
-                <h4 style={{ fontSize: 15, marginBottom: 8 }}>Key Responsibilities</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div className="mb-8">
+                <h4 className="text-base font-bold text-text-primary mb-4 uppercase tracking-wide">Key Responsibilities</h4>
+                <ul className="flex flex-col gap-3">
                   {job.responsibilities.map((resp, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13, lineHeight: 1.5 }}>
-                      <span style={{ color: '#2563eb' }}>•</span>
+                    <li key={i} className="flex items-start gap-3 text-sm text-text-secondary leading-relaxed">
+                      <span className="text-primary mt-1 shrink-0">•</span>
                       <span>{resp}</span>
-                    </div>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
             )}
 
-            <div style={{ marginTop: 18 }}>
-              <h4 style={{ fontSize: 15, marginBottom: 8 }}>Required Skills & Technologies</h4>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <div className="mb-8">
+              <h4 className="text-base font-bold text-text-primary mb-4 uppercase tracking-wide">Required Skills & Technologies</h4>
+              <div className="flex flex-wrap gap-2">
                 {job?.required_skills?.map((s, i) => (
-                  <span key={i} className="tag" style={{ background: 'var(--bg-subtle, #f1f5f9)', color: 'var(--text)', fontWeight: 600 }}>{s}</span>
+                  <span key={i} className="px-3 py-1.5 bg-background border border-border rounded-lg text-sm font-bold text-text-primary shadow-sm">
+                    {s}
+                  </span>
                 ))}
               </div>
             </div>
 
             {job?.preferred_skills && job.preferred_skills.length > 0 && (
-              <div style={{ marginTop: 14 }}>
-                <h4 style={{ fontSize: 14, marginBottom: 6, color: 'var(--muted)' }}>Preferred / Bonus Skills</h4>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <div className="mb-8">
+                <h4 className="text-sm font-bold text-text-muted mb-3 uppercase tracking-wide">Preferred / Bonus Skills</h4>
+                <div className="flex flex-wrap gap-2">
                   {job.preferred_skills.map((s, i) => (
-                    <span key={i} className="tag" style={{ fontSize: 12 }}>{s}</span>
+                    <span key={i} className="px-2.5 py-1 bg-background border border-border/50 rounded-lg text-xs font-semibold text-text-secondary">
+                      {s}
+                    </span>
                   ))}
                 </div>
               </div>
             )}
 
             {job?.qualifications && job.qualifications.length > 0 && (
-              <div style={{ marginTop: 18 }}>
-                <h4 style={{ fontSize: 15, marginBottom: 8 }}>Qualifications</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div>
+                <h4 className="text-base font-bold text-text-primary mb-4 uppercase tracking-wide">Qualifications</h4>
+                <ul className="flex flex-col gap-2">
                   {job.qualifications.map((q, i) => (
-                    <div key={i} style={{ fontSize: 13, color: 'var(--muted)' }}>
-                      ✓ {q}
-                    </div>
+                    <li key={i} className="flex items-start gap-2 text-sm text-text-muted">
+                      <CheckCircle2 size={16} className="text-success shrink-0 mt-0.5" />
+                      {q}
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
             )}
           </div>
         </div>
 
         {/* Right Column: Multi-Agent AI Fit Intelligence */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div className="card" style={{ border: '1px solid rgba(37,99,235,0.25)', background: 'linear-gradient(180deg, rgba(37,99,235,0.02) 0%, rgba(139,92,246,0.02) 100%)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Sparkles size={18} color="#2563eb" />
-                <h3 style={{ fontSize: 16, margin: 0 }}>AI Fit & Suitability Intelligence</h3>
+        <div className="flex flex-col gap-6">
+          <div className="bg-gradient-to-br from-background to-ai/5 rounded-2xl border border-ai/20 shadow-sm overflow-hidden sticky top-6">
+            <div className="p-5 border-b border-border/50 bg-background/50 flex justify-between items-center">
+              <div className="flex items-center gap-2 text-ai-hover">
+                <Sparkles size={18} className="fill-ai/20" />
+                <h3 className="font-heading font-bold m-0 text-base">AI Fit Intelligence</h3>
               </div>
               <button
-                className="button secondary"
-                style={{ fontSize: 11, padding: '4px 8px' }}
+                className="px-3 py-1.5 bg-background border border-border hover:border-ai/30 text-text-secondary hover:text-ai font-bold rounded-lg text-xs transition-all flex items-center gap-1.5 disabled:opacity-50"
                 onClick={() => runAIFitAnalysis(job, candidateSkills)}
                 disabled={analyzingFit}
               >
-                {analyzingFit ? <RefreshCw size={12} className="spin" /> : 'Re-analyze'}
+                <RefreshCw size={12} className={analyzingFit ? 'animate-spin' : ''} />
+                {analyzingFit ? 'Analyzing' : 'Re-analyze'}
               </button>
             </div>
 
-            {analyzingFit ? (
-              <div style={{ textAlign: 'center', padding: 30 }}>
-                <RefreshCw size={24} className="spin" style={{ color: '#2563eb', margin: '0 auto 8px' }} />
-                <p style={{ fontSize: 13, color: 'var(--muted)' }}>Diagnosing candidate match and generating bridging roadmap...</p>
-              </div>
-            ) : fitReport ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {/* Score Progress Bar */}
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
-                    <span style={{ fontWeight: 600 }}>Overall Match Score</span>
-                    <strong style={{ color: '#2563eb' }}>{fitReport.match_percentage}%</strong>
-                  </div>
-                  <div className="progress" style={{ height: 8 }}>
-                    <span style={{ width: `${fitReport.match_percentage}%`, background: fitReport.match_percentage >= 75 ? '#16a34a' : '#2563eb' }} />
-                  </div>
+            <div className="p-5">
+              {analyzingFit ? (
+                <div className="text-center py-10 flex flex-col items-center">
+                  <RefreshCw size={28} className="animate-spin text-ai mb-4" />
+                  <p className="text-sm text-text-muted font-medium">Diagnosing candidate match and generating bridging roadmap...</p>
                 </div>
-
-                <p style={{ fontSize: 13, color: 'var(--text-secondary, #475569)', lineHeight: 1.5, margin: 0 }}>
-                  {fitReport.fit_summary}
-                </p>
-
-                {/* Matched Strengths */}
-                {fitReport.matched_strengths && fitReport.matched_strengths.length > 0 && (
-                  <div style={{ padding: 10, background: 'rgba(22,163,74,0.06)', borderRadius: 8, border: '1px solid rgba(22,163,74,0.2)' }}>
-                    <strong style={{ fontSize: 12, color: '#166534', display: 'block', marginBottom: 6 }}>
-                      ✓ Verified Strengths ({fitReport.matched_strengths.length}):
-                    </strong>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      {fitReport.matched_strengths.map((item, idx) => (
-                        <div key={idx} style={{ fontSize: 12, color: '#166534' }}>
-                          • <strong>{item.skill}:</strong> {item.relevance}
-                        </div>
-                      ))}
+              ) : fitReport ? (
+                <div className="flex flex-col gap-5 animate-in fade-in duration-300">
+                  {/* Score Progress Bar */}
+                  <div>
+                    <div className="flex justify-between items-end text-sm mb-2">
+                      <span className="font-bold text-text-secondary uppercase tracking-wider text-[10px]">Overall Match Score</span>
+                      <strong className={`text-lg font-black ${fitReport.match_percentage >= 75 ? 'text-success-hover' : 'text-primary'}`}>
+                        {fitReport.match_percentage}%
+                      </strong>
+                    </div>
+                    <div className="h-2 rounded-full bg-border overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-1000 ease-out ${fitReport.match_percentage >= 75 ? 'bg-success' : 'bg-primary'}`} 
+                        style={{ width: `${fitReport.match_percentage}%` }} 
+                      />
                     </div>
                   </div>
-                )}
 
-                {/* Critical Gaps & Bridging Strategy */}
-                {fitReport.critical_gaps && fitReport.critical_gaps.length > 0 && (
-                  <div style={{ padding: 10, background: 'rgba(239,68,68,0.06)', borderRadius: 8, border: '1px solid rgba(239,68,68,0.2)' }}>
-                    <strong style={{ fontSize: 12, color: '#991b1b', display: 'block', marginBottom: 6 }}>
-                      ✗ Priority Skill Gaps to Close:
-                    </strong>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {fitReport.critical_gaps.map((item, idx) => (
-                        <div key={idx} style={{ fontSize: 12, color: '#991b1b' }}>
-                          • <strong>{item.skill}:</strong> {item.bridging_strategy}
-                        </div>
-                      ))}
+                  <p className="text-sm font-medium text-text-primary leading-relaxed bg-background border border-border p-3 rounded-xl shadow-sm">
+                    {fitReport.fit_summary}
+                  </p>
+
+                  {/* Matched Strengths */}
+                  {fitReport.matched_strengths && fitReport.matched_strengths.length > 0 && (
+                    <div className="p-4 bg-success/5 rounded-xl border border-success/20 shadow-sm">
+                      <strong className="text-xs font-black text-success-hover uppercase tracking-widest flex items-center gap-1.5 mb-3">
+                        <CheckCircle2 size={14} /> Verified Strengths ({fitReport.matched_strengths.length})
+                      </strong>
+                      <div className="flex flex-col gap-3">
+                        {fitReport.matched_strengths.map((item, idx) => (
+                          <div key={idx} className="text-xs text-text-secondary leading-relaxed">
+                            <span className="font-bold text-success-hover mr-1.5">•</span>
+                            <strong className="text-text-primary">{item.skill}:</strong> {item.relevance}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Interview Focus Areas */}
-                {fitReport.interview_focus_areas && (
-                  <div style={{ padding: 10, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)' }}>
-                    <strong style={{ fontSize: 12, color: 'var(--muted)', display: 'block', marginBottom: 6 }}>
-                      Anticipated Interview Focus Areas:
-                    </strong>
-                    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                      {fitReport.interview_focus_areas.map((area, idx) => (
-                        <span key={idx} className="tag" style={{ fontSize: 11, background: 'rgba(37,99,235,0.08)', color: '#2563eb' }}>{area}</span>
-                      ))}
+                  {/* Critical Gaps & Bridging Strategy */}
+                  {fitReport.critical_gaps && fitReport.critical_gaps.length > 0 && (
+                    <div className="p-4 bg-error/5 rounded-xl border border-error/20 shadow-sm">
+                      <strong className="text-xs font-black text-error-hover uppercase tracking-widest flex items-center gap-1.5 mb-3">
+                        <Target size={14} /> Priority Skill Gaps
+                      </strong>
+                      <div className="flex flex-col gap-3">
+                        {fitReport.critical_gaps.map((item, idx) => (
+                          <div key={idx} className="text-xs text-text-secondary leading-relaxed">
+                            <span className="font-bold text-error-hover mr-1.5">•</span>
+                            <strong className="text-text-primary">{item.skill}:</strong> {item.bridging_strategy}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Tailored Recruiter Advice */}
-                {fitReport.tailored_advice && (
-                  <div style={{ padding: 10, background: 'var(--bg-subtle, #f8fafc)', borderRadius: 8, borderLeft: '3px solid #2563eb', fontSize: 13, lineHeight: 1.5 }}>
-                    <strong style={{ fontSize: 12, color: '#2563eb', display: 'block', marginBottom: 2 }}>AI Application Advice:</strong>
-                    {fitReport.tailored_advice}
-                  </div>
-                )}
-              </div>
-            ) : null}
+                  {/* Interview Focus Areas */}
+                  {fitReport.interview_focus_areas && (
+                    <div className="p-4 bg-background rounded-xl border border-border shadow-sm">
+                      <strong className="text-xs font-black text-text-muted uppercase tracking-widest flex items-center gap-1.5 mb-3">
+                        <Award size={14} /> Anticipated Interview Areas
+                      </strong>
+                      <div className="flex flex-wrap gap-2">
+                        {fitReport.interview_focus_areas.map((area, idx) => (
+                          <span key={idx} className="px-2.5 py-1 text-[11px] font-bold bg-primary/10 text-primary border border-primary/20 rounded-lg">
+                            {area}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tailored Recruiter Advice */}
+                  {fitReport.tailored_advice && (
+                    <div className="p-4 bg-ai/5 rounded-xl border-l-4 border-l-ai text-sm font-medium text-text-secondary shadow-sm">
+                      <strong className="text-xs font-black text-ai uppercase tracking-widest block mb-2">AI Application Advice</strong>
+                      {fitReport.tailored_advice}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>
-    </Page>
+    </div>
   )
 }

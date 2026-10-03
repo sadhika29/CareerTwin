@@ -1,23 +1,21 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react';
 import {
   BriefcaseBusiness, Plus, Search, Sparkles, CheckCircle2, Clock,
   ExternalLink, Trash2, ChevronRight, X, Copy, Check, RefreshCw, Send, Bookmark
-} from 'lucide-react'
-import { Page } from './_shared'
-import Loading from '../components/Loading'
-import {
-  getApplications, createApplication, updateApplication, deleteApplication, getAIApplicationStrategy
-} from '../features/applications/applicationService'
+} from 'lucide-react';
+import { getApplications, createApplication, updateApplication, deleteApplication, getAIApplicationStrategy } from '../features/applications/applicationService';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import { Progress } from '../components/ui/Progress';
 
 export default function Applications() {
-  const [applications, setApplications] = useState([])
-  const [stats, setStats] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [filterStatus, setFilterStatus] = useState('All')
-  const [searchQuery, setSearchQuery] = useState('')
+  const [applications, setApplications] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Add Application Modal
-  const [showAddModal, setShowAddModal] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false);
   const [newApp, setNewApp] = useState({
     company: '',
     role: '',
@@ -26,29 +24,29 @@ export default function Applications() {
     salary: '',
     notes: '',
     url: ''
-  })
-  const [submitting, setSubmitting] = useState(false)
+  });
+  const [submitting, setSubmitting] = useState(false);
 
   // AI Strategy Coach Drawer/Modal
-  const [selectedAppForAI, setSelectedAppForAI] = useState(null)
-  const [aiStrategyLoading, setAiStrategyLoading] = useState(false)
-  const [strategyResult, setStrategyResult] = useState(null)
-  const [copiedPitch, setCopiedPitch] = useState(false)
+  const [selectedAppForAI, setSelectedAppForAI] = useState(null);
+  const [aiStrategyLoading, setAiStrategyLoading] = useState(false);
+  const [strategyResult, setStrategyResult] = useState(null);
+  const [copiedPitch, setCopiedPitch] = useState(false);
 
   useEffect(() => {
-    loadApplications()
-  }, [])
+    loadApplications();
+  }, []);
 
   const loadApplications = async () => {
     try {
-      setLoading(true)
-      const data = await getApplications()
+      setLoading(true);
+      const data = await getApplications();
       if (data && data.applications) {
-        setApplications(data.applications)
-        setStats(data.stats)
+        setApplications(data.applications);
+        setStats(data.stats);
       }
     } catch (err) {
-      console.warn('Failed to load applications from backend:', err)
+      console.warn('Failed to load applications from backend:', err);
       const fallback = [
         {
           id: 'app-1',
@@ -98,8 +96,8 @@ export default function Applications() {
           next_step: 'Respond with negotiation parameters by Monday',
           match_score: 92
         }
-      ]
-      setApplications(fallback)
+      ];
+      setApplications(fallback);
       setStats({
         total: 4,
         interviewing: 1,
@@ -107,22 +105,22 @@ export default function Applications() {
         saved: 1,
         offers: 1,
         response_rate: 67
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleCreate = async (e) => {
-    e.preventDefault()
-    if (!newApp.company || !newApp.role) return
-    setSubmitting(true)
+    e.preventDefault();
+    if (!newApp.company || !newApp.role) return;
+    setSubmitting(true);
     try {
-      const res = await createApplication(newApp)
+      const res = await createApplication(newApp);
       if (res && res.application) {
-        setApplications([res.application, ...applications])
+        setApplications([res.application, ...applications]);
       }
-      setShowAddModal(false)
+      setShowAddModal(false);
       setNewApp({
         company: '',
         role: '',
@@ -131,8 +129,8 @@ export default function Applications() {
         salary: '',
         notes: '',
         url: ''
-      })
-      loadApplications()
+      });
+      loadApplications();
     } catch {
       const created = {
         id: `app-${Date.now()}`,
@@ -140,54 +138,52 @@ export default function Applications() {
         date: new Date().toISOString().split('T')[0],
         match_score: 80,
         next_step: 'Review role requirements and submit resume.'
-      }
-      setApplications([created, ...applications])
-      setShowAddModal(false)
+      };
+      setApplications([created, ...applications]);
+      setShowAddModal(false);
     } finally {
-      setSubmitting(false)
+      setSubmitting(false);
     }
-  }
+  };
 
   const handleStatusChange = async (appId, newStatus) => {
     try {
-      await updateApplication(appId, { status: newStatus })
-      setApplications(applications.map(a => a.id === appId ? { ...a, status: newStatus } : a))
-      loadApplications()
+      await updateApplication(appId, { status: newStatus });
+      setApplications(applications.map(a => a.id === appId ? { ...a, status: newStatus } : a));
+      loadApplications();
     } catch {
-      setApplications(applications.map(a => a.id === appId ? { ...a, status: newStatus } : a))
+      setApplications(applications.map(a => a.id === appId ? { ...a, status: newStatus } : a));
     }
-  }
+  };
 
   const handleDelete = async (appId) => {
-    if (!window.confirm('Remove this application from tracking?')) return
+    if (!window.confirm('Remove this application from tracking?')) return;
     try {
-      await deleteApplication(appId)
-      setApplications(applications.filter(a => a.id !== appId))
-      loadApplications()
+      await deleteApplication(appId);
+      setApplications(applications.filter(a => a.id !== appId));
+      loadApplications();
     } catch {
-      setApplications(applications.filter(a => a.id !== appId))
+      setApplications(applications.filter(a => a.id !== appId));
     }
-  }
+  };
 
   const handleOpenAICoach = async (app) => {
-    setSelectedAppForAI(app)
-    setStrategyResult(app.ai_strategy || null)
-    setAiStrategyLoading(true)
+    setSelectedAppForAI(app);
+    setStrategyResult(app.ai_strategy || null);
+    setAiStrategyLoading(true);
 
     try {
       const res = await getAIApplicationStrategy(app.id, {
         company: app.company,
         role: app.role,
         description: app.description
-      })
+      });
       if (res && res.strategy) {
-        setStrategyResult(res.strategy)
-        // Update local app state
-        setApplications(applications.map(a => a.id === app.id ? { ...a, ai_strategy: res.strategy } : a))
+        setStrategyResult(res.strategy);
+        setApplications(applications.map(a => a.id === app.id ? { ...a, ai_strategy: res.strategy } : a));
       }
     } catch (err) {
-      console.warn('AI Coach generation error:', err)
-      // High fidelity client fallback
+      console.warn('AI Coach generation error:', err);
       setStrategyResult({
         company_overview: `${app.company} values demonstrated software engineering craftsmanship, proactive ownership, and clear communication.`,
         tailored_pitch: `Dear Hiring Team at ${app.company},\n\nI am excited to submit my application for the ${app.role} position. With my background in building performant web applications, I have focused on scalable architectures, clean code standards, and reliable performance.\n\nI am particularly inspired by ${app.company}'s work and would love to bring my technical skills and curiosity to your engineering team.\n\nBest regards,\nCandidate`,
@@ -219,137 +215,164 @@ export default function Applications() {
           { task: `Research interviewer or team members on LinkedIn`, done: false, importance: 'Recommended' }
         ],
         estimated_readiness_score: 86
-      })
+      });
     } finally {
-      setAiStrategyLoading(false)
+      setAiStrategyLoading(false);
     }
-  }
+  };
 
   const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text)
-    setCopiedPitch(true)
-    setTimeout(() => setCopiedPitch(false), 2000)
-  }
+    navigator.clipboard.writeText(text);
+    setCopiedPitch(true);
+    setTimeout(() => setCopiedPitch(false), 2000);
+  };
 
   const filteredApps = applications.filter(app => {
-    const matchesFilter = filterStatus === 'All' || app.status?.toLowerCase() === filterStatus.toLowerCase()
+    const matchesFilter = filterStatus === 'All' || app.status?.toLowerCase() === filterStatus.toLowerCase();
     const matchesSearch = !searchQuery ||
       app.company?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      app.role?.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesFilter && matchesSearch
-  })
+      app.role?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
-      case 'offer': return { bg: '#dcfce7', text: '#166534', border: '#86efac' }
-      case 'interviewing': return { bg: '#dbeafe', text: '#1e40af', border: '#93c5fd' }
-      case 'applied': return { bg: '#fef3c7', text: '#92400e', border: '#fde68a' }
-      case 'saved': return { bg: '#f1f5f9', text: '#475569', border: '#cbd5e1' }
-      case 'rejected': return { bg: '#fee2e2', text: '#991b1b', border: '#fca5a5' }
-      default: return { bg: '#f1f5f9', text: '#475569', border: '#cbd5e1' }
+      case 'offer': return 'bg-success/10 text-success border-success/20';
+      case 'interviewing': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+      case 'applied': return 'bg-warning/10 text-warning border-warning/20';
+      case 'saved': return 'bg-text-muted/10 text-text-secondary border-text-muted/20';
+      case 'rejected': return 'bg-error/10 text-error border-error/20';
+      default: return 'bg-text-muted/10 text-text-secondary border-text-muted/20';
     }
-  }
+  };
 
   return (
-    <Page eyebrow="Applications" title="Job Application Tracker" subtitle="Track every opportunity and use AI to generate tailored pitches and interview strategies.">
+    <div className="animate-in fade-in duration-500 pb-12">
+      <div className="mb-8">
+        <h1 className="text-3xl font-heading font-bold text-text-primary mb-2 flex items-center gap-3">
+          Application Tracker
+          <BriefcaseBusiness size={24} className="text-primary" />
+        </h1>
+        <p className="text-text-secondary text-base">
+          Track every opportunity and use AI to generate tailored pitches and interview strategies.
+        </p>
+      </div>
+
       {/* Top Analytics Cards */}
-      <div className="grid grid-4" style={{ marginBottom: 20 }}>
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600 }}>TOTAL OPPORTUNITIES</div>
-          <div style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>{stats?.total ?? applications.length}</div>
-          <span style={{ fontSize: 12, color: 'var(--muted)' }}>Active in pipeline</span>
-        </div>
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600 }}>INTERVIEWING</div>
-          <div style={{ fontSize: 28, fontWeight: 700, marginTop: 4, color: '#2563eb' }}>{stats?.interviewing ?? 0}</div>
-          <span style={{ fontSize: 12, color: '#2563eb' }}>Live interview loops</span>
-        </div>
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600 }}>OFFERS RECEIVED</div>
-          <div style={{ fontSize: 28, fontWeight: 700, marginTop: 4, color: '#16a34a' }}>{stats?.offers ?? 0}</div>
-          <span style={{ fontSize: 12, color: '#16a34a' }}>Target compensation</span>
-        </div>
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600 }}>RESPONSE RATE</div>
-          <div style={{ fontSize: 28, fontWeight: 700, marginTop: 4, color: '#8b5cf6' }}>{stats?.response_rate ?? 65}%</div>
-          <span style={{ fontSize: 12, color: 'var(--muted)' }}>Application conversion</span>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <Card className="hover:shadow-md transition-shadow">
+          <CardContent className="p-5 flex flex-col justify-center">
+            <div className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Total Opportunities</div>
+            <div className="text-3xl font-heading font-black text-text-primary mb-1">{stats?.total ?? applications.length}</div>
+            <span className="text-xs text-text-secondary">Active in pipeline</span>
+          </CardContent>
+        </Card>
+        <Card className="hover:shadow-md transition-shadow">
+          <CardContent className="p-5 flex flex-col justify-center">
+            <div className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Interviewing</div>
+            <div className="text-3xl font-heading font-black text-blue-600 mb-1">{stats?.interviewing ?? 0}</div>
+            <span className="text-xs text-blue-600/80">Live interview loops</span>
+          </CardContent>
+        </Card>
+        <Card className="hover:shadow-md transition-shadow">
+          <CardContent className="p-5 flex flex-col justify-center">
+            <div className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Offers Received</div>
+            <div className="text-3xl font-heading font-black text-success mb-1">{stats?.offers ?? 0}</div>
+            <span className="text-xs text-success/80">Target compensation</span>
+          </CardContent>
+        </Card>
+        <Card className="hover:shadow-md transition-shadow">
+          <CardContent className="p-5 flex flex-col justify-center">
+            <div className="text-xs font-bold text-text-muted uppercase tracking-wider mb-2">Response Rate</div>
+            <div className="text-3xl font-heading font-black text-ai mb-1">{stats?.response_rate ?? 65}%</div>
+            <span className="text-xs text-ai/80">Application conversion</span>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Control Bar: Filters & Search & Add Button */}
-      <div className="card" style={{ padding: 14, marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-          {['All', 'Saved', 'Applied', 'Interviewing', 'Offer', 'Rejected'].map(st => (
-            <button
-              key={st}
-              className={`button ${filterStatus === st ? '' : 'secondary'}`}
-              style={{ fontSize: 12, padding: '5px 12px' }}
-              onClick={() => setFilterStatus(st)}
-            >
-              {st}
-            </button>
-          ))}
-        </div>
-
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <div style={{ position: 'relative', width: 220 }}>
-            <Search size={14} style={{ position: 'absolute', left: 10, top: 10, color: 'var(--muted)' }} />
-            <input
-              style={{ width: '100%', paddingLeft: 30, paddingRight: 10, paddingTop: 6, paddingBottom: 6, fontSize: 13, borderRadius: 6, border: '1px solid var(--border)' }}
-              placeholder="Search company or role..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
+      <Card className="mb-8">
+        <CardContent className="p-4 flex flex-col lg:flex-row justify-between items-center gap-4">
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+            {['All', 'Saved', 'Applied', 'Interviewing', 'Offer', 'Rejected'].map(st => (
+              <button
+                key={st}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
+                  filterStatus === st 
+                    ? 'bg-primary text-white' 
+                    : 'bg-background border border-border text-text-secondary hover:bg-border/30'
+                }`}
+                onClick={() => setFilterStatus(st)}
+              >
+                {st}
+              </button>
+            ))}
           </div>
-          <button className="button" style={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }} onClick={() => setShowAddModal(true)}>
-            <Plus size={15} /> Add Application
-          </button>
-        </div>
-      </div>
+
+          <div className="flex w-full lg:w-auto items-center gap-3">
+            <div className="relative flex-1 lg:w-64">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+              <input
+                className="w-full pl-9 pr-4 py-2 rounded-lg border border-border bg-background text-sm text-text-primary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                placeholder="Search company or role..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <button 
+              className="shrink-0 px-4 py-2 bg-primary hover:bg-primary-hover text-white text-sm font-semibold rounded-lg transition-colors flex items-center gap-2"
+              onClick={() => setShowAddModal(true)}
+            >
+              <Plus size={16} /> <span className="hidden sm:inline">Add Application</span>
+            </button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Applications List */}
       {loading ? (
-        <Loading />
-      ) : filteredApps.length === 0 ? (
-        <div className="card empty" style={{ textAlign: 'center', padding: 40 }}>
-          <BriefcaseBusiness size={36} style={{ color: 'var(--muted)', margin: '0 auto 12px' }} />
-          <h3>No applications found</h3>
-          <p style={{ color: 'var(--muted)', fontSize: 14 }}>Try selecting a different filter or add a new opportunity to track.</p>
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="w-10 h-10 border-4 border-border border-t-primary rounded-full animate-spin mb-4"></div>
+          <p className="text-text-muted font-medium">Loading applications...</p>
         </div>
+      ) : filteredApps.length === 0 ? (
+        <Card className="bg-background border-dashed border-2 py-16 text-center">
+          <CardContent className="flex flex-col items-center">
+            <div className="w-16 h-16 bg-border/30 rounded-full flex items-center justify-center mb-4">
+              <BriefcaseBusiness size={28} className="text-text-muted" />
+            </div>
+            <h3 className="text-lg font-bold text-text-primary mb-2">No applications found</h3>
+            <p className="text-sm text-text-muted max-w-sm mx-auto">Try selecting a different filter or add a new opportunity to track.</p>
+          </CardContent>
+        </Card>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {filteredApps.map(app => {
-            const colors = getStatusColor(app.status)
-            return (
-              <div key={app.id} className="card" style={{ transition: 'all 0.2s ease', position: 'relative' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
+        <div className="flex flex-col gap-4">
+          {filteredApps.map(app => (
+            <Card key={app.id} className="hover:border-primary/30 transition-colors">
+              <CardContent className="p-5 sm:p-6">
+                <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-4">
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <h3 style={{ fontSize: 17, margin: 0 }}>{app.role}</h3>
-                      <span
-                        className="tag"
-                        style={{
-                          background: colors.bg,
-                          color: colors.text,
-                          border: `1px solid ${colors.border}`,
-                          fontSize: 11,
-                          fontWeight: 700
-                        }}
-                      >
+                    <div className="flex items-center gap-3 mb-1">
+                      <h3 className="text-lg font-bold text-text-primary">{app.role}</h3>
+                      <span className={`px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider rounded-md border ${getStatusColor(app.status)}`}>
                         {app.status}
                       </span>
                     </div>
-                    <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 2, marginBottom: 6 }}>
-                      <strong style={{ color: 'var(--text)' }}>{app.company}</strong> · {app.location || 'Remote'} · {app.salary || 'Competitive'}
+                    <p className="text-sm text-text-secondary">
+                      <strong className="text-text-primary">{app.company}</strong> 
+                      <span className="mx-2 text-border">•</span> 
+                      {app.location || 'Remote'} 
+                      <span className="mx-2 text-border">•</span> 
+                      {app.salary || 'Competitive'}
                     </p>
                   </div>
 
                   {/* Actions & Status Dropdown */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div className="flex flex-wrap items-center gap-2 md:gap-3">
                     <select
                       value={app.status}
                       onChange={(e) => handleStatusChange(app.id, e.target.value)}
-                      style={{ fontSize: 12, padding: '5px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)' }}
+                      className="px-3 py-1.5 text-sm font-medium rounded-lg border border-border bg-background text-text-primary focus:outline-none focus:border-primary cursor-pointer"
                     >
                       <option value="Saved">Saved</option>
                       <option value="Applied">Applied</option>
@@ -359,219 +382,311 @@ export default function Applications() {
                     </select>
 
                     <button
-                      className="button"
-                      style={{ fontSize: 12, padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 5, background: 'linear-gradient(135deg, #4f46e5 0%, #2563eb 100%)' }}
                       onClick={() => handleOpenAICoach(app)}
+                      className="px-3 py-1.5 bg-gradient-to-r from-ai to-primary hover:opacity-90 text-white text-sm font-semibold rounded-lg transition-opacity flex items-center gap-2"
                     >
-                      <Sparkles size={13} /> AI Strategy Coach
+                      <Sparkles size={16} /> AI Coach
                     </button>
 
                     <button
-                      className="button secondary"
-                      style={{ padding: '6px 8px', color: '#dc2626' }}
                       onClick={() => handleDelete(app.id)}
+                      className="p-2 text-text-muted hover:text-error hover:bg-error/10 rounded-lg transition-colors"
                       title="Delete Application"
                     >
-                      <Trash2 size={14} />
+                      <Trash2 size={18} />
                     </button>
                   </div>
                 </div>
 
                 {/* Notes & Next Step */}
-                <div style={{ marginTop: 10, display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+                <div className="pt-4 border-t border-border flex flex-col sm:flex-row gap-4 sm:items-center text-sm">
                   {app.next_step && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#2563eb' }}>
-                      <Clock size={14} />
+                    <div className="flex items-center gap-2 text-primary font-medium bg-primary/5 px-3 py-1.5 rounded-lg">
+                      <Clock size={16} />
                       <span>Next: {app.next_step}</span>
                     </div>
                   )}
                   {app.notes && (
-                    <div style={{ color: 'var(--muted)' }}>
-                      Note: {app.notes}
+                    <div className="text-text-secondary flex-1 italic">
+                      "{app.notes}"
                     </div>
                   )}
-                  <div style={{ marginLeft: 'auto', color: 'var(--muted)', fontSize: 12 }}>
+                  <div className="text-xs text-text-muted sm:ml-auto">
                     Updated: {app.date}
                   </div>
                 </div>
-              </div>
-            )
-          })}
+              </CardContent>
+            </Card>
+          ))}
         </div>
       )}
 
       {/* ADD APPLICATION MODAL */}
       {showAddModal && (
-        <div className="dialog-backdrop" role="presentation">
-          <div className="confirm-dialog" style={{ maxWidth: 520, textAlign: 'left' }} role="dialog">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <h2 style={{ fontSize: 18, margin: 0 }}>Add New Application</h2>
-              <button className="text-button" onClick={() => setShowAddModal(false)}><X size={18} /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-5 border-b border-border bg-card">
+              <h2 className="text-lg font-heading font-bold text-text-primary">Add New Application</h2>
+              <button 
+                onClick={() => setShowAddModal(false)}
+                className="p-2 text-text-muted hover:bg-border/50 rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
             </div>
 
-            <form onSubmit={handleCreate}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div className="field">
-                  <label>Company Name *</label>
-                  <input required value={newApp.company} onChange={e => setNewApp({ ...newApp, company: e.target.value })} placeholder="e.g. Google, Stripe" />
+            <div className="p-5 overflow-y-auto custom-scrollbar">
+              <form id="add-app-form" onSubmit={handleCreate} className="flex flex-col gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-xs font-bold text-text-primary mb-1.5 uppercase tracking-wide">Company Name *</label>
+                    <input 
+                      required 
+                      value={newApp.company} 
+                      onChange={e => setNewApp({ ...newApp, company: e.target.value })} 
+                      placeholder="e.g. Google, Stripe" 
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-text-primary mb-1.5 uppercase tracking-wide">Role / Job Title *</label>
+                    <input 
+                      required 
+                      value={newApp.role} 
+                      onChange={e => setNewApp({ ...newApp, role: e.target.value })} 
+                      placeholder="e.g. Frontend Engineer" 
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-text-primary mb-1.5 uppercase tracking-wide">Location</label>
+                    <input 
+                      value={newApp.location} 
+                      onChange={e => setNewApp({ ...newApp, location: e.target.value })} 
+                      placeholder="e.g. Remote or City" 
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-text-primary mb-1.5 uppercase tracking-wide">Initial Status</label>
+                    <select 
+                      value={newApp.status} 
+                      onChange={e => setNewApp({ ...newApp, status: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-primary appearance-none"
+                    >
+                      <option value="Saved">Saved</option>
+                      <option value="Applied">Applied</option>
+                      <option value="Interviewing">Interviewing</option>
+                      <option value="Offer">Offer</option>
+                    </select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-text-primary mb-1.5 uppercase tracking-wide">Salary / Comp Range</label>
+                    <input 
+                      value={newApp.salary} 
+                      onChange={e => setNewApp({ ...newApp, salary: e.target.value })} 
+                      placeholder="e.g. $110k - $130k" 
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-text-primary mb-1.5 uppercase tracking-wide">Job Posting URL</label>
+                    <input 
+                      type="url" 
+                      value={newApp.url} 
+                      onChange={e => setNewApp({ ...newApp, url: e.target.value })} 
+                      placeholder="https://careers..." 
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-primary"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-bold text-text-primary mb-1.5 uppercase tracking-wide">Notes / Context</label>
+                    <textarea 
+                      rows={2} 
+                      value={newApp.notes} 
+                      onChange={e => setNewApp({ ...newApp, notes: e.target.value })} 
+                      placeholder="Referral source, submission date, or recruiter contact..." 
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-border bg-background text-sm focus:outline-none focus:border-primary resize-y"
+                    />
+                  </div>
                 </div>
-                <div className="field">
-                  <label>Role / Job Title *</label>
-                  <input required value={newApp.role} onChange={e => setNewApp({ ...newApp, role: e.target.value })} placeholder="e.g. Frontend Engineer" />
-                </div>
-                <div className="field">
-                  <label>Location</label>
-                  <input value={newApp.location} onChange={e => setNewApp({ ...newApp, location: e.target.value })} placeholder="e.g. Remote or City" />
-                </div>
-                <div className="field">
-                  <label>Initial Status</label>
-                  <select value={newApp.status} onChange={e => setNewApp({ ...newApp, status: e.target.value })}>
-                    <option value="Saved">Saved</option>
-                    <option value="Applied">Applied</option>
-                    <option value="Interviewing">Interviewing</option>
-                    <option value="Offer">Offer</option>
-                  </select>
-                </div>
-                <div className="field" style={{ gridColumn: '1 / -1' }}>
-                  <label>Salary / Compensation Range</label>
-                  <input value={newApp.salary} onChange={e => setNewApp({ ...newApp, salary: e.target.value })} placeholder="e.g. $110k - $130k" />
-                </div>
-                <div className="field" style={{ gridColumn: '1 / -1' }}>
-                  <label>Job Posting URL</label>
-                  <input type="url" value={newApp.url} onChange={e => setNewApp({ ...newApp, url: e.target.value })} placeholder="https://careers..." />
-                </div>
-                <div className="field" style={{ gridColumn: '1 / -1' }}>
-                  <label>Notes / Context</label>
-                  <textarea rows={2} value={newApp.notes} onChange={e => setNewApp({ ...newApp, notes: e.target.value })} placeholder="Referral source, submission date, or recruiter contact..." />
-                </div>
-              </div>
-
-              <div style={{ marginTop: 20, display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-                <button type="button" className="button secondary" onClick={() => setShowAddModal(false)}>Cancel</button>
-                <button type="submit" className="button" disabled={submitting}>
-                  {submitting ? 'Saving...' : 'Add to Pipeline'}
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
+            
+            <div className="p-4 border-t border-border bg-card flex justify-end gap-3 shrink-0">
+              <button 
+                type="button" 
+                onClick={() => setShowAddModal(false)}
+                className="px-5 py-2 bg-background border border-border hover:bg-border/30 text-text-primary text-sm font-semibold rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                form="add-app-form"
+                disabled={submitting}
+                className="px-5 py-2 bg-primary hover:bg-primary-hover text-white text-sm font-semibold rounded-lg transition-colors flex items-center justify-center min-w-[140px]"
+              >
+                {submitting ? 'Saving...' : 'Add to Pipeline'}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* AI STRATEGY COACH MODAL / DRAWER */}
+      {/* AI STRATEGY COACH MODAL */}
       {selectedAppForAI && (
-        <div className="dialog-backdrop" role="presentation">
-          <div className="confirm-dialog" style={{ maxWidth: 720, width: '90%', maxHeight: '85vh', overflowY: 'auto', textAlign: 'left' }} role="dialog">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: 12, marginBottom: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(37,99,235,0.1)', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Sparkles size={18} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-5 border-b border-border bg-card shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-ai/10 text-ai flex items-center justify-center shrink-0">
+                  <Sparkles size={20} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: 18, margin: 0 }}>AI Application Coach</h3>
-                  <p style={{ margin: 0, fontSize: 12, color: 'var(--muted)' }}>
-                    Tailored strategy for <strong>{selectedAppForAI.role}</strong> at <strong>{selectedAppForAI.company}</strong>
+                  <h3 className="text-lg font-bold text-text-primary">AI Application Coach</h3>
+                  <p className="text-xs text-text-secondary">
+                    Strategy for <strong className="text-text-primary">{selectedAppForAI.role}</strong> at <strong className="text-text-primary">{selectedAppForAI.company}</strong>
                   </p>
                 </div>
               </div>
-              <button className="text-button" onClick={() => setSelectedAppForAI(null)}><X size={18} /></button>
+              <button 
+                onClick={() => setSelectedAppForAI(null)}
+                className="p-2 text-text-muted hover:bg-border/50 rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
             </div>
 
-            {aiStrategyLoading ? (
-              <div style={{ padding: 40, textAlign: 'center' }}>
-                <RefreshCw size={28} className="spin" style={{ color: '#2563eb', margin: '0 auto 12px' }} />
-                <h4>Generating Company-Specific Application Strategy...</h4>
-                <p style={{ color: 'var(--muted)', fontSize: 13 }}>Analyzing role requirements, generating tailored cover pitch, and predicting interview focus.</p>
-              </div>
-            ) : strategyResult ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-                {/* Company Overview & Readiness */}
-                <div style={{ padding: 12, background: 'var(--bg-subtle, #f8fafc)', borderRadius: 8, border: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-                  <p style={{ fontSize: 13, color: 'var(--text)', margin: 0, flex: 1 }}>
-                    <strong>Company Focus:</strong> {strategyResult.company_overview}
-                  </p>
-                  <div style={{ textAlign: 'right' }}>
-                    <span className="tag" style={{ background: '#dbeafe', color: '#1e40af', fontWeight: 700, fontSize: 12 }}>
-                      Readiness: {strategyResult.estimated_readiness_score || 85}%
-                    </span>
-                  </div>
+            <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+              {aiStrategyLoading ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <RefreshCw size={40} className="animate-spin text-ai mb-6" />
+                  <h4 className="text-lg font-bold text-text-primary mb-2">Generating Company-Specific Strategy...</h4>
+                  <p className="text-sm text-text-muted max-w-md">Analyzing role requirements, generating tailored cover pitch, and predicting interview focus.</p>
                 </div>
-
-                {/* Tailored Cover Pitch with Copy Button */}
-                <div style={{ padding: 14, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <strong style={{ fontSize: 14, color: '#2563eb' }}>Tailored Application Pitch / Cover Note</strong>
-                    <button
-                      className="button secondary"
-                      style={{ fontSize: 12, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5 }}
-                      onClick={() => copyToClipboard(strategyResult.tailored_pitch)}
-                    >
-                      {copiedPitch ? <><Check size={13} color="#16a34a" /> Copied!</> : <><Copy size={13} /> Copy Pitch</>}
-                    </button>
-                  </div>
-                  <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: 13, lineHeight: 1.6, color: 'var(--text)' }}>
-                    {strategyResult.tailored_pitch}
-                  </pre>
-                </div>
-
-                {/* Key Recruiter Talking Points */}
-                {strategyResult.key_talking_points && (
-                  <div>
-                    <h4 style={{ fontSize: 14, marginBottom: 8 }}>Key Recruiter Talking Points</h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {strategyResult.key_talking_points.map((pt, idx) => (
-                        <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 13 }}>
-                          <CheckCircle2 size={16} color="#16a34a" style={{ flexShrink: 0, marginTop: 2 }} />
-                          <span>{pt}</span>
-                        </div>
-                      ))}
+              ) : strategyResult ? (
+                <div className="flex flex-col gap-8">
+                  {/* Company Overview & Readiness */}
+                  <div className="bg-card border border-border rounded-xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <p className="text-sm text-text-secondary flex-1 leading-relaxed m-0">
+                      <strong className="text-text-primary block mb-1">Company Focus:</strong> 
+                      {strategyResult.company_overview}
+                    </p>
+                    <div className="shrink-0">
+                      <span className="inline-flex flex-col items-center justify-center px-4 py-2 bg-blue-500/10 text-blue-700 rounded-lg border border-blue-500/20">
+                        <span className="text-xs font-bold uppercase tracking-wider mb-0.5">Readiness</span>
+                        <span className="text-xl font-black">{strategyResult.estimated_readiness_score || 85}%</span>
+                      </span>
                     </div>
                   </div>
-                )}
 
-                {/* Predicted Interview Questions */}
-                {strategyResult.predicted_interview_questions && (
+                  {/* Tailored Pitch */}
                   <div>
-                    <h4 style={{ fontSize: 14, marginBottom: 8 }}>Anticipated Interview Questions for {selectedAppForAI.company}</h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                      {strategyResult.predicted_interview_questions.map((q, idx) => (
-                        <div key={idx} style={{ padding: 10, background: 'var(--bg-subtle, #f8fafc)', borderRadius: 6, border: '1px solid var(--border)' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                            <strong style={{ fontSize: 13 }}>Q{idx + 1}: {q.question}</strong>
-                            <span className="tag" style={{ fontSize: 10 }}>{q.type}</span>
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className="text-sm font-bold text-primary flex items-center gap-2">
+                        <Send size={16} /> Tailored Pitch / Cover Note
+                      </h4>
+                      <button
+                        onClick={() => copyToClipboard(strategyResult.tailored_pitch)}
+                        className="px-3 py-1.5 text-xs font-semibold bg-background border border-border hover:bg-border/30 text-text-primary rounded-md transition-colors flex items-center gap-1.5"
+                      >
+                        {copiedPitch ? <><Check size={14} className="text-success" /> Copied!</> : <><Copy size={14} /> Copy Pitch</>}
+                      </button>
+                    </div>
+                    <div className="bg-background border border-border rounded-xl p-5 relative group">
+                      <pre className="text-sm text-text-secondary leading-relaxed font-sans whitespace-pre-wrap m-0">
+                        {strategyResult.tailored_pitch}
+                      </pre>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {/* Talking Points */}
+                    {strategyResult.key_talking_points && (
+                      <div>
+                        <h4 className="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
+                          <Bookmark size={16} className="text-ai" /> Key Recruiter Talking Points
+                        </h4>
+                        <ul className="flex flex-col gap-3 m-0 p-0">
+                          {strategyResult.key_talking_points.map((pt, idx) => (
+                            <li key={idx} className="flex items-start gap-2.5 text-sm text-text-secondary">
+                              <CheckCircle2 size={16} className="text-success shrink-0 mt-0.5" />
+                              <span className="leading-relaxed">{pt}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Actionable Checklist */}
+                    {strategyResult.application_checklist && (
+                      <div>
+                        <h4 className="text-sm font-bold text-text-primary mb-4 flex items-center gap-2">
+                          <CheckCircle2 size={16} className="text-primary" /> Application Prep Checklist
+                        </h4>
+                        <div className="flex flex-col gap-2.5">
+                          {strategyResult.application_checklist.map((item, idx) => (
+                            <label key={idx} className="flex items-start gap-3 p-3 rounded-lg border border-border bg-card cursor-pointer hover:border-primary/30 transition-colors group">
+                              <input 
+                                type="checkbox" 
+                                defaultChecked={item.done} 
+                                className="mt-1 w-4 h-4 text-primary rounded border-border focus:ring-primary"
+                              />
+                              <div className="flex-1">
+                                <span className={`text-sm ${item.done ? 'text-text-muted line-through' : 'text-text-primary'} transition-all block mb-1`}>
+                                  {item.task}
+                                </span>
+                                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full inline-block ${
+                                  item.importance === 'Critical' ? 'bg-error/10 text-error' : 'bg-border text-text-muted'
+                                }`}>
+                                  {item.importance}
+                                </span>
+                              </div>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Predicted Questions */}
+                  {strategyResult.predicted_interview_questions && (
+                    <div>
+                      <h4 className="text-sm font-bold text-text-primary mb-4">Anticipated Interview Questions</h4>
+                      <div className="flex flex-col gap-3">
+                        {strategyResult.predicted_interview_questions.map((q, idx) => (
+                          <div key={idx} className="bg-card border border-border rounded-xl p-4">
+                            <div className="flex justify-between items-start gap-4 mb-2">
+                              <strong className="text-sm text-text-primary">Q{idx + 1}: {q.question}</strong>
+                              <span className="px-2 py-0.5 bg-background border border-border text-text-muted text-[10px] font-bold uppercase tracking-wider rounded-md shrink-0">
+                                {q.type}
+                              </span>
+                            </div>
+                            <p className="text-sm text-text-secondary italic m-0">
+                              <span className="font-semibold not-italic text-text-primary mr-1">Strategy:</span>
+                              {q.suggested_approach}
+                            </p>
                           </div>
-                          <p style={{ margin: 0, fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>
-                            Strategy: {q.suggested_approach}
-                          </p>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-
-                {/* Actionable Prep Checklist */}
-                {strategyResult.application_checklist && (
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-                    <h4 style={{ fontSize: 14, marginBottom: 8 }}>Application Prep Checklist</h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      {strategyResult.application_checklist.map((item, idx) => (
-                        <label key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
-                          <input type="checkbox" defaultChecked={item.done} />
-                          <span>{item.task}</span>
-                          <span className="tag" style={{ fontSize: 10, padding: '1px 6px' }}>{item.importance}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : null}
-
-            <div style={{ marginTop: 20, textAlign: 'right' }}>
-              <button className="button secondary" onClick={() => setSelectedAppForAI(null)}>Close</button>
+                  )}
+                </div>
+              ) : null}
+            </div>
+            
+            <div className="p-4 border-t border-border bg-card flex justify-end shrink-0">
+              <button 
+                onClick={() => setSelectedAppForAI(null)}
+                className="px-6 py-2 bg-background border border-border hover:bg-border/30 text-text-primary text-sm font-semibold rounded-lg transition-colors"
+              >
+                Close Coach
+              </button>
             </div>
           </div>
         </div>
       )}
-    </Page>
-  )
+    </div>
+  );
 }

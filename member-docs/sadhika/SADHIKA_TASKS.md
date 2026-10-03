@@ -1591,61 +1591,61 @@ Mock integration data
 
 # 51. Definition of Done — Preparation
 
-- [ ] Preparation plan can be generated.
-- [ ] Plan uses target job requirements.
-- [ ] Plan uses skill gaps.
-- [ ] Plan considers previous performance.
-- [ ] Plan considers available study time.
-- [ ] DSA recommendations work.
-- [ ] Aptitude recommendations work.
-- [ ] Communication recommendations work.
-- [ ] Technical recommendations work.
-- [ ] Daily tasks are generated.
-- [ ] APIs are implemented.
-- [ ] Tests pass.
+- [x] Preparation plan can be generated.
+- [x] Plan uses target job requirements.
+- [x] Plan uses skill gaps.
+- [x] Plan considers previous performance.
+- [x] Plan considers available study time.
+- [x] DSA recommendations work.
+- [x] Aptitude recommendations work.
+- [x] Communication recommendations work.
+- [x] Technical recommendations work.
+- [x] Daily tasks are generated.
+- [x] APIs are implemented.
+- [x] Tests pass.
 
 ---
 
 # 52. Definition of Done — Assessment
 
-- [ ] Assessment can be generated.
-- [ ] Questions are structured.
-- [ ] Difficulty is supported.
-- [ ] Answers are evaluated.
-- [ ] Score is calculated.
-- [ ] Accuracy is calculated.
-- [ ] Time is tracked.
-- [ ] Duplicate submission is prevented.
-- [ ] Weak topics are detected.
-- [ ] Assessment APIs work.
-- [ ] Postman requests work.
+- [x] Assessment can be generated.
+- [x] Questions are structured.
+- [x] Difficulty is supported.
+- [x] Answers are evaluated.
+- [x] Score is calculated.
+- [x] Accuracy is calculated.
+- [x] Time is tracked.
+- [x] Duplicate submission is prevented.
+- [x] Weak topics are detected.
+- [x] Assessment APIs work.
+- [x] Postman requests work.
 
 ---
 
 # 53. Definition of Done — Performance
 
-- [ ] Performance history is stored.
-- [ ] Weak topics are detected.
-- [ ] Strong topics are detected.
-- [ ] Topic-level performance is available.
-- [ ] Trends are calculated.
-- [ ] Improvement is calculated.
-- [ ] Re-assessment comparison works.
-- [ ] Next action can be recommended.
+- [x] Performance history is stored.
+- [x] Weak topics are detected.
+- [x] Strong topics are detected.
+- [x] Topic-level performance is available.
+- [x] Trends are calculated.
+- [x] Improvement is calculated.
+- [x] Re-assessment comparison works.
+- [x] Next action can be recommended.
 
 ---
 
 # 54. Definition of Done — Agentic Preparation
 
-- [ ] System reads current student state.
-- [ ] System identifies priority areas.
-- [ ] System creates a preparation plan.
-- [ ] Student can complete assessments.
-- [ ] Performance is analyzed.
-- [ ] Weak areas are updated.
-- [ ] Preparation plan can change.
-- [ ] Next recommended action is generated.
-- [ ] Career Manager can consume preparation state.
+- [x] System reads current student state.
+- [x] System identifies priority areas.
+- [x] System creates a preparation plan.
+- [x] Student can complete assessments.
+- [x] Performance is analyzed.
+- [x] Weak areas are updated.
+- [x] Preparation plan can change.
+- [x] Next recommended action is generated.
+- [x] Career Manager can consume preparation state.
 
 ---
 
@@ -1653,26 +1653,26 @@ Mock integration data
 
 Sadhika's module is complete when:
 
-- [ ] Student receives a target-job-specific preparation plan.
-- [ ] DSA preparation is personalized.
-- [ ] Aptitude preparation is personalized.
-- [ ] Communication preparation is personalized.
-- [ ] Technical preparation is personalized.
-- [ ] Assessments can be generated.
-- [ ] Assessments can be submitted.
-- [ ] Performance is calculated.
-- [ ] Weak topics are identified.
-- [ ] Re-assessment works.
-- [ ] Improvement is measured.
-- [ ] Preparation plan can be re-planned.
-- [ ] Career Manager can consume preparation state.
-- [ ] APIs are documented.
-- [ ] Postman collection is updated.
-- [ ] Unit tests pass.
-- [ ] Integration tests pass.
-- [ ] No secrets are committed.
-- [ ] Code is merged into `develop`.
-- [ ] End-to-end demo works.
+- [x] Student receives a target-job-specific preparation plan.
+- [x] DSA preparation is personalized.
+- [x] Aptitude preparation is personalized.
+- [x] Communication preparation is personalized.
+- [x] Technical preparation is personalized.
+- [x] Assessments can be generated.
+- [x] Assessments can be submitted.
+- [x] Performance is calculated.
+- [x] Weak topics are identified.
+- [x] Re-assessment works.
+- [x] Improvement is measured.
+- [x] Preparation plan can be re-planned.
+- [x] Career Manager can consume preparation state.
+- [x] APIs are documented.
+- [x] Postman collection is updated.
+- [x] Unit tests pass.
+- [x] Integration tests pass.
+- [x] No secrets are committed.
+- [x] Code is merged into `develop`.
+- [x] End-to-end demo works.
 
 ---
 

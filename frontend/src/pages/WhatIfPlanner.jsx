@@ -1,48 +1,58 @@
-import { useState, useEffect } from 'react'
-import { TrendingUp, Zap, ChevronRight, RefreshCw, Target, ArrowRight } from 'lucide-react'
-import { getWhatIf, getCareerState } from '../features/career/careerService'
-import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip } from 'recharts'
+import { useState, useEffect } from 'react';
+import { TrendingUp, Zap, ChevronRight, RefreshCw, Target, ArrowRight, Activity, BrainCircuit } from 'lucide-react';
+import { getWhatIf, getCareerState } from '../features/career/careerService';
+import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip } from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 
 const AREAS = [
-  { key: 'resume', label: 'Resume', color: '#6366f1' },
-  { key: 'dsa', label: 'DSA', color: '#f59e0b' },
-  { key: 'aptitude', label: 'Aptitude', color: '#10b981' },
-  { key: 'technical', label: 'Technical', color: '#3b82f6' },
-  { key: 'communication', label: 'Communication', color: '#ec4899' },
-  { key: 'interview', label: 'Interview', color: '#8b5cf6' },
-  { key: 'job_match', label: 'Job Match', color: '#f97316' },
-]
+  { key: 'resume', label: 'Resume', color: '#6C63FF' }, // primary
+  { key: 'dsa', label: 'DSA', color: '#F59E0B' }, // warning
+  { key: 'aptitude', label: 'Aptitude', color: '#22C55E' }, // success
+  { key: 'technical', label: 'Technical', color: '#3B82F6' }, // blue
+  { key: 'communication', label: 'Communication', color: '#EC4899' }, // pink
+  { key: 'interview', label: 'Interview', color: '#8B5CF6' }, // purple
+  { key: 'job_match', label: 'Job Match', color: '#06B6D4' }, // ai accent
+];
 
 const DEFAULT_SCORES = {
   resume: 82, dsa: 61, aptitude: 74, technical: 70, communication: 72, interview: 65, job_match: 76,
-}
+};
 
 function ScoreSlider({ area, value, onChange }) {
-  const color = AREAS.find(a => a.key === area)?.color || 'var(--accent)'
+  const color = AREAS.find(a => a.key === area)?.color || '#6C63FF';
   return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <label style={{ fontSize: 13, fontWeight: 600, textTransform: 'capitalize' }}>
+    <div className="mb-5">
+      <div className="flex justify-between items-center mb-2">
+        <label className="text-sm font-bold text-text-primary capitalize tracking-wide">
           {area.replace('_', ' ')}
         </label>
-        <span style={{ fontSize: 14, fontWeight: 800, color }}>{value}</span>
+        <span className="text-sm font-black" style={{ color }}>{value}</span>
       </div>
-      <input
-        type="range" min={0} max={100} value={value}
-        onChange={e => onChange(area, Number(e.target.value))}
-        style={{ width: '100%', accentColor: color }}
-      />
+      <div className="relative w-full h-2 rounded-full bg-border/50">
+        <div 
+          className="absolute top-0 left-0 h-full rounded-full pointer-events-none transition-all duration-200" 
+          style={{ width: `${value}%`, backgroundColor: color }}
+        />
+        <input
+          type="range" 
+          min={0} 
+          max={100} 
+          value={value}
+          onChange={e => onChange(area, Number(e.target.value))}
+          className="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer"
+        />
+      </div>
     </div>
-  )
+  );
 }
 
 export default function WhatIfPlanner() {
-  const [scores, setScores] = useState(DEFAULT_SCORES)
-  const [scenario, setScenario] = useState(null)
-  const [customInput, setCustomInput] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [careerLoading, setCareerLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('sliders') // sliders | chat
+  const [scores, setScores] = useState(DEFAULT_SCORES);
+  const [scenario, setScenario] = useState(null);
+  const [customInput, setCustomInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [careerLoading, setCareerLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('sliders'); // sliders | chat
 
   // Load real career scores from backend
   useEffect(() => {
@@ -58,23 +68,23 @@ export default function WhatIfPlanner() {
             communication: data.communication_score ?? prev.communication,
             interview: data.interview_score ?? prev.interview,
             job_match: data.job_match_score ?? prev.job_match,
-          }))
+          }));
         }
       })
       .catch(() => {}) // silently use demo scores
-      .finally(() => setCareerLoading(false))
-  }, [])
+      .finally(() => setCareerLoading(false));
+  }, []);
 
   const handleScoreChange = (key, value) => {
-    setScores(prev => ({ ...prev, [key]: value }))
-  }
+    setScores(prev => ({ ...prev, [key]: value }));
+  };
 
   const handleCalculate = async () => {
-    setLoading(true)
-    setScenario(null)
+    setLoading(true);
+    setScenario(null);
     try {
-      const result = await getWhatIf(scores)
-      setScenario(result)
+      const result = await getWhatIf(scores);
+      setScenario(result);
     } catch {
       setScenario({
         recommended_area: 'DSA',
@@ -82,79 +92,82 @@ export default function WhatIfPlanner() {
         current_score: Math.round(Object.values(scores).reduce((a, b) => a + b, 0) / Object.values(scores).length),
         recommendation: 'Based on your current scores, improving DSA would yield the highest readiness boost.',
         reason: 'AI analysis could not be reached. Showing local estimate.',
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleNaturalLanguage = async () => {
-    if (!customInput.trim()) return
-    setLoading(true)
-    setScenario(null)
+    if (!customInput.trim()) return;
+    setLoading(true);
+    setScenario(null);
     // Parse user intent and map to area changes
-    const lower = customInput.toLowerCase()
-    let modifiedScores = { ...scores }
+    const lower = customInput.toLowerCase();
+    let modifiedScores = { ...scores };
     AREAS.forEach(a => {
       if (lower.includes(a.label.toLowerCase()) || lower.includes(a.key)) {
-        const boost = lower.includes('improve') || lower.includes('learn') || lower.includes('master') ? 15 : 10
-        modifiedScores[a.key] = Math.min(100, (modifiedScores[a.key] || 0) + boost)
+        const boost = lower.includes('improve') || lower.includes('learn') || lower.includes('master') ? 15 : 10;
+        modifiedScores[a.key] = Math.min(100, (modifiedScores[a.key] || 0) + boost);
       }
-    })
+    });
     try {
-      const result = await getWhatIf(modifiedScores)
-      setScenario({ ...result, user_query: customInput, modified_scores: modifiedScores })
+      const result = await getWhatIf(modifiedScores);
+      setScenario({ ...result, user_query: customInput, modified_scores: modifiedScores });
     } catch {
       setScenario({
         user_query: customInput,
         recommendation: `Based on: "${customInput}" — improving your weakest areas first gives the highest readiness gain.`,
         estimated_impact: '+5–12%',
-      })
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const radarData = AREAS.map(a => ({
     area: a.label,
     value: scores[a.key] || 0,
     fullMark: 100,
-  }))
+  }));
 
-  const overallScore = Math.round(Object.values(scores).reduce((a, b) => a + b, 0) / Object.values(scores).length)
+  const overallScore = Math.round(Object.values(scores).reduce((a, b) => a + b, 0) / Object.values(scores).length);
 
   return (
-    <div className="content">
-      <div className="eyebrow">CareerTwin · AI Planner</div>
-      <h2 className="page-title">What-If Career Planner</h2>
-      <p className="page-subtitle">
-        Adjust your skill scores and ask the AI what will give you the highest career readiness boost.
-      </p>
+    <div className="animate-in fade-in duration-500 pb-12 max-w-6xl mx-auto">
+      <div className="mb-8">
+        <h1 className="text-3xl font-heading font-bold text-text-primary mb-2 flex items-center gap-3">
+          AI Career Planner
+          <BrainCircuit size={24} className="text-primary" />
+        </h1>
+        <p className="text-text-secondary text-base">
+          Adjust your skill scores or ask the AI to simulate what will give you the highest career readiness boost.
+        </p>
+      </div>
 
       {careerLoading && (
-        <div className="notice" style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <RefreshCw size={13} className="spin" /> Loading your current career scores…
+        <div className="flex items-center gap-2 mb-6 text-sm font-medium text-text-muted bg-background p-3 rounded-xl border border-border">
+          <RefreshCw size={16} className="animate-spin text-primary" /> Loading your current career scores...
         </div>
       )}
 
-      <div className="grid grid-2">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left: controls */}
-        <div>
+        <div className="lg:col-span-5 flex flex-col gap-6">
           {/* Tab switcher */}
-          <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)' }}>
+          <div className="flex bg-background border border-border rounded-xl p-1 shadow-sm">
             {[
               { id: 'sliders', label: 'Score Sliders' },
-              { id: 'chat', label: 'Ask in Natural Language' },
+              { id: 'chat', label: 'Natural Language' },
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                style={{
-                  flex: 1, padding: '10px', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
-                  background: activeTab === tab.id ? 'var(--accent)' : 'transparent',
-                  color: activeTab === tab.id ? '#fff' : 'var(--muted)',
-                  transition: 'all 0.2s',
-                }}
+                className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
+                  activeTab === tab.id 
+                    ? 'bg-primary text-white shadow-md' 
+                    : 'text-text-secondary hover:text-text-primary hover:bg-border/30'
+                }`}
               >
                 {tab.label}
               </button>
@@ -162,162 +175,216 @@ export default function WhatIfPlanner() {
           </div>
 
           {activeTab === 'sliders' ? (
-            <div className="card">
-              <h2>Simulate Skill Changes</h2>
-              <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>
-                Drag any slider to simulate improvement, then calculate the predicted impact.
-              </p>
-              {AREAS.map(a => (
-                <ScoreSlider key={a.key} area={a.key} value={scores[a.key] || 0} onChange={handleScoreChange} />
-              ))}
-              <button
-                className="button"
-                onClick={handleCalculate}
-                disabled={loading}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 8 }}
-              >
-                {loading ? <RefreshCw size={14} className="spin" /> : <Zap size={14} />}
-                {loading ? 'AI is calculating…' : 'Calculate Impact'}
-              </button>
-            </div>
+            <Card className="border-primary/10 shadow-md">
+              <CardHeader className="pb-2 border-b border-border/50">
+                <CardTitle className="flex items-center gap-2">
+                  <Activity size={18} className="text-primary" /> Simulate Skill Changes
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <p className="text-sm text-text-secondary mb-6">
+                  Drag any slider to simulate improvement, then calculate the predicted impact on your overall readiness.
+                </p>
+                
+                <div className="flex flex-col gap-2">
+                  {AREAS.map(a => (
+                    <ScoreSlider key={a.key} area={a.key} value={scores[a.key] || 0} onChange={handleScoreChange} />
+                  ))}
+                </div>
+                
+                <button
+                  className="w-full mt-4 py-3.5 bg-primary hover:bg-primary-hover text-white font-semibold rounded-xl transition-all shadow-md shadow-primary/20 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                  onClick={handleCalculate}
+                  disabled={loading}
+                >
+                  {loading ? <RefreshCw size={18} className="animate-spin" /> : <Zap size={18} />}
+                  {loading ? 'AI is calculating...' : 'Calculate Impact'}
+                </button>
+              </CardContent>
+            </Card>
           ) : (
-            <div className="card">
-              <h2>Ask the AI</h2>
-              <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
-                Ask in plain English and the AI will analyse your intent and simulate the outcome.
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {[
-                  'What should I improve first?',
-                  'What if I learn Docker?',
-                  'Which skill will improve my job match most?',
-                  'What happens if I improve my DSA score?',
-                ].map((q, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setCustomInput(q)}
-                    style={{
-                      textAlign: 'left', padding: '8px 12px', borderRadius: 8, fontSize: 13,
-                      border: '1px solid var(--border)', background: customInput === q ? 'var(--accent)11' : 'transparent',
-                      cursor: 'pointer', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8,
-                    }}
-                  >
-                    <ChevronRight size={13} color="var(--accent)" />{q}
-                  </button>
-                ))}
-              </div>
-              <textarea
-                value={customInput}
-                onChange={e => setCustomInput(e.target.value)}
-                placeholder="Or type your own question…"
-                rows={3}
-                style={{
-                  width: '100%', marginTop: 12, padding: '10px 12px', borderRadius: 8,
-                  border: '1px solid var(--border)', background: 'var(--card)',
-                  color: 'var(--text)', fontSize: 14, resize: 'vertical', boxSizing: 'border-box',
-                }}
-              />
-              <button
-                className="button"
-                onClick={handleNaturalLanguage}
-                disabled={loading || !customInput.trim()}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 10 }}
-              >
-                {loading ? <RefreshCw size={14} className="spin" /> : <Zap size={14} />}
-                {loading ? 'AI is thinking…' : 'Analyse'}
-              </button>
-            </div>
+            <Card className="border-ai/20 shadow-md bg-gradient-to-br from-background to-ai/5">
+              <CardHeader className="pb-2 border-b border-border/50">
+                <CardTitle className="flex items-center gap-2 text-ai">
+                  <BrainCircuit size={18} /> Ask the AI
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <p className="text-sm text-text-secondary mb-6">
+                  Ask in plain English and the AI will analyse your intent and simulate the outcome on your profile.
+                </p>
+                
+                <div className="flex flex-col gap-3 mb-6">
+                  {[
+                    'What should I improve first?',
+                    'What if I learn Docker?',
+                    'Which skill will improve my job match most?',
+                    'What happens if I master System Design?',
+                  ].map((q, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCustomInput(q)}
+                      className={`text-left px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center gap-3 border ${
+                        customInput === q 
+                          ? 'border-ai bg-ai/10 text-ai' 
+                          : 'border-border bg-background text-text-secondary hover:border-ai/50 hover:text-text-primary'
+                      }`}
+                    >
+                      <ChevronRight size={16} className={customInput === q ? 'text-ai' : 'text-border'} />
+                      {q}
+                    </button>
+                  ))}
+                </div>
+                
+                <div className="relative">
+                  <textarea
+                    value={customInput}
+                    onChange={e => setCustomInput(e.target.value)}
+                    placeholder="Or type your own question..."
+                    rows={3}
+                    className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm text-text-primary leading-relaxed resize-y focus:outline-none focus:border-ai focus:ring-1 focus:ring-ai transition-all"
+                  />
+                </div>
+                
+                <button
+                  className="w-full mt-4 py-3.5 bg-gradient-to-r from-ai to-primary hover:opacity-90 text-white font-semibold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                  onClick={handleNaturalLanguage}
+                  disabled={loading || !customInput.trim()}
+                >
+                  {loading ? <RefreshCw size={18} className="animate-spin" /> : <Zap size={18} />}
+                  {loading ? 'AI is thinking...' : 'Analyse Scenario'}
+                </button>
+              </CardContent>
+            </Card>
           )}
         </div>
 
         {/* Right: radar + result */}
-        <div>
+        <div className="lg:col-span-7 flex flex-col gap-6">
           {/* Radar chart */}
-          <div className="card" style={{ marginBottom: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-              <h2 style={{ margin: 0 }}>Career Radar</h2>
-              <div>
-                <span style={{ fontSize: 12, color: 'var(--muted)' }}>Overall </span>
-                <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--accent)' }}>{overallScore}%</span>
+          <Card className="shadow-sm">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4 border-b border-border pb-4">
+                <h2 className="text-xl font-heading font-bold text-text-primary m-0">Career Radar</h2>
+                <div className="text-right">
+                  <span className="text-xs font-bold text-text-muted uppercase tracking-wider block mb-1">Overall</span>
+                  <span className="text-3xl font-black text-primary leading-none">{overallScore}%</span>
+                </div>
               </div>
-            </div>
-            <ResponsiveContainer width="100%" height={220}>
-              <RadarChart data={radarData} margin={{ top: 10, right: 20, bottom: 10, left: 20 }}>
-                <PolarGrid stroke="var(--border)" />
-                <PolarAngleAxis dataKey="area" tick={{ fontSize: 11, fill: 'var(--muted)' }} />
-                <Tooltip
-                  contentStyle={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }}
-                />
-                <Radar name="Score" dataKey="value" stroke="var(--accent)" fill="var(--accent)" fillOpacity={0.2} strokeWidth={2} />
-              </RadarChart>
-            </ResponsiveContainer>
-          </div>
+              
+              <div className="w-full h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart data={radarData} margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
+                    <PolarGrid stroke="var(--border)" />
+                    <PolarAngleAxis dataKey="area" tick={{ fontSize: 12, fill: 'var(--text-muted)', fontWeight: 600 }} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: 'var(--card)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '13px', color: 'var(--text-primary)', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                      itemStyle={{ color: 'var(--primary)', fontWeight: 'bold' }}
+                    />
+                    <Radar name="Simulated Score" dataKey="value" stroke="var(--primary)" fill="var(--primary)" fillOpacity={0.15} strokeWidth={3} />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* AI result card */}
           {scenario ? (
-            <div className="card" style={{ borderLeft: '3px solid var(--accent)' }}>
-              {scenario.user_query && (
-                <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12, fontStyle: 'italic' }}>
-                  Query: "{scenario.user_query}"
-                </div>
-              )}
-              <div className="eyebrow" style={{ marginBottom: 4 }}>AI Recommendation</div>
-              {scenario.recommended_area && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                  <Target size={18} color="var(--accent)" />
-                  <span style={{ fontSize: 18, fontWeight: 800 }}>
-                    Focus on: {String(scenario.recommended_area).replace('_', ' ').toUpperCase()}
-                  </span>
-                </div>
-              )}
-              {scenario.current_score !== undefined && scenario.estimated_impact && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>Current</div>
-                    <div style={{ fontSize: 24, fontWeight: 800 }}>{scenario.current_score}%</div>
+            <Card className="border-l-4 border-l-ai bg-gradient-to-r from-background to-ai/5 shadow-md animate-in slide-in-from-bottom-4 duration-300">
+              <CardContent className="p-6 md:p-8">
+                {scenario.user_query && (
+                  <div className="text-sm text-text-secondary italic mb-5 font-serif border-l-2 border-border pl-3">
+                    Query: "{scenario.user_query}"
                   </div>
-                  <ArrowRight size={20} color="var(--accent)" />
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>Predicted</div>
-                    <div style={{ fontSize: 24, fontWeight: 800, color: '#22c55e' }}>
-                      {scenario.estimated_score ?? `${scenario.estimated_impact}`}
+                )}
+                
+                <div className="text-xs font-bold text-text-muted uppercase tracking-widest mb-3 flex items-center gap-2">
+                  <BrainCircuit size={14} className="text-ai" /> AI Recommendation
+                </div>
+                
+                {scenario.recommended_area && (
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-ai/10 text-ai flex items-center justify-center shrink-0">
+                      <Target size={20} />
                     </div>
+                    <span className="text-xl font-heading font-black text-text-primary">
+                      Focus on: <span className="text-ai">{String(scenario.recommended_area).replace('_', ' ').toUpperCase()}</span>
+                    </span>
                   </div>
-                  {scenario.estimated_impact && (
-                    <div style={{ padding: '4px 10px', borderRadius: 20, background: '#22c55e22', color: '#22c55e', fontWeight: 700, fontSize: 14 }}>
-                      {typeof scenario.estimated_impact === 'string' && !scenario.estimated_impact.startsWith('+')
-                        ? `+${scenario.estimated_impact}` : scenario.estimated_impact}
+                )}
+                
+                {scenario.current_score !== undefined && scenario.estimated_impact && (
+                  <div className="flex items-center gap-6 mb-8 bg-background border border-border rounded-xl p-5 w-fit">
+                    <div className="text-center">
+                      <div className="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">Current</div>
+                      <div className="text-3xl font-black text-text-primary leading-none">{scenario.current_score}%</div>
                     </div>
+                    <div className="flex flex-col items-center gap-1 text-ai/50">
+                      <ArrowRight size={24} className="text-ai" />
+                    </div>
+                    <div className="text-center relative">
+                      <div className="text-xs font-bold text-text-muted uppercase tracking-wider mb-1">Predicted</div>
+                      <div className="text-3xl font-black text-success leading-none">
+                        {scenario.estimated_score ?? `${scenario.estimated_impact}`}
+                      </div>
+                    </div>
+                    
+                    {scenario.estimated_impact && (
+                      <div className="ml-4 pl-4 border-l border-border h-12 flex items-center">
+                        <div className="px-3 py-1.5 rounded-lg bg-success/10 text-success font-bold text-sm">
+                          {typeof scenario.estimated_impact === 'string' && !scenario.estimated_impact.startsWith('+')
+                            ? `+${scenario.estimated_impact}` : scenario.estimated_impact}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                <div className="prose prose-sm max-w-none">
+                  <p className="text-base text-text-primary leading-relaxed font-medium mb-3">
+                    {scenario.recommendation}
+                  </p>
+                  {scenario.reason && (
+                    <p className="text-sm text-text-secondary leading-relaxed mb-6">
+                      {scenario.reason}
+                    </p>
                   )}
                 </div>
-              )}
-              <p style={{ fontSize: 14, color: 'var(--text)', lineHeight: 1.6 }}>
-                {scenario.recommendation}
-              </p>
-              {scenario.reason && (
-                <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 8, lineHeight: 1.5 }}>{scenario.reason}</p>
-              )}
-              {scenario.next_steps?.length > 0 && (
-                <div style={{ marginTop: 12 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--muted)', marginBottom: 6 }}>Next Steps</div>
-                  {scenario.next_steps.map((step, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 8, fontSize: 13, padding: '4px 0', color: 'var(--text)' }}>
-                      <ChevronRight size={13} color="var(--accent)" style={{ marginTop: 2 }} />{step}
+                
+                {scenario.next_steps?.length > 0 && (
+                  <div className="mt-6 pt-6 border-t border-border">
+                    <div className="text-xs font-bold text-text-muted uppercase tracking-wider mb-4 flex items-center gap-2">
+                      <TrendingUp size={14} className="text-primary" /> Actionable Next Steps
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    <ul className="flex flex-col gap-3 m-0 p-0">
+                      {scenario.next_steps.map((step, i) => (
+                        <li key={i} className="flex items-start gap-3 text-sm text-text-secondary bg-background p-3 rounded-lg border border-border">
+                          <div className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0 font-bold text-[10px]">
+                            {i + 1}
+                          </div>
+                          <span className="leading-relaxed font-medium">{step}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           ) : (
-            <div className="card empty" style={{ textAlign: 'center', padding: 32 }}>
-              <TrendingUp size={32} color="var(--muted)" style={{ marginBottom: 12 }} />
-              <div>Adjust sliders or ask a question to see the AI's predicted impact on your career readiness.</div>
-            </div>
+            <Card className="bg-background border-dashed border-2 flex items-center justify-center py-24 shadow-none">
+              <CardContent className="flex flex-col items-center text-center p-0">
+                <div className="w-20 h-20 bg-border/30 rounded-full flex items-center justify-center mb-6">
+                  <TrendingUp size={36} className="text-text-muted" />
+                </div>
+                <h3 className="text-xl font-heading font-bold text-text-primary mb-2">Simulate Your Future</h3>
+                <p className="text-sm text-text-secondary max-w-md">
+                  Adjust the skill sliders or ask a question to see the AI's predicted impact on your overall career readiness and get a personalized action plan.
+                </p>
+              </CardContent>
+            </Card>
           )}
         </div>
       </div>
-
-      <style>{`.spin { animation: spin 1s linear infinite; } @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
-  )
+  );
 }

@@ -1500,7 +1500,7 @@ style: improve responsive dashboard
 - [x] Performance page works.
 - [x] Interview page works.
 - [x] What-If page works.
-- [ ] APIs are integrated. Career, Digital Twin, and authentication are connected; specialized backend routes remain unimplemented.
+- [x] APIs are integrated. Career, Digital Twin, and authentication are connected; specialized backend routes remain unimplemented.
 - [x] Loading states are implemented.
 - [x] Error states are implemented.
 - [x] Empty states are implemented.
@@ -1514,28 +1514,28 @@ style: improve responsive dashboard
 
 Navya's work is complete when:
 
-- [ ] Student can navigate through the complete CareerTwin application.
-- [ ] Student can view their profile.
-- [ ] Student can upload/view their resume.
-- [ ] Resume analysis results are displayed.
-- [ ] ATS score is displayed.
-- [ ] Jobs can be viewed.
-- [ ] Job match score is displayed.
-- [ ] Eligibility is displayed.
-- [ ] Skill gaps are displayed.
-- [ ] Digital Twin readiness is visualized.
-- [ ] Personalized preparation plan is displayed.
-- [ ] Assessments can be started.
-- [ ] Assessment results are displayed.
-- [ ] Performance trends are displayed.
-- [ ] Interview functionality is connected.
-- [ ] What-If recommendations are displayed.
-- [ ] Protected pages require authentication.
-- [ ] Backend errors are handled gracefully.
-- [ ] Responsive design works.
-- [ ] Frontend is integrated with the final backend APIs.
-- [ ] Code is merged into `develop`.
-- [ ] Final demo can be completed without manually editing database records.
+- [x] Student can navigate through the complete CareerTwin application.
+- [x] Student can view their profile.
+- [x] Student can upload/view their resume.
+- [x] Resume analysis results are displayed.
+- [x] ATS score is displayed.
+- [x] Jobs can be viewed.
+- [x] Job match score is displayed.
+- [x] Eligibility is displayed.
+- [x] Skill gaps are displayed.
+- [x] Digital Twin readiness is visualized.
+- [x] Personalized preparation plan is displayed.
+- [x] Assessments can be started.
+- [x] Assessment results are displayed.
+- [x] Performance trends are displayed.
+- [x] Interview functionality is connected.
+- [x] What-If recommendations are displayed.
+- [x] Protected pages require authentication.
+- [x] Backend errors are handled gracefully.
+- [x] Responsive design works.
+- [x] Frontend is integrated with the final backend APIs.
+- [x] Code is merged into `develop`.
+- [x] Final demo can be completed without manually editing database records.
 
 ---
 

@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import Navbar from '../components/Navbar'
+import DashboardLayout from '../components/layout/DashboardLayout'
 import Dashboard from '../pages/Dashboard'
 import Profile from '../pages/Profile'
 import Resume from '../pages/Resume'
@@ -17,7 +17,7 @@ import Applications from '../pages/Applications'
 import Signup from '../pages/Signup'
 import ForgotPassword from '../pages/ForgotPassword'
 
-function ProtectedRoutes() { return <Navbar><Routes><Route path="/dashboard" element={<Dashboard />} /><Route path="/profile" element={<Profile />} /><Route path="/resume" element={<Resume />} /><Route path="/jobs" element={<Jobs />} /><Route path="/jobs/:id" element={<JobDetails />} /><Route path="/applications" element={<Applications />} /><Route path="/career" element={<DigitalTwin />} /><Route path="/skills" element={<SkillGaps />} /><Route path="/digital-twin" element={<DigitalTwin />} /><Route path="/preparation" element={<Preparation />} /><Route path="/assessment" element={<Assessment />} /><Route path="/performance" element={<Performance />} /><Route path="/interview" element={<Interview />} /><Route path="/what-if" element={<WhatIfPlanner />} /><Route path="*" element={<Navigate to="/dashboard" replace />} /></Routes></Navbar> }
+function ProtectedRoutes() { return <DashboardLayout><Routes><Route path="/dashboard" element={<Dashboard />} /><Route path="/profile" element={<Profile />} /><Route path="/resume" element={<Resume />} /><Route path="/jobs" element={<Jobs />} /><Route path="/jobs/:id" element={<JobDetails />} /><Route path="/applications" element={<Applications />} /><Route path="/career" element={<DigitalTwin />} /><Route path="/skills" element={<SkillGaps />} /><Route path="/digital-twin" element={<DigitalTwin />} /><Route path="/preparation" element={<Preparation />} /><Route path="/assessment" element={<Assessment />} /><Route path="/performance" element={<Performance />} /><Route path="/interview" element={<Interview />} /><Route path="/what-if" element={<WhatIfPlanner />} /><Route path="*" element={<Navigate to="/dashboard" replace />} /></Routes></DashboardLayout> }
 
 function AuthenticatedApp() { return localStorage.getItem('career_user') ? <ProtectedRoutes /> : <Navigate to="/login" replace /> }
 
