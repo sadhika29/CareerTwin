@@ -4,6 +4,7 @@ import { CheckCircle2, XCircle, AlertCircle, ArrowRight, RotateCcw, RefreshCw, B
 import { useNavigate } from 'react-router-dom'
 import axiosClient from '../api/axiosClient'
 import { analyzePerformance } from '../features/preparation/preparationService'
+import { listResumes } from '../features/resume/resumeService'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 
 const demoScores = { dsa: 61, aptitude: 74, technical: 70, communication: 72, interview: 65, job_match: 76 }
@@ -37,25 +38,38 @@ export default function Performance() {
   const [aiLoading, setAiLoading] = useState(false)
 
   useEffect(() => {
-    // Load backend reports
-    axiosClient.get('/preparation/reports').then(res => {
-      if (res.data?.reports?.length > 0) setReports(res.data.reports)
-    }).catch(() => {}).finally(() => setLoading(false))
+    // Load backend reports and real scores
+    Promise.allSettled([
+      axiosClient.get('/preparation/reports'),
+      axiosClient.get('/career/readiness'),
+      listResumes()
+    ]).then(([repRes, readyRes, resumeRes]) => {
+      if (repRes.status === 'fulfilled' && repRes.value?.data?.reports?.length > 0) {
+        setReports(repRes.value.data.reports);
+      }
 
-    // Load career scores for display
-    axiosClient.get('/career/readiness').then(res => {
-      const d = res.data
-      if (d) setScores(prev => ({
-        ...prev,
-        dsa: d.dsa_score ?? prev.dsa,
-        aptitude: d.aptitude_score ?? prev.aptitude,
-        technical: d.technical_score ?? prev.technical,
-        communication: d.communication_score ?? prev.communication,
-        interview: d.interview_score ?? prev.interview,
-        job_match: d.job_match_score ?? prev.job_match,
-      }))
-    }).catch(() => {})
-  }, [])
+      if (readyRes.status === 'fulfilled' && readyRes.value?.data) {
+        const d = readyRes.value.data;
+        setScores(prev => ({
+          ...prev,
+          dsa: d.dsa_score ?? prev.dsa,
+          aptitude: d.aptitude_score ?? prev.aptitude,
+          technical: d.technical_score ?? prev.technical,
+          communication: d.communication_score ?? prev.communication,
+          interview: d.interview_score ?? prev.interview,
+          job_match: d.job_match_score ?? prev.job_match,
+        }));
+      }
+
+      if (resumeRes.status === 'fulfilled' && resumeRes.value?.resumes?.length > 0) {
+        const latestR = resumeRes.value.resumes[0];
+        const rScore = latestR.analysis?.resume_score || latestR.analysis?.ats_score;
+        if (rScore) {
+          setScores(prev => ({ ...prev, resume: Math.round(rScore) }));
+        }
+      }
+    }).finally(() => setLoading(false));
+  }, []);
 
   const handleAIAnalysis = async () => {
     setAiLoading(true)

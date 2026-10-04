@@ -9,7 +9,6 @@ import {
 export default function Sidebar({ open, onNavigate }) {
   const mainLinks = [
     { to: '/dashboard', label: 'Overview', Icon: LayoutDashboard },
-    { to: '/career', label: 'Career Twin', Icon: Sparkles },
     { to: '/resume', label: 'Resume', Icon: FileText },
     { to: '/jobs', label: 'Jobs', Icon: BriefcaseBusiness },
     { to: '/applications', label: 'Applications', Icon: ClipboardCheck },

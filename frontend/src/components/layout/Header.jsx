@@ -1,10 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Menu, Search, Bell, ChevronDown, Sparkles } from 'lucide-react';
 import { useLocation, Link } from 'react-router-dom';
+import { getProfile } from '../../features/profile/profileService';
 
 export default function Header({ onMenuClick }) {
   const location = useLocation();
   const title = location.pathname.split('/')[1] || 'overview';
+  const [profileName, setProfileName] = useState('Yamini');
+  const [profileCompletion, setProfileCompletion] = useState(85);
+
+  useEffect(() => {
+    getProfile()
+      .then(res => {
+        if (res?.profile) {
+          const p = res.profile;
+          if (p.full_name || p.name) {
+            setProfileName(p.full_name || p.name);
+          }
+          // Calculate realistic profile completion percentage based on filled fields
+          let filled = 0;
+          const fields = ['full_name', 'email', 'phone', 'location', 'target_role', 'experience_level', 'skills', 'education', 'bio'];
+          fields.forEach(f => {
+            if (p[f] && (Array.isArray(p[f]) ? p[f].length > 0 : String(p[f]).trim().length > 0)) {
+              filled += 1;
+            }
+          });
+          const pct = Math.max(65, Math.min(100, Math.round((filled / fields.length) * 100)));
+          setProfileCompletion(pct);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <header className="h-[72px] bg-background/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6 shrink-0 sticky top-0 z-30">
@@ -45,13 +71,28 @@ export default function Header({ onMenuClick }) {
         
         <div className="h-6 w-px bg-border mx-1"></div>
         
-        <Link to="/profile" className="flex items-center gap-2.5 hover:bg-black/5 p-1.5 pr-3 rounded-full transition-colors cursor-pointer">
-          <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
-            Y
+        <Link to="/profile" className="flex items-center gap-2.5 hover:bg-black/5 p-1.5 pr-3 rounded-full transition-colors cursor-pointer group">
+          <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0">
+            {profileName.charAt(0).toUpperCase()}
           </div>
-          <div className="hidden sm:flex items-center gap-1.5">
-            <span className="text-sm font-medium text-text-primary">Yamini</span>
-            <ChevronDown size={14} className="text-text-muted" />
+          <div className="hidden sm:flex flex-col items-start leading-tight">
+            <div className="flex items-center gap-1">
+              <span className="text-sm font-semibold text-text-primary group-hover:text-primary transition-colors">
+                {profileName}
+              </span>
+              <ChevronDown size={13} className="text-text-muted" />
+            </div>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <div className="w-12 h-1 bg-border rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-success rounded-full transition-all duration-500" 
+                  style={{ width: `${profileCompletion}%` }}
+                />
+              </div>
+              <span className="text-[10px] font-bold text-success leading-none">
+                {profileCompletion}% Complete
+              </span>
+            </div>
           </div>
         </Link>
       </div>

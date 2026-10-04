@@ -23,3 +23,19 @@ export async function getInterviewHistory() {
   const { data } = await axiosClient.get('/interview/history')
   return data
 }
+
+/** Get Speechify AI voices available for VeriBot */
+export async function getInterviewVoices() {
+  const { data } = await axiosClient.get('/interview/voices')
+  return data
+}
+
+/** Synthesize speech using Speechify AI and return blob object URL */
+export async function fetchSpeechifyAudio(text, voiceId = 'dominic_32') {
+  const response = await axiosClient.post(
+    '/interview/tts',
+    { text, voice_id: voiceId },
+    { responseType: 'blob' }
+  )
+  return URL.createObjectURL(response.data)
+}

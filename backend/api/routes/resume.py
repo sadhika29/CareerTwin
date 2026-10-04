@@ -31,9 +31,7 @@ def get_resume_storage():
     if storage_type == "firebase":
         try:
             from backend.database.firebase_storage import FirebaseResumeStorage
-            storage_instance = FirebaseResumeStorage()
-            if storage_instance.bucket.exists():
-                return storage_instance
+            return FirebaseResumeStorage()
         except Exception:
             return LocalResumeStorage()
     return LocalResumeStorage()
@@ -377,6 +375,8 @@ async def get_resume(
             skills=doc.get("skills", []) or doc.get("analysis", {}).get("resume_skills", []),
             analysis=doc.get("analysis", {}),
             ats_analysis=doc.get("ats_analysis", {}),
+            sentence_improvements=doc.get("analysis", {}).get("sentence_improvements", []),
+            repaired_text=doc.get("analysis", {}).get("repaired_text", ""),
             created_at=str(doc.get("created_at")) if doc.get("created_at") else None,
             updated_at=str(doc.get("updated_at")) if doc.get("updated_at") else None,
         )

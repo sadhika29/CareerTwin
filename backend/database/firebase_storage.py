@@ -31,13 +31,17 @@ class FirebaseResumeStorage(ResumeStorage):
                 f"Resume file not found: {file_path}"
             )
 
-        blob = self.bucket.blob(destination_path)
-
-        blob.upload_from_filename(
-            str(source)
-        )
-
-        return destination_path
+        try:
+            blob = self.bucket.blob(destination_path)
+            blob.upload_from_filename(
+                str(source)
+            )
+            return f"gs://{self.bucket.name}/{destination_path}"
+        except Exception as e:
+            # Fall back cleanly to local storage if bucket is not yet provisioned in Firebase Console
+            from backend.database.local_storage import LocalResumeStorage
+            local_store = LocalResumeStorage()
+            return local_store.upload(file_path=file_path, destination_path=destination_path)
 
     def delete(
         self,

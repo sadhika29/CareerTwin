@@ -25,7 +25,8 @@ Round Type: {round_type}
 Difficulty: {difficulty}
 Relevant Candidate Skills: {skills_str}
 
-Ensure questions test core technical foundation (Data Structures, OS, DBMS, OOP, System Design, coding scenarios) and include forward-looking stretch concepts.
+Ensure questions test core technical foundation (Data Structures, Algorithms, OS, DBMS, OOP, System Design, coding scenarios).
+Each question MUST be structured as an interactive MCQ with 4 to 5 distinct options, optional code snippet, correct answer indicator, and detailed technical explanation so candidates can select options directly or answer verbally in an AI mock interview.
 
 Return JSON with this schema:
 {{
@@ -35,7 +36,16 @@ Return JSON with this schema:
   "questions": [
     {{
       "question_id": "q1",
-      "question": "Clear, contextual question text",
+      "question": "Clear, contextual question text or problem statement",
+      "code_snippet": "def example(): ... (or empty string if non-coding)",
+      "options": [
+        "A) Detailed option A description",
+        "B) Detailed option B description",
+        "C) Detailed option C description",
+        "D) Detailed option D description"
+      ],
+      "correct_option": "B",
+      "explanation": "Clear explanation of why option B is correct and common pitfalls with other choices.",
       "category": "DSA / System Design / Framework / Behavioral",
       "expected_key_points": [
         "Key concept candidate should explain",

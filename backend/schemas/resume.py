@@ -34,6 +34,9 @@ class ResumeAnalysisResponse(BaseModel):
     keyword_gaps: list[str] = Field(default_factory=list)
     recommendations: list[str] = Field(default_factory=list)
 
+    sentence_improvements: list[dict] = Field(default_factory=list)
+    repaired_text: str = ""
+
     keyword_match: float = 0.0
     skill_match: float = 0.0
     experience_relevance: float = 0.0
@@ -80,6 +83,8 @@ class ResumeDetailResponse(BaseModel):
     skills: list[str] = Field(default_factory=list)
     analysis: dict = Field(default_factory=dict)
     ats_analysis: dict = Field(default_factory=dict)
+    sentence_improvements: list[dict] = Field(default_factory=list)
+    repaired_text: str = ""
     created_at: str | None = None
     updated_at: str | None = None
 

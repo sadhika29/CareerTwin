@@ -47,64 +47,15 @@ export default function Applications() {
       }
     } catch (err) {
       console.warn('Failed to load applications from backend:', err);
-      const fallback = [
-        {
-          id: 'app-1',
-          company: 'Northstar Labs',
-          role: 'Frontend Engineer',
-          location: 'Bengaluru or Remote',
-          status: 'Interviewing',
-          date: '2026-09-24',
-          salary: '$115k - $135k',
-          notes: 'Technical screening cleared. Next round: Systems Architecture & React Performance.',
-          next_step: 'System design round scheduled for Thursday',
-          match_score: 88
-        },
-        {
-          id: 'app-2',
-          company: 'TechNova Systems',
-          role: 'Full Stack Engineer',
-          location: 'Remote',
-          status: 'Applied',
-          date: '2026-09-28',
-          salary: '$120k - $140k',
-          notes: 'Applied with AI-tailored resume via referral.',
-          next_step: 'Awaiting recruiter response',
-          match_score: 82
-        },
-        {
-          id: 'app-3',
-          company: 'Orbit Systems',
-          role: 'Product Engineer',
-          location: 'San Francisco / Remote',
-          status: 'Saved',
-          date: '2026-09-29',
-          salary: '$130k - $155k',
-          notes: 'High growth startup in enterprise developer tools.',
-          next_step: 'Tailor resume before submitting application',
-          match_score: 75
-        },
-        {
-          id: 'app-4',
-          company: 'Fieldwork AI',
-          role: 'Cloud Platform Engineer',
-          location: 'Bengaluru',
-          status: 'Offer',
-          date: '2026-09-15',
-          salary: '$125k + Equity',
-          notes: 'Received written offer! Reviewing compensation package.',
-          next_step: 'Respond with negotiation parameters by Monday',
-          match_score: 92
-        }
-      ];
-      setApplications(fallback);
+      setApplications([]);
       setStats({
-        total: 4,
-        interviewing: 1,
-        applied: 1,
-        saved: 1,
-        offers: 1,
-        response_rate: 67
+        total: 0,
+        interviewing: 0,
+        applied: 0,
+        saved: 0,
+        pending: 0,
+        offers: 0,
+        response_rate: 0
       });
     } finally {
       setLoading(false);

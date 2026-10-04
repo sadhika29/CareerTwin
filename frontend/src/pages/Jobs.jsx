@@ -13,11 +13,22 @@ export default function Jobs() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [locationFilter, setLocationFilter] = useState('Any location');
+  const [roleFilter, setRoleFilter] = useState('All Roles');
+  const [companyFilter, setCompanyFilter] = useState('All Companies');
+  const [techFilter, setTechFilter] = useState('All Stacks');
   const [showAddModal, setShowAddModal] = useState(false);
   const [trackedJobIds, setTrackedJobIds] = useState(new Set());
   const [trackNotification, setTrackNotification] = useState('');
   const [isLiveSearch, setIsLiveSearch] = useState(true);
   const [searchingLive, setSearchingLive] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+
+  // Confirmation modal for tracking applications
+  const [trackingModalJob, setTrackingModalJob] = useState(null);
+  const [trackStatusChoice, setTrackStatusChoice] = useState('Applied');
+  const [trackDate, setTrackDate] = useState(new Date().toISOString().split('T')[0]);
+  const [trackNotes, setTrackNotes] = useState('');
+  const [savingTracking, setSavingTracking] = useState(false);
   
   const [newTitle, setNewTitle] = useState('');
   const [newCompany, setNewCompany] = useState('');
@@ -33,23 +44,38 @@ export default function Jobs() {
 
   const userId = localStorage.getItem('career_user') || '';
 
-  const handleTrackJob = async (job) => {
+  const handleOpenTrackModal = (job) => {
+    setTrackingModalJob(job);
+    setTrackStatusChoice('Applied');
+    setTrackDate(new Date().toISOString().split('T')[0]);
+    setTrackNotes('');
+  };
+
+  const handleConfirmTracking = async () => {
+    if (!trackingModalJob) return;
+    setSavingTracking(true);
     try {
       await createApplication({
-        company: job.company,
-        role: job.title,
-        location: job.location,
-        status: 'Saved',
-        job_id: job.job_id,
-        description: job.description
+        company: trackingModalJob.company,
+        role: trackingModalJob.title,
+        location: trackingModalJob.location,
+        status: trackStatusChoice,
+        applied_date: trackStatusChoice === 'Applied' ? trackDate : undefined,
+        job_id: trackingModalJob.job_id,
+        description: trackingModalJob.description,
+        notes: trackNotes,
       });
-      setTrackedJobIds(prev => new Set([...prev, job.job_id]));
-      setTrackNotification(`Saved "${job.title}" at ${job.company} to Applications tracker!`);
-      setTimeout(() => setTrackNotification(''), 4000);
+      setTrackedJobIds(prev => new Set([...prev, trackingModalJob.job_id]));
+      setTrackNotification(`Tracked "${trackingModalJob.title}" at ${trackingModalJob.company} as ${trackStatusChoice}!`);
+      setTimeout(() => setTrackNotification(''), 4500);
+      setTrackingModalJob(null);
     } catch {
-      setTrackedJobIds(prev => new Set([...prev, job.job_id]));
-      setTrackNotification(`Saved "${job.title}" locally.`);
-      setTimeout(() => setTrackNotification(''), 4000);
+      setTrackedJobIds(prev => new Set([...prev, trackingModalJob.job_id]));
+      setTrackNotification(`Tracked "${trackingModalJob.title}" locally.`);
+      setTimeout(() => setTrackNotification(''), 4500);
+      setTrackingModalJob(null);
+    } finally {
+      setSavingTracking(false);
     }
   };
 
@@ -221,71 +247,76 @@ export default function Jobs() {
 
   const filteredJobs = jobs.filter(j => {
     const matchesSearch = !search || j.title.toLowerCase().includes(search.toLowerCase()) || j.company.toLowerCase().includes(search.toLowerCase());
-    const matchesLoc = locationFilter === 'Any location' || j.location.toLowerCase().includes(locationFilter.toLowerCase());
-    return matchesSearch && matchesLoc;
+    const matchesRole = roleFilter === 'All Roles' || j.title.toLowerCase().includes(roleFilter.toLowerCase());
+    const matchesCompany = companyFilter === 'All Companies' || j.company.toLowerCase().includes(companyFilter.toLowerCase());
+    const matchesLoc = locationFilter === 'Any location' || (j.location && j.location.toLowerCase().includes(locationFilter.toLowerCase()));
+    const matchesTech = techFilter === 'All Stacks' || (
+      (j.required_skills && j.required_skills.some(s => s.toLowerCase().includes(techFilter.toLowerCase()))) ||
+      (j.description && j.description.toLowerCase().includes(techFilter.toLowerCase()))
+    );
+    return matchesSearch && matchesRole && matchesCompany && matchesLoc && matchesTech;
   });
 
   return (
     <div className="animate-in fade-in duration-500 pb-12">
-      <div className="mb-8">
-        <h1 className="text-3xl font-heading font-bold text-text-primary mb-2 flex items-center gap-3">
-          Opportunities
-          <Briefcase size={24} className="text-primary" />
-        </h1>
-        <p className="text-text-secondary text-base">
-          Find your next role and compare opportunities against the skills you are building with AI.
-        </p>
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-heading font-bold text-text-primary mb-2 flex items-center gap-3">
+            Opportunities & Live Openings
+            <Briefcase size={24} className="text-primary" />
+          </h1>
+          <p className="text-text-secondary text-base">
+            Real-time job postings with multi-field filtering by role, company, and tech stack.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setSearchingLive(true);
+              fetchJobsList().then(() => {
+                setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                setSearchingLive(false);
+              });
+            }}
+            disabled={searchingLive}
+            className="px-3.5 py-2 bg-background border border-border hover:border-primary/40 rounded-lg text-xs font-semibold text-text-primary flex items-center gap-1.5 transition-colors shadow-sm"
+          >
+            <RefreshCw size={13} className={searchingLive ? 'animate-spin text-primary' : 'text-text-muted'} />
+            <span>Sync Real-Time Jobs</span>
+            <span className="text-[10px] text-text-muted ml-1">({lastSyncTime})</span>
+          </button>
+        </div>
       </div>
 
       <Card className="mb-8 overflow-visible">
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-            <div className="md:col-span-5">
+          {/* Search Row */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end mb-4">
+            <div className="md:col-span-8">
               <label className="block text-xs font-bold text-text-primary mb-2 uppercase tracking-wide">
-                Search Roles or Companies
+                Quick Search Keywords
               </label>
               <form onSubmit={handleLiveSearchTrigger} className="relative">
                 <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                 <input 
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  placeholder="e.g. Frontend Engineer, Google, HCL" 
-                  className="w-full pl-10 pr-20 py-2.5 rounded-lg border border-border bg-background text-sm text-text-primary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                  placeholder="e.g. React Developer, Cloud, Machine Learning..." 
+                  className="w-full pl-10 pr-24 py-2.5 rounded-lg border border-border bg-background text-sm text-text-primary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                 />
                 <button
                   type="submit"
                   disabled={searchingLive}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-primary text-white text-xs font-bold rounded-md hover:bg-primary-hover transition-colors flex items-center gap-1"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-primary text-white text-xs font-bold rounded-md hover:bg-primary-hover transition-colors flex items-center gap-1"
                 >
                   {searchingLive ? <RefreshCw size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                  Find
+                  Live Search
                 </button>
               </form>
             </div>
-            <div className="md:col-span-4">
-              <label className="block text-xs font-bold text-text-primary mb-2 uppercase tracking-wide">
-                Location
-              </label>
-              <div className="relative">
-                <MapPin size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-                <select 
-                  value={locationFilter} 
-                  onChange={e => {
-                    setLocationFilter(e.target.value);
-                  }}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border bg-background text-sm text-text-primary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all appearance-none"
-                >
-                  <option>Any location</option>
-                  <option>Remote</option>
-                  <option>Bengaluru</option>
-                  <option>Hyderabad</option>
-                  <option>Pune</option>
-                  <option>New York, NY</option>
-                  <option>San Francisco, CA</option>
-                </select>
-              </div>
-            </div>
-            <div className="md:col-span-3 flex justify-end">
+            
+            <div className="md:col-span-4 flex justify-end">
               <button 
                 onClick={() => setShowAddModal(!showAddModal)}
                 className={`w-full py-2.5 px-4 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-colors ${showAddModal ? 'bg-background border border-border text-text-primary hover:bg-border/30' : 'bg-primary text-white hover:bg-primary-hover'}`}
@@ -296,6 +327,99 @@ export default function Jobs() {
                   <><Plus size={16} /> Add Custom Job</>
                 )}
               </button>
+            </div>
+          </div>
+
+          {/* Structured Dropdown Filters Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-border/60">
+            {/* Role Dropdown */}
+            <div>
+              <label className="block text-xs font-bold text-text-primary mb-1.5 uppercase tracking-wide">
+                Filter by Role
+              </label>
+              <select
+                value={roleFilter}
+                onChange={e => setRoleFilter(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-xs font-medium text-text-primary focus:outline-none focus:border-primary transition-all"
+              >
+                <option>All Roles</option>
+                <option>Software Engineer</option>
+                <option>Frontend Developer</option>
+                <option>Backend Developer</option>
+                <option>Full Stack Developer</option>
+                <option>Data Scientist</option>
+                <option>DevOps Engineer</option>
+                <option>Cloud Engineer</option>
+                <option>Product Manager</option>
+              </select>
+            </div>
+
+            {/* Company Dropdown */}
+            <div>
+              <label className="block text-xs font-bold text-text-primary mb-1.5 uppercase tracking-wide">
+                Filter by Company
+              </label>
+              <select
+                value={companyFilter}
+                onChange={e => setCompanyFilter(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-xs font-medium text-text-primary focus:outline-none focus:border-primary transition-all"
+              >
+                <option>All Companies</option>
+                <option>Google</option>
+                <option>Microsoft</option>
+                <option>Amazon</option>
+                <option>Meta</option>
+                <option>HCLTech</option>
+                <option>Infosys</option>
+                <option>TCS</option>
+                <option>Accenture</option>
+                <option>Wipro</option>
+              </select>
+            </div>
+
+            {/* Tech Stack Dropdown */}
+            <div>
+              <label className="block text-xs font-bold text-text-primary mb-1.5 uppercase tracking-wide">
+                Filter by Tech Stack
+              </label>
+              <select
+                value={techFilter}
+                onChange={e => setTechFilter(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-xs font-medium text-text-primary focus:outline-none focus:border-primary transition-all"
+              >
+                <option>All Stacks</option>
+                <option>React</option>
+                <option>Python</option>
+                <option>Node.js</option>
+                <option>Java</option>
+                <option>TypeScript</option>
+                <option>AWS</option>
+                <option>SQL</option>
+                <option>Docker</option>
+              </select>
+            </div>
+
+            {/* Location Dropdown */}
+            <div>
+              <label className="block text-xs font-bold text-text-primary mb-1.5 uppercase tracking-wide">
+                Location
+              </label>
+              <div className="relative">
+                <MapPin size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+                <select 
+                  value={locationFilter} 
+                  onChange={e => setLocationFilter(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-background text-xs font-medium text-text-primary focus:outline-none focus:border-primary transition-all appearance-none"
+                >
+                  <option>Any location</option>
+                  <option>Remote</option>
+                  <option>Bengaluru</option>
+                  <option>Hyderabad</option>
+                  <option>Pune</option>
+                  <option>New York, NY</option>
+                  <option>San Francisco, CA</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -494,7 +618,7 @@ export default function Jobs() {
                       </a>
                     )}
                     <button
-                      onClick={() => handleTrackJob(job)}
+                      onClick={() => handleOpenTrackModal(job)}
                       disabled={trackedJobIds.has(job.job_id)}
                       className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors flex items-center gap-2 ${
                         trackedJobIds.has(job.job_id) 
@@ -582,6 +706,104 @@ export default function Jobs() {
               </Card>
             );
           })}
+        </div>
+      )}
+
+      {/* Application Tracking Confirmation Modal */}
+      {trackingModalJob && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-border">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-lg font-heading font-bold text-text-primary">
+                  Track Job Application
+                </h3>
+                <p className="text-xs text-text-muted mt-0.5">
+                  <strong className="text-text-secondary">{trackingModalJob.title}</strong> at {trackingModalJob.company}
+                </p>
+              </div>
+              <button
+                onClick={() => setTrackingModalJob(null)}
+                className="p-1.5 rounded-lg text-text-muted hover:bg-black/5"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-text-primary mb-2.5">
+                Have you submitted your application for this job yet?
+              </label>
+              <div className="grid grid-cols-2 gap-2.5">
+                {[
+                  { id: 'Applied', label: '🚀 Applied', desc: 'Application already submitted' },
+                  { id: 'Pending', label: '⏳ Pending', desc: 'Preparing application / draft' },
+                  { id: 'Saved', label: '⭐ Shortlisted', desc: 'Saved for later consideration' },
+                  { id: 'Interviewing', label: '🎙️ Interviewing', desc: 'Interview round scheduled' }
+                ].map(opt => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setTrackStatusChoice(opt.id)}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      trackStatusChoice === opt.id
+                        ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                        : 'border-border bg-background hover:border-text-muted'
+                    }`}
+                  >
+                    <div className="text-xs font-bold text-text-primary mb-0.5">{opt.label}</div>
+                    <div className="text-[10px] text-text-muted leading-tight">{opt.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {trackStatusChoice === 'Applied' && (
+              <div className="mb-4">
+                <label className="block text-xs font-bold uppercase tracking-wide text-text-primary mb-1.5">
+                  Date Applied
+                </label>
+                <input
+                  type="date"
+                  value={trackDate}
+                  onChange={e => setTrackDate(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-xs font-medium text-text-primary focus:outline-none focus:border-primary"
+                />
+              </div>
+            )}
+
+            <div className="mb-6">
+              <label className="block text-xs font-bold uppercase tracking-wide text-text-primary mb-1.5">
+                Notes or Referral Contact (Optional)
+              </label>
+              <textarea
+                rows={2}
+                value={trackNotes}
+                onChange={e => setTrackNotes(e.target.value)}
+                placeholder="e.g. Applied via employee referral, recruiter contact..."
+                className="w-full px-3 py-2 rounded-lg border border-border bg-background text-xs text-text-primary focus:outline-none focus:border-primary resize-none"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setTrackingModalJob(null)}
+                className="px-4 py-2 rounded-lg border border-border text-xs font-semibold text-text-secondary hover:bg-border/30"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={savingTracking}
+                onClick={handleConfirmTracking}
+                className="px-5 py-2 rounded-lg bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-colors flex items-center gap-1.5"
+              >
+                {savingTracking ? <RefreshCw size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                Confirm & Track Application
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

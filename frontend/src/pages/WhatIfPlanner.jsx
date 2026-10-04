@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { TrendingUp, Zap, ChevronRight, RefreshCw, Target, ArrowRight, Activity, BrainCircuit } from 'lucide-react';
 import { getWhatIf, getCareerState } from '../features/career/careerService';
+import { listResumes } from '../features/resume/resumeService';
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 
@@ -54,25 +55,35 @@ export default function WhatIfPlanner() {
   const [careerLoading, setCareerLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('sliders'); // sliders | chat
 
-  // Load real career scores from backend
+  // Load real career and resume scores from backend
   useEffect(() => {
-    getCareerState()
-      .then(data => {
-        if (data) {
-          setScores(prev => ({
-            ...prev,
-            resume: data.resume_score ?? prev.resume,
-            dsa: data.dsa_score ?? prev.dsa,
-            aptitude: data.aptitude_score ?? prev.aptitude,
-            technical: data.technical_score ?? prev.technical,
-            communication: data.communication_score ?? prev.communication,
-            interview: data.interview_score ?? prev.interview,
-            job_match: data.job_match_score ?? prev.job_match,
-          }));
-        }
-      })
-      .catch(() => {}) // silently use demo scores
-      .finally(() => setCareerLoading(false));
+    Promise.allSettled([
+      getCareerState(),
+      listResumes()
+    ]).then(([careerRes, resumeRes]) => {
+      let latestResumeScore = null;
+      if (resumeRes.status === 'fulfilled' && resumeRes.value?.resumes?.length > 0) {
+        const r = resumeRes.value.resumes[0];
+        if (r.analysis?.resume_score) latestResumeScore = Math.round(r.analysis.resume_score);
+        else if (r.analysis?.ats_score) latestResumeScore = Math.round(r.analysis.ats_score);
+      }
+
+      if (careerRes.status === 'fulfilled' && careerRes.value) {
+        const data = careerRes.value;
+        setScores(prev => ({
+          ...prev,
+          resume: latestResumeScore ?? data.resume_score ?? prev.resume,
+          dsa: data.dsa_score ?? prev.dsa,
+          aptitude: data.aptitude_score ?? prev.aptitude,
+          technical: data.technical_score ?? prev.technical,
+          communication: data.communication_score ?? prev.communication,
+          interview: data.interview_score ?? prev.interview,
+          job_match: data.job_match_score ?? prev.job_match,
+        }));
+      } else if (latestResumeScore !== null) {
+        setScores(prev => ({ ...prev, resume: latestResumeScore }));
+      }
+    }).finally(() => setCareerLoading(false));
   }, []);
 
   const handleScoreChange = (key, value) => {

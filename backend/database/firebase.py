@@ -14,13 +14,23 @@ def initialize_firebase():
     if firebase_admin._apps:
         return firebase_admin.get_app()
 
-    credentials_path = os.getenv("FIREBASE_CREDENTIALS_PATH")
+    credentials_path = os.getenv("FIREBASE_CREDENTIALS_PATH", "firebase-service-account.json")
     storage_bucket = os.getenv("FIREBASE_STORAGE_BUCKET")
 
     if not credentials_path:
         raise ValueError(
             "FIREBASE_CREDENTIALS_PATH is not configured."
         )
+
+    if not os.path.isabs(credentials_path):
+        for candidate in [
+            Path.cwd() / credentials_path,
+            Path(__file__).resolve().parents[2] / credentials_path,
+            Path(__file__).resolve().parents[1] / credentials_path,
+        ]:
+            if candidate.exists():
+                credentials_path = str(candidate)
+                break
 
     if not os.path.exists(credentials_path):
         raise FileNotFoundError(

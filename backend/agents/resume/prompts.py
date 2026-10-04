@@ -10,6 +10,7 @@ Analyze the following key areas:
 4. Content Quality: Action verbs (e.g. "Spearheaded", "Engineered", "Managed", "Delivered"), quantifiable metrics/KPIs (%, $, numbers), role relevance.
 5. Domain & Industry Relevance: Match against industry standards and career benchmarks for the specified target role (or inferred profession).
 6. ATS Formatting & Keyword Density: Identify missing domain keywords, critical competencies, and formatting gaps.
+7. Sentence Formation & Grammar: Identify weak, passive, grammatically flawed, or vague bullet points and sentences. Provide high-impact Google XYZ-format rewrites ("Accomplished [X] as measured by [Y], by doing [Z]").
 
 Return ONLY valid JSON.
 
@@ -24,7 +25,16 @@ The JSON must contain exactly these fields:
     "resume_weaknesses": ["weakness1", "weakness2"],
     "missing_sections": ["section1"],
     "keyword_gaps": ["keyword1", "keyword2"],
-    "recommendations": ["recommendation1", "recommendation2"]
+    "recommendations": ["recommendation1", "recommendation2"],
+    "sentence_improvements": [
+        {
+            "original": "original sentence from resume",
+            "improved": "improved professional high-impact sentence",
+            "reason": "explanation of grammar, clarity, or metric enhancement",
+            "issue_type": "grammar"
+        }
+    ],
+    "repaired_text": "Complete cleaned and polished resume text with all sentence improvements applied"
 }
 
 Rules:
