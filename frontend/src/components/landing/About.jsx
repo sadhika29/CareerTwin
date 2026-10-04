@@ -27,9 +27,9 @@ export default function About() {
   return (
     <section className="py-24 relative overflow-hidden" id="about">
       <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
-        
+
         <div className="flex flex-col lg:flex-row items-center gap-16">
-          
+
           {/* Left Content */}
           <div className="flex-1 text-center lg:text-left">
             <motion.div
@@ -40,8 +40,8 @@ export default function About() {
             >
               <span className="text-pink-500">✦</span> ABOUT US
             </motion.div>
-            
-            <motion.h2 
+
+            <motion.h2
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -50,8 +50,8 @@ export default function About() {
             >
               Built to Make Your Career Journey <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">Personal</span>
             </motion.h2>
-            
-            <motion.p 
+
+            <motion.p
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -94,9 +94,9 @@ export default function About() {
               transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
             >
               {/* Fallback styling for robot if image is missing */}
-              <img 
-                src={robot} 
-                alt="CareerTwin AI Robot" 
+              <img
+                src={robot}
+                alt="CareerTwin AI Robot"
                 className="w-full h-auto object-contain drop-shadow-[0_0_20px_rgba(236,72,153,0.2)]"
                 onError={(e) => {
                   e.target.style.display = 'none';

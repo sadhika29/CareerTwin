@@ -14,7 +14,7 @@ export default function Home() {
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[50%] rounded-full bg-blue-900/20 blur-[120px]"></div>
         <div className="absolute top-[40%] right-[10%] w-[30%] h-[30%] rounded-full bg-pink-900/10 blur-[100px]"></div>
       </div>
-      
+
       <div className="relative z-10 flex flex-col">
         <LandingNavbar />
         <main>
@@ -29,3 +29,4 @@ export default function Home() {
     </div>
   )
 }
+

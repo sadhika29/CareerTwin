@@ -1,111 +1,211 @@
+import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { Play, GraduationCap, BarChart2, Briefcase } from 'lucide-react'
-import AIMascot from '../AIMascot'
+import { Play, FileText, Target, Map, Briefcase, MessageSquare, Users, TrendingUp, Sparkles } from 'lucide-react'
+import CareerTwinBackground from './CareerTwinBackground'
+import NetworkConnections from './NetworkConnections'
 
 export default function Hero() {
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768)
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  const capabilities = [
+    { icon: FileText, text: 'Resume Analysis' },
+    { icon: Target, text: 'Skill Gap Detection' },
+    { icon: Map, text: 'Personalized Roadmap' },
+    { icon: Briefcase, text: 'Job Matching' },
+    { icon: MessageSquare, text: 'AI Mock Interviews' }
+  ]
+
+  const aiNodes = [
+    { title: 'Resume Score', value: '86%', x: '35%', y: '15%', cx: 350, cy: 75, path: 'M 350 75 C 400 75, 450 150, 500 250', color: 'text-[#A855F7]', hex: '#A855F7', border: 'border-[#A855F7]/30', delay: 0.8, particleDuration: 3.5 },
+    { title: 'Job Match', value: '92%', x: '85%', y: '35%', cx: 850, cy: 175, path: 'M 850 175 C 750 175, 600 200, 500 250', color: 'text-[#22D3EE]', hex: '#22D3EE', border: 'border-[#22D3EE]/30', delay: 1.0, particleDuration: 4 },
+    { title: 'Interview Readiness', value: '78%', x: '75%', y: '75%', cx: 750, cy: 375, path: 'M 750 375 C 650 375, 600 300, 500 250', color: 'text-[#EC4899]', hex: '#EC4899', border: 'border-[#EC4899]/30', delay: 1.2, particleDuration: 3.8 },
+    { title: 'Career Readiness', value: '81%', x: '25%', y: '80%', cx: 250, cy: 400, path: 'M 250 400 C 350 400, 400 300, 500 250', color: 'text-[#3B82F6]', hex: '#3B82F6', border: 'border-[#3B82F6]/30', delay: 1.4, particleDuration: 4.5 },
+    { title: 'Skill Readiness', value: '72%', x: '10%', y: '45%', cx: 100, cy: 225, path: 'M 100 225 C 200 225, 300 250, 500 250', color: 'text-[#A855F7]', hex: '#A855F7', border: 'border-[#A855F7]/30', delay: 1.6, particleDuration: 5 }
+  ]
+
   return (
-    <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden" id="home">
+    <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-24 overflow-hidden bg-[#050509]" id="home">
+
+      {/* ================================================== */}
+      {/* SHARED ADVANCED BACKGROUND SYSTEM */}
+      {/* ================================================== */}
+      <CareerTwinBackground showWaves={true} />
+      {/* ================================================== */}
+
       <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
-        <div className="flex flex-col lg:flex-row items-center gap-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-8 items-center">
 
           {/* Left Content */}
-          <div className="flex-1 text-center lg:text-left">
+          <div className="text-center lg:text-left flex flex-col items-center lg:items-start">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-purple-300 mb-8"
+              transition={{ duration: 0.6 }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-purple-300 mb-8 backdrop-blur-sm shadow-[0_0_15px_rgba(168,85,247,0.15)]"
             >
-              <span className="text-pink-500">✦</span> AI-POWERED CAREER ASSISTANT
+              <Sparkles size={14} className="text-pink-500" /> AI-POWERED CAREER ASSISTANT
             </motion.div>
 
             <motion.h1
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-6xl lg:text-8xl font-bold tracking-tight mb-6 leading-[1.1] font-['Fredoka',_sans-serif]"
+              transition={{ duration: 0.7, delay: 0.1 }}
+              className="text-5xl sm:text-6xl lg:text-7xl tracking-tight mb-6 leading-[1.1]"
             >
-              Your Personal <br className="hidden lg:block" />
-              <span className="relative inline-block text-[#c471ed]">
+              <span className="block text-white font-['Playfair_Display',_serif] font-medium mb-1 lg:mb-2">
+                Your Personal
+              </span>
+              <span className="block font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#A855F7] to-[#EC4899] font-['Plus_Jakarta_Sans',_sans-serif]">
                 Career Twin
-                <svg className="absolute -bottom-4 left-0 w-full" viewBox="0 0 200 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M2 15C50 4 150 4 198 15" stroke="#f472b6" strokeWidth="4" strokeLinecap="round" />
-                </svg>
               </span>
             </motion.h1>
 
             <motion.p
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-lg text-gray-400 mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed"
+              transition={{ duration: 0.7, delay: 0.2 }}
+              className="text-lg text-[#A1A1AA] mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed font-['Inter',_sans-serif]"
             >
               Understand your skills, discover opportunities, and build a personalized career path with your AI career companion.
             </motion.p>
 
+            {/* Capability Items */}
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 mb-10">
+              {capabilities.map((cap, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3 + (idx * 0.1) }}
+                  className="flex items-center gap-2 text-sm font-medium text-gray-300 bg-[#0D0B18]/60 border border-white/[0.05] rounded-full px-4 py-2 backdrop-blur-sm transition-all hover:border-[#22D3EE]/30 hover:-translate-y-[2px] hover:shadow-[0_0_15px_rgba(34,211,238,0.15)] group"
+                >
+                  <cap.icon size={14} className="text-[#38BDF8] transition-colors group-hover:text-[#22D3EE]" />
+                  {cap.text}
+                </motion.div>
+              ))}
+            </div>
+
+            {/* CTA Buttons */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 mb-12"
+              transition={{ duration: 0.7, delay: 0.8 }}
+              className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto"
             >
               <Link
                 to="/signup"
-                className="w-full sm:w-auto px-8 py-4 rounded-full font-semibold bg-gradient-to-r from-[#b53cff] to-[#ff4dc4] hover:opacity-90 text-white transition-all shadow-[0_0_20px_rgba(181,60,255,0.4)] hover:shadow-[0_0_30px_rgba(181,60,255,0.6)] flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-8 py-4 rounded-full font-semibold bg-gradient-to-r from-[#A855F7] to-[#EC4899] hover:from-[#9333EA] hover:to-[#DB2777] text-white transition-all shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:shadow-[0_0_30px_rgba(168,85,247,0.6)] flex items-center justify-center gap-2 hover:-translate-y-[2px]"
               >
                 Build My Career Twin <span>→</span>
               </Link>
 
-              <button className="w-full sm:w-auto px-8 py-4 rounded-full font-medium border border-white/10 hover:bg-white/5 transition-all text-white flex items-center justify-center gap-2 group">
-                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 group-hover:bg-white/20 transition-colors">
+              <button className="w-full sm:w-auto px-8 py-4 rounded-full font-medium border border-white/10 bg-white/[0.02] hover:bg-white/5 hover:border-[#A855F7]/50 hover:text-white transition-all text-gray-300 flex items-center justify-center gap-2 group hover:-translate-y-[2px]">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 group-hover:bg-[#A855F7]/20 group-hover:text-[#A855F7] transition-colors">
                   <Play size={14} className="ml-0.5 text-white" fill="currentColor" />
                 </span>
                 Watch Demo
               </button>
             </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="flex flex-wrap items-center justify-center lg:justify-start gap-6 lg:gap-10"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-white/5 border border-white/10 text-[#d494ff] shadow-[0_0_15px_rgba(212,148,255,0.15)]">
-                  <GraduationCap size={24} />
-                </div>
-                <div className="text-sm font-medium text-gray-300 text-left leading-tight">
-                  Personalized<br />Guidance
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-white/5 border border-white/10 text-[#d494ff] shadow-[0_0_15px_rgba(212,148,255,0.15)]">
-                  <BarChart2 size={24} />
-                </div>
-                <div className="text-sm font-medium text-gray-300 text-left leading-tight">
-                  Skill Gap<br />Analysis
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-white/5 border border-white/10 text-[#ff719a] shadow-[0_0_15px_rgba(255,113,154,0.15)]">
-                  <Briefcase size={24} />
-                </div>
-                <div className="text-sm font-medium text-gray-300 text-left leading-tight">
-                  Curated<br />Opportunities
-                </div>
-              </div>
-            </motion.div>
           </div>
 
-          {/* Right Content - Mascot */}
-          <div className="flex-1 relative w-full flex justify-center lg:justify-end">
-            <AIMascot />
-          </div>
+          {/* Right Content - Abstract AI Visualization */}
+          <div className="relative w-full h-[500px] mt-10 lg:mt-0 hidden sm:block">
 
+            {/* Ambient Background Glows */}
+            <div className="absolute inset-0 z-0 pointer-events-none">
+              <motion.div animate={{ opacity: [0.2, 0.4, 0.2] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} className="absolute top-[20%] left-[10%] w-64 h-64 bg-[#A855F7]/20 rounded-full blur-[80px]" />
+              <motion.div animate={{ opacity: [0.2, 0.4, 0.2] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }} className="absolute bottom-[20%] right-[10%] w-64 h-64 bg-[#22D3EE]/20 rounded-full blur-[80px]" />
+              <motion.div animate={{ opacity: [0.3, 0.5, 0.3], scale: [1, 1.2, 1] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-[#EC4899]/20 rounded-full blur-[60px]" />
+            </div>
+
+            <NetworkConnections nodes={aiNodes} viewBox="0 0 1000 500" hub={{ x: 500, y: 250 }} />
+
+            {/* Central AI Core */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              >
+                <motion.div
+                  animate={{ scale: [1, 1.05, 1], boxShadow: ["0 0 20px rgba(168,85,247,0.3)", "0 0 40px rgba(168,85,247,0.6)", "0 0 20px rgba(168,85,247,0.3)"] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  className="relative flex flex-col items-center justify-center w-36 h-36 rounded-full bg-[#0D0B18]/90 backdrop-blur-xl border border-[#A855F7]/50"
+                >
+
+                  <span className="text-[#EC4899] mb-1 text-lg">✦</span>
+                  <span className="text-sm font-bold text-white leading-tight text-center font-['Plus_Jakarta_Sans',_sans-serif]">
+                    CareerTwin<br />AI
+                  </span>
+                </motion.div>
+              </motion.div>
+            </div>
+
+            {/* Floating Nodes */}
+            {aiNodes.map((node, idx) => (
+              <div
+                key={idx}
+                className="absolute z-20"
+                style={{ top: node.y, left: node.x, transform: 'translate(-50%, -50%)' }}
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.6, delay: node.delay, type: "spring" }}
+                >
+                  <motion.div
+                    animate={{ y: [-4, 4, -4] }}
+                    transition={{ duration: 4 + (idx * 0.5), repeat: Infinity, ease: "easeInOut", delay: idx * 0.2 }}
+                    className={`flex flex-col items-center justify-center px-5 py-3 rounded-2xl bg-[#0D0B18]/90 backdrop-blur-md border ${node.border} shadow-[0_8px_32px_rgba(0,0,0,0.3)] min-w-[120px] transition-all hover:-translate-y-1 hover:border-white/40 hover:shadow-[0_8px_32px_rgba(168,85,247,0.4)] group`}
+                  >
+                    <span className="text-2xl font-bold text-white mb-0.5 font-['Plus_Jakarta_Sans',_sans-serif] group-hover:text-white transition-colors">{node.value}</span>
+                    <span className={`text-[10px] font-medium uppercase tracking-wider text-center ${node.color}`}>{node.title}</span>
+                  </motion.div>
+                </motion.div>
+              </div>
+            ))}
+
+          </div>
         </div>
+
+        {/* Bottom Stats Strip */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 1.2 }}
+          className="mt-24 pt-8 border-t border-white/10 grid grid-cols-1 sm:grid-cols-3 gap-8 text-center"
+        >
+          <div className="flex flex-col items-center justify-center gap-1">
+            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#A855F7]/10 text-[#A855F7] mb-2">
+              <Users size={20} />
+            </div>
+            <h4 className="text-2xl font-bold text-white font-['Plus_Jakarta_Sans',_sans-serif]">10K+</h4>
+            <p className="text-sm text-[#A1A1AA]">Students Empowered</p>
+          </div>
+
+          <div className="flex flex-col items-center justify-center gap-1 sm:border-l sm:border-white/10">
+            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#34D399]/10 text-[#34D399] mb-2">
+              <TrendingUp size={20} />
+            </div>
+            <h4 className="text-2xl font-bold text-white font-['Plus_Jakarta_Sans',_sans-serif]">95%</h4>
+            <p className="text-sm text-[#A1A1AA]">Career Readiness Improvement</p>
+          </div>
+
+          <div className="flex flex-col items-center justify-center gap-1 sm:border-l sm:border-white/10">
+            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#38BDF8]/10 text-[#38BDF8] mb-2">
+              <Briefcase size={20} />
+            </div>
+            <h4 className="text-2xl font-bold text-white font-['Plus_Jakarta_Sans',_sans-serif]">500+</h4>
+            <p className="text-sm text-[#A1A1AA]">Curated Job Opportunities</p>
+          </div>
+        </motion.div>
       </div>
     </section>
   )
