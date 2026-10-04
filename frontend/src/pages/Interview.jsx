@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Mic, MicOff, CheckCircle, XCircle, ChevronRight, RefreshCw, MessageSquare, Award, ArrowLeft, Play, Settings2 } from 'lucide-react';
+import { Mic, MicOff, CheckCircle, XCircle, ChevronRight, RefreshCw, MessageSquare, Award, ArrowLeft, Play, Settings2, Sparkles } from 'lucide-react';
 import { startInterview, submitAnswer, getInterviewHistory } from '../features/interview/interviewService';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Progress } from '../components/ui/Progress';

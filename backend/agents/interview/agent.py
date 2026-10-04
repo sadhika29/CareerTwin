@@ -36,6 +36,7 @@ class InterviewAgent:
         count: int = 5,
         skills: Optional[List[str]] = None,
         difficulty: str = "medium",
+        company: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """Generate structured interview questions via LLM or deterministic fallback."""
         if self.llm_client is not None:
@@ -45,6 +46,7 @@ class InterviewAgent:
                 count=count,
                 difficulty=difficulty,
                 skills=skills,
+                company=company,
             )
             try:
                 raw_response = self.llm_client.generate_json(

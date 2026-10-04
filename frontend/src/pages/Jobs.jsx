@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, BookmarkPlus, CheckCircle2, Briefcase, Plus, Search, MapPin, Sparkles, Check, X, ShieldCheck } from 'lucide-react';
-import { getJobs, createJob, matchJob } from '../features/jobs/jobService';
+import { ArrowRight, BookmarkPlus, CheckCircle2, Briefcase, Plus, Search, MapPin, Sparkles, Check, X, ShieldCheck, ExternalLink, Globe, DollarSign, Building2, RefreshCw } from 'lucide-react';
+import { getJobs, createJob, matchJob, searchLiveJobs } from '../features/jobs/jobService';
 import { getResumes } from '../features/resume/resumeService';
+import { getProfile } from '../features/profile/profileService';
 import { createApplication } from '../features/applications/applicationService';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Progress } from '../components/ui/Progress';
@@ -15,6 +16,8 @@ export default function Jobs() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [trackedJobIds, setTrackedJobIds] = useState(new Set());
   const [trackNotification, setTrackNotification] = useState('');
+  const [isLiveSearch, setIsLiveSearch] = useState(true);
+  const [searchingLive, setSearchingLive] = useState(false);
   
   const [newTitle, setNewTitle] = useState('');
   const [newCompany, setNewCompany] = useState('');
@@ -26,6 +29,7 @@ export default function Jobs() {
   const [matchResult, setMatchResult] = useState(null);
   const [candidateSkills, setCandidateSkills] = useState([]);
   const [userResumes, setUserResumes] = useState([]);
+  const [userProfile, setUserProfile] = useState(null);
 
   const userId = localStorage.getItem('career_user') || '';
 
@@ -49,64 +53,111 @@ export default function Jobs() {
     }
   };
 
-  const fetchJobsList = async () => {
+  const fetchJobsList = async (query = '') => {
     try {
       setLoading(true);
-      const data = await getJobs({ user_id: userId });
-      if (data && data.jobs) {
-        setJobs(data.jobs);
-      } else if (Array.isArray(data)) {
-        setJobs(data);
-      }
-    } catch (err) {
-      console.warn('Could not fetch jobs from backend:', err);
-      setJobs([
-        {
-          job_id: 'job_sample_1',
-          title: 'Frontend Engineer',
-          company: 'Northstar Labs',
-          location: 'Remote',
-          description: 'Looking for React, JavaScript, CSS, and modern web architecture experience.',
-          required_skills: ['React', 'JavaScript', 'CSS', 'HTML', 'Git'],
-          preferred_skills: ['TypeScript', 'Tailwind CSS'],
-          experience_requirements: ['2+ years experience']
-        },
-        {
-          job_id: 'job_sample_2',
-          title: 'Full Stack Engineer',
-          company: 'TechNova',
-          location: 'Bengaluru',
-          description: 'Building high-throughput FastAPI and React microservices on AWS.',
-          required_skills: ['Python', 'FastAPI', 'React', 'PostgreSQL', 'Docker'],
-          preferred_skills: ['AWS', 'Redis', 'Kubernetes'],
-          experience_requirements: ['3+ years experience']
-        },
-        {
-          job_id: 'job_sample_3',
-          title: 'Backend Systems Engineer',
-          company: 'Orbit Cloud',
-          location: 'Remote',
-          description: 'Designing distributed services, database schemas, and caching layers.',
-          required_skills: ['Python', 'SQL', 'FastAPI', 'PostgreSQL', 'System Design'],
-          preferred_skills: ['Kafka', 'Docker', 'Kubernetes'],
-          experience_requirements: ['3+ years experience']
+      // First fetch user's saved/custom jobs
+      let customJobs = [];
+      try {
+        const data = await getJobs({ user_id: userId });
+        if (data && data.jobs) {
+          customJobs = data.jobs;
+        } else if (Array.isArray(data)) {
+          customJobs = data;
         }
-      ]);
+      } catch (e) {
+        console.warn('Could not fetch custom jobs:', e);
+      }
+
+      // Query live market jobs using OpenWebNinja JSearch API
+      let liveList = [];
+      try {
+        const targetQuery = query || search || userProfile?.target_role || 'Frontend Developer';
+        const liveRes = await searchLiveJobs({
+          query: targetQuery,
+          location: locationFilter !== 'Any location' ? locationFilter : undefined,
+          num_pages: 1
+        });
+        if (liveRes && liveRes.jobs && liveRes.jobs.length > 0) {
+          liveList = liveRes.jobs;
+        }
+      } catch (err) {
+        console.warn('Live jobs query fallback:', err);
+      }
+
+      if (liveList.length > 0 || customJobs.length > 0) {
+        setJobs([...customJobs, ...liveList]);
+      } else {
+        // High quality fallback curated jobs
+        setJobs([
+          {
+            job_id: 'job_sample_1',
+            title: 'Frontend Engineer',
+            company: 'HCLTech',
+            location: 'Bengaluru / Remote',
+            description: 'Develop high-performance React and Next.js interfaces with modern state management, micro-frontends, and automated testing.',
+            required_skills: ['React', 'JavaScript', 'CSS', 'HTML', 'Git', 'REST APIs'],
+            preferred_skills: ['TypeScript', 'Tailwind CSS', 'Next.js'],
+            experience_requirements: ['0-3 years experience'],
+            salary_range: '₹8,00,000 - ₹14,00,000 / yr',
+            job_url: 'https://hcltech.com/careers'
+          },
+          {
+            job_id: 'job_sample_2',
+            title: 'Software Developer (Full Stack)',
+            company: 'Infosys',
+            location: 'Hyderabad / Pune',
+            description: 'Build enterprise cloud applications with FastAPI, Python, React, and PostgreSQL on AWS/Azure cloud environments.',
+            required_skills: ['Python', 'FastAPI', 'React', 'PostgreSQL', 'Docker'],
+            preferred_skills: ['AWS', 'Kubernetes', 'CI/CD'],
+            experience_requirements: ['1-3 years experience'],
+            salary_range: '₹7,50,000 - ₹12,00,000 / yr',
+            job_url: 'https://infosys.com/careers'
+          },
+          {
+            job_id: 'job_sample_3',
+            title: 'AI & Cloud Applications Engineer',
+            company: 'Google Cloud Platform',
+            location: 'Bengaluru / Remote',
+            description: 'Designing distributed services, Gemini AI agent pipelines, and database caching architectures.',
+            required_skills: ['Python', 'SQL', 'FastAPI', 'Generative AI', 'System Design'],
+            preferred_skills: ['Docker', 'Kubernetes', 'GCP'],
+            experience_requirements: ['0-2 years experience'],
+            salary_range: '₹18,00,000 - ₹28,00,000 / yr',
+            job_url: 'https://careers.google.com'
+          }
+        ]);
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchJobsList();
+    getProfile().then(res => {
+      if (res?.profile) {
+        setUserProfile(res.profile);
+        fetchJobsList(res.profile.target_role || '');
+      } else {
+        fetchJobsList();
+      }
+    }).catch(() => fetchJobsList());
+
     getResumes(userId).then(res => {
       const list = res.resumes || res || [];
       setUserResumes(list);
-      if (list.length > 0 && list[0].analysis?.resume_skills) {
-        setCandidateSkills(list[0].analysis.resume_skills);
+      if (list.length > 0 && (list[0].analysis?.resume_skills || list[0].skills)) {
+        setCandidateSkills(list[0].analysis?.resume_skills || list[0].skills || []);
       }
     }).catch(() => {});
   }, []);
+
+  const handleLiveSearchTrigger = async (e) => {
+    if (e) e.preventDefault();
+    setSearchingLive(true);
+    await fetchJobsList(search || 'Software Engineer');
+    setSearchingLive(false);
+  };
 
   const handleCreateJob = async (e) => {
     e.preventDefault();
@@ -193,15 +244,23 @@ export default function Jobs() {
               <label className="block text-xs font-bold text-text-primary mb-2 uppercase tracking-wide">
                 Search Roles or Companies
               </label>
-              <div className="relative">
+              <form onSubmit={handleLiveSearchTrigger} className="relative">
                 <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                 <input 
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  placeholder="e.g. Frontend Engineer, TechNova" 
-                  className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border bg-background text-sm text-text-primary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                  placeholder="e.g. Frontend Engineer, Google, HCL" 
+                  className="w-full pl-10 pr-20 py-2.5 rounded-lg border border-border bg-background text-sm text-text-primary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
                 />
-              </div>
+                <button
+                  type="submit"
+                  disabled={searchingLive}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-primary text-white text-xs font-bold rounded-md hover:bg-primary-hover transition-colors flex items-center gap-1"
+                >
+                  {searchingLive ? <RefreshCw size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                  Find
+                </button>
+              </form>
             </div>
             <div className="md:col-span-4">
               <label className="block text-xs font-bold text-text-primary mb-2 uppercase tracking-wide">
@@ -211,12 +270,16 @@ export default function Jobs() {
                 <MapPin size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                 <select 
                   value={locationFilter} 
-                  onChange={e => setLocationFilter(e.target.value)}
+                  onChange={e => {
+                    setLocationFilter(e.target.value);
+                  }}
                   className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-border bg-background text-sm text-text-primary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all appearance-none"
                 >
                   <option>Any location</option>
                   <option>Remote</option>
                   <option>Bengaluru</option>
+                  <option>Hyderabad</option>
+                  <option>Pune</option>
                   <option>New York, NY</option>
                   <option>San Francisco, CA</option>
                 </select>
@@ -341,16 +404,40 @@ export default function Jobs() {
             const currentMatch = matchResult?.jobId === job.job_id ? matchResult.data : null;
 
             return (
-              <Card key={job.job_id} className="overflow-hidden hover:border-primary/30 transition-colors">
+              <Card key={job.job_id} className="overflow-hidden hover:border-primary/40 transition-all shadow-sm">
                 <CardContent className="p-6">
                   <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-4">
-                    <div>
-                      <h3 className="text-lg font-bold text-text-primary mb-1">{job.title}</h3>
-                      <p className="text-sm text-text-secondary flex items-center gap-2">
-                        <span className="font-medium text-text-primary">{job.company}</span>
-                        <span className="w-1 h-1 bg-border rounded-full"></span>
-                        {job.location || 'Remote'}
-                      </p>
+                    <div className="flex items-start gap-3.5">
+                      {job.employer_logo ? (
+                        <img src={job.employer_logo} alt={job.company} className="w-12 h-12 rounded-xl object-contain bg-white border border-border p-1 shrink-0" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                          <Building2 size={24} />
+                        </div>
+                      )}
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-lg font-bold text-text-primary mb-0">{job.title}</h3>
+                          {job.is_live_external && (
+                            <span className="px-2 py-0.5 bg-success/10 text-success text-[10px] font-bold uppercase rounded-md border border-success/20 flex items-center gap-1">
+                              <Globe size={10} /> Live Market
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-text-secondary flex items-center gap-2 mt-1">
+                          <span className="font-semibold text-text-primary">{job.company}</span>
+                          <span className="w-1 h-1 bg-border rounded-full"></span>
+                          <span className="flex items-center gap-1"><MapPin size={12} /> {job.location || 'Remote'}</span>
+                          {job.salary_range && (
+                            <>
+                              <span className="w-1 h-1 bg-border rounded-full"></span>
+                              <span className="text-primary font-bold flex items-center gap-0.5 text-xs bg-primary/5 px-2 py-0.5 rounded">
+                                <DollarSign size={12} /> {job.salary_range}
+                              </span>
+                            </>
+                          )}
+                        </p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-3">
                       {currentMatch && (
@@ -375,12 +462,12 @@ export default function Jobs() {
                   </div>
 
                   <p className="text-sm text-text-secondary leading-relaxed mb-6">
-                    {job.description?.length > 250 ? job.description.substring(0, 250) + '...' : job.description}
+                    {job.description?.length > 280 ? job.description.substring(0, 280) + '...' : job.description}
                   </p>
 
                   {job.required_skills && job.required_skills.length > 0 && (
                     <div className="flex flex-wrap items-center gap-2 mb-6">
-                      <span className="text-xs font-bold text-text-muted uppercase tracking-wider mr-2">Required Skills:</span>
+                      <span className="text-xs font-bold text-text-muted uppercase tracking-wider mr-2">Skills:</span>
                       {job.required_skills.map((skill, i) => (
                         <span key={i} className="px-2.5 py-1 bg-background border border-border text-text-secondary text-xs font-medium rounded-md">
                           {skill}
@@ -389,13 +476,23 @@ export default function Jobs() {
                     </div>
                   )}
 
-                  <div className="pt-6 border-t border-border flex flex-wrap gap-3">
+                  <div className="pt-6 border-t border-border flex flex-wrap gap-3 items-center">
                     <Link
                       to={`/jobs/${job.job_id}`}
                       className="px-4 py-2 bg-background border border-border hover:bg-border/30 text-text-primary text-sm font-semibold rounded-lg transition-colors flex items-center gap-2"
                     >
                       View Details <ArrowRight size={16} />
                     </Link>
+                    {job.job_url && (
+                      <a
+                        href={job.job_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-primary/10 hover:bg-primary hover:text-white text-primary text-sm font-semibold rounded-lg transition-all flex items-center gap-2"
+                      >
+                        Apply on Company Site <ExternalLink size={14} />
+                      </a>
+                    )}
                     <button
                       onClick={() => handleTrackJob(job)}
                       disabled={trackedJobIds.has(job.job_id)}

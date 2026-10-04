@@ -31,7 +31,9 @@ def get_resume_storage():
     if storage_type == "firebase":
         try:
             from backend.database.firebase_storage import FirebaseResumeStorage
-            return FirebaseResumeStorage()
+            storage_instance = FirebaseResumeStorage()
+            if storage_instance.bucket.exists():
+                return storage_instance
         except Exception:
             return LocalResumeStorage()
     return LocalResumeStorage()
@@ -395,7 +397,7 @@ async def delete_resume(
     """Delete a resume and its stored file."""
     try:
         database = FirestoreDatabase()
-        storage = LocalResumeStorage()
+        storage = get_resume_storage()
         doc = database.get(collection="resumes", document_id=resume_id)
         if not doc:
             raise HTTPException(status_code=404, detail=f"Resume not found: {resume_id}")

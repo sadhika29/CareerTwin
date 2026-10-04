@@ -15,12 +15,17 @@ def build_interview_question_prompt(
     count: int = 5,
     difficulty: str = "medium",
     skills: list[str] | None = None,
+    company: str | None = None,
 ) -> str:
     skills_str = ", ".join(skills) if skills else "General Software Engineering, DSA, System Design, Problem Solving"
+    company_context = f"Company/Pattern: {company} (include authentic technical patterns, core CS fundamentals, and Sanfoundry-style deep concept questions for this employer)" if company else "Company Context: Top Tier Technology Enterprise (Sanfoundry-style rigorous CS depth)"
     return f"""Generate {count} realistic, challenging interview questions for the role of '{target_role}'.
+{company_context}
 Round Type: {round_type}
 Difficulty: {difficulty}
 Relevant Candidate Skills: {skills_str}
+
+Ensure questions test core technical foundation (Data Structures, OS, DBMS, OOP, System Design, coding scenarios) and include forward-looking stretch concepts.
 
 Return JSON with this schema:
 {{
