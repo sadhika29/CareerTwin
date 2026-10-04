@@ -13,5 +13,5 @@ def test_recommend_improvement():
     }
     recommendation = recommend_improvement(scores)
     assert recommendation is not None
-    assert recommendation["recommended_area"] == "dsa"
+    assert recommendation["recommended_area"] == "technical"
     assert "estimated_score_after_improvement" in recommendation

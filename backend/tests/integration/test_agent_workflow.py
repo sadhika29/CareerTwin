@@ -7,7 +7,7 @@ def test_routing_logic():
     assert "resume" in route_resume
     
     route_skills = select_route("skill gap")
-    assert "skill" in route_resume or "skill" in select_route("skill gap")
+    assert "skills" in route_resume or "skills" in select_route("skill gap")
     
     route_full = select_route("full career analysis")
     assert len(route_full) > 1
