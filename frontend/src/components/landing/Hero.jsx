@@ -3,7 +3,6 @@ import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { Play, FileText, Target, Map, Briefcase, MessageSquare, Users, TrendingUp, Sparkles } from 'lucide-react'
 import CareerTwinBackground from './CareerTwinBackground'
-import NetworkConnections from './NetworkConnections'
 
 export default function Hero() {
   const [isMobile, setIsMobile] = useState(false)
@@ -36,7 +35,7 @@ export default function Hero() {
       {/* ================================================== */}
       {/* SHARED ADVANCED BACKGROUND SYSTEM */}
       {/* ================================================== */}
-      <CareerTwinBackground showWaves={true} />
+      <CareerTwinBackground showWaves={false} />
       {/* ================================================== */}
 
       <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
@@ -115,17 +114,62 @@ export default function Hero() {
             </motion.div>
           </div>
 
-          {/* Right Content - Abstract AI Visualization */}
+          {/* Right Content - Minimal AI Visualization */}
           <div className="relative w-full h-[500px] mt-10 lg:mt-0 hidden sm:block">
 
             {/* Ambient Background Glows */}
             <div className="absolute inset-0 z-0 pointer-events-none">
-              <motion.div animate={{ opacity: [0.2, 0.4, 0.2] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} className="absolute top-[20%] left-[10%] w-64 h-64 bg-[#A855F7]/20 rounded-full blur-[80px]" />
-              <motion.div animate={{ opacity: [0.2, 0.4, 0.2] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }} className="absolute bottom-[20%] right-[10%] w-64 h-64 bg-[#22D3EE]/20 rounded-full blur-[80px]" />
-              <motion.div animate={{ opacity: [0.3, 0.5, 0.3], scale: [1, 1.2, 1] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-[#EC4899]/20 rounded-full blur-[60px]" />
+              <motion.div animate={{ opacity: [0.15, 0.25, 0.15] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} className="absolute top-[30%] left-[20%] w-64 h-64 bg-[#A855F7]/10 rounded-full blur-[100px]" />
+              <motion.div animate={{ opacity: [0.1, 0.2, 0.1] }} transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }} className="absolute bottom-[20%] right-[20%] w-64 h-64 bg-[#22D3EE]/10 rounded-full blur-[100px]" />
             </div>
 
-            <NetworkConnections nodes={aiNodes} viewBox="0 0 1000 500" hub={{ x: 500, y: 250 }} />
+            {/* SVG Connections Layer */}
+            <svg viewBox="0 0 1000 500" className="absolute inset-0 w-full h-full z-10 pointer-events-none overflow-visible">
+              <defs>
+                {aiNodes.map((node, i) => (
+                  <linearGradient key={`grad-${i}`} id={`grad-${i}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#A855F7" />
+                    <stop offset="100%" stopColor={node.hex} />
+                  </linearGradient>
+                ))}
+                <filter id="glow-ambient-sm" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
+
+              {aiNodes.map((node, i) => (
+                <g key={`connection-${i}`}>
+                  {/* Subtle connection line */}
+                  <motion.path
+                    d={node.path}
+                    stroke={`url(#grad-${i})`}
+                    strokeWidth="1.5"
+                    strokeOpacity="0.4"
+                    fill="none"
+                    filter="url(#glow-ambient-sm)"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ duration: 2, delay: 0.5 + i * 0.1 }}
+                  />
+                  {/* Traveling Particle */}
+                  <motion.circle
+                    r="2.5"
+                    fill="#FFFFFF"
+                    filter="url(#glow-ambient-sm)"
+                  >
+                    <animateMotion
+                      dur={`${node.particleDuration}s`}
+                      repeatCount="indefinite"
+                      path={node.path}
+                    />
+                  </motion.circle>
+                </g>
+              ))}
+            </svg>
 
             {/* Central AI Core */}
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30">
@@ -133,17 +177,25 @@ export default function Hero() {
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
+                className="relative flex items-center justify-center w-40 h-40"
               >
+                {/* Concentric Rings */}
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 40, repeat: Infinity, ease: "linear" }} className="absolute inset-0 rounded-full border border-[#A855F7]/20 border-dashed" />
+                <motion.div animate={{ rotate: -360 }} transition={{ duration: 50, repeat: Infinity, ease: "linear" }} className="absolute -inset-4 rounded-full border border-[#22D3EE]/10" />
+                
+                {/* Core Panel */}
                 <motion.div
-                  animate={{ scale: [1, 1.05, 1], boxShadow: ["0 0 20px rgba(168,85,247,0.3)", "0 0 40px rgba(168,85,247,0.6)", "0 0 20px rgba(168,85,247,0.3)"] }}
+                  animate={{ boxShadow: ["0 0 20px rgba(168,85,247,0.1)", "0 0 50px rgba(168,85,247,0.25)", "0 0 20px rgba(168,85,247,0.1)"] }}
                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                  className="relative flex flex-col items-center justify-center w-36 h-36 rounded-full bg-[#0D0B18]/90 backdrop-blur-xl border border-[#A855F7]/50"
+                  className="relative flex flex-col items-center justify-center w-28 h-28 rounded-full bg-[#050509] border border-white/10 z-10"
                 >
-
-                  <span className="text-[#EC4899] mb-1 text-lg">✦</span>
-                  <span className="text-sm font-bold text-white leading-tight text-center font-['Plus_Jakarta_Sans',_sans-serif]">
-                    CareerTwin<br />AI
+                  <span className="text-white mb-0.5">
+                    <Sparkles size={16} className="text-[#A855F7]" />
                   </span>
+                  <span className="text-[12px] font-bold text-white leading-tight text-center tracking-wide font-['Plus_Jakarta_Sans',_sans-serif]">
+                    CareerTwin
+                  </span>
+                  <span className="text-[9px] text-[#A1A1AA] tracking-widest mt-0.5">AI</span>
                 </motion.div>
               </motion.div>
             </div>
@@ -161,12 +213,13 @@ export default function Hero() {
                   transition={{ duration: 0.6, delay: node.delay, type: "spring" }}
                 >
                   <motion.div
-                    animate={{ y: [-4, 4, -4] }}
+                    animate={{ y: [-3, 3, -3] }}
                     transition={{ duration: 4 + (idx * 0.5), repeat: Infinity, ease: "easeInOut", delay: idx * 0.2 }}
-                    className={`flex flex-col items-center justify-center px-5 py-3 rounded-2xl bg-[#0D0B18]/90 backdrop-blur-md border ${node.border} shadow-[0_8px_32px_rgba(0,0,0,0.3)] min-w-[120px] transition-all hover:-translate-y-1 hover:border-white/40 hover:shadow-[0_8px_32px_rgba(168,85,247,0.4)] group`}
+                    className="flex flex-col items-center justify-center px-4 py-2.5 rounded-xl bg-[#0B0B12]/80 backdrop-blur-xl border border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] min-w-[110px] transition-all duration-300 hover:-translate-y-1 hover:border-white/10 hover:shadow-2xl group relative overflow-hidden"
                   >
-                    <span className="text-2xl font-bold text-white mb-0.5 font-['Plus_Jakarta_Sans',_sans-serif] group-hover:text-white transition-colors">{node.value}</span>
-                    <span className={`text-[10px] font-medium uppercase tracking-wider text-center ${node.color}`}>{node.title}</span>
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <span className="text-2xl font-bold text-white mb-0.5 font-['Plus_Jakarta_Sans',_sans-serif] relative z-10">{node.value}</span>
+                    <span className={`text-[9px] font-semibold uppercase tracking-wider text-center relative z-10 ${node.color}`}>{node.title}</span>
                   </motion.div>
                 </motion.div>
               </div>

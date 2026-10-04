@@ -147,7 +147,7 @@ export default function Features() {
     <section className="relative py-24 lg:py-32 overflow-hidden bg-[#030308]" id="features">
 
       {/* Shared Unified Background */}
-      <CareerTwinBackground showWaves={true} />
+      <CareerTwinBackground showWaves={false} />
 
       {/* Depth Layer 3: Foreground Content */}
       <div className="max-w-[1400px] mx-auto px-6 lg:px-12 relative z-10">

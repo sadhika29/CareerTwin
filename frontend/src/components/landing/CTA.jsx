@@ -1,64 +1,38 @@
+import React from 'react'
 import { motion } from 'framer-motion'
-import { Link } from 'react-router-dom'
-import { Sparkles } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 
 export default function CTA() {
   return (
-    <section className="py-24 relative overflow-hidden">
-      <div className="max-w-5xl mx-auto px-6 lg:px-8 relative z-10">
-        
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
+    <section className="relative pb-24 lg:pb-32 overflow-hidden bg-[#050509]">
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="relative rounded-3xl overflow-hidden bg-white/[0.02] border border-white/10 p-10 md:p-16 text-center"
+          transition={{ duration: 0.8 }}
+          className="relative w-full rounded-[32px] overflow-hidden border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.4)] bg-[#0B0B12]/80 backdrop-blur-xl py-20 px-6 text-center group"
         >
-          {/* Animated Background Glows */}
-          <div className="absolute top-0 left-1/4 w-1/2 h-1/2 bg-purple-500/20 rounded-full blur-[80px] -translate-y-1/2 pointer-events-none" />
-          <div className="absolute bottom-0 right-1/4 w-1/2 h-1/2 bg-pink-500/20 rounded-full blur-[80px] translate-y-1/2 pointer-events-none" />
-          <div className="absolute top-1/2 left-1/2 w-1/4 h-1/4 bg-blue-500/20 rounded-full blur-[60px] -translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+          {/* Subtle Background Glow inside CTA */}
+          <div className="absolute inset-0 bg-gradient-to-br from-[#A855F7]/5 via-transparent to-[#EC4899]/5 opacity-50 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-[600px] h-[300px] bg-[radial-gradient(circle_at_center,rgba(168,85,247,0.1),transparent_70%)] blur-[40px] pointer-events-none" />
 
-          {/* Floating Stars */}
-          {[...Array(6)].map((_, i) => (
-            <motion.div
-              key={i}
-              className="absolute text-purple-300/40 pointer-events-none"
-              style={{
-                top: `${Math.random() * 100}%`,
-                left: `${Math.random() * 100}%`,
-              }}
-              animate={{
-                y: [0, -15, 0],
-                opacity: [0.2, 0.8, 0.2],
-                scale: [0.8, 1.2, 0.8],
-              }}
-              transition={{
-                repeat: Infinity,
-                duration: 2 + Math.random() * 2,
-                delay: Math.random() * 2,
-                ease: "easeInOut",
-              }}
-            >
-              <Sparkles size={Math.random() * 10 + 10} />
-            </motion.div>
-          ))}
+          {/* Sparkles */}
+          <motion.div animate={{ opacity: [0, 1, 0], scale: [0.8, 1, 0.8] }} transition={{ duration: 3, repeat: Infinity, delay: 1 }} className="absolute top-10 left-[20%] w-1.5 h-1.5 rounded-full bg-pink-400" />
+          <motion.div animate={{ opacity: [0, 1, 0], scale: [0.8, 1, 0.8] }} transition={{ duration: 4, repeat: Infinity, delay: 0.5 }} className="absolute bottom-12 right-[25%] w-2 h-2 rounded-full bg-cyan-400" />
+          <motion.div animate={{ opacity: [0, 1, 0], scale: [0.8, 1, 0.8] }} transition={{ duration: 3.5, repeat: Infinity, delay: 2 }} className="absolute top-1/2 right-[15%] w-1 h-1 rounded-full bg-purple-400" />
 
-          <div className="relative z-10">
-            <h2 className="text-3xl md:text-5xl font-bold mb-6">
-              Ready to Build Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">Career Twin?</span>
+          <div className="relative z-10 max-w-2xl mx-auto">
+            <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4 font-['Plus_Jakarta_Sans',_sans-serif]">
+              Ready to Build Your Career Twin?
             </h2>
-            <p className="text-gray-400 text-lg mb-10 max-w-2xl mx-auto">
-              Take the first step toward your career goals. Join today and let your AI companion guide you to success.
+            <p className="text-[#A1A1AA] text-[16px] mb-10 max-w-lg mx-auto leading-relaxed">
+              Take the first step toward your career goals and let your AI companion guide you forward.
             </p>
-            <Link
-              to="/signup"
-              className="inline-flex items-center gap-2 px-10 py-4 rounded-full font-semibold bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400 text-white transition-all shadow-[0_0_20px_rgba(168,85,247,0.4)] hover:shadow-[0_0_30px_rgba(168,85,247,0.6)]"
-            >
-              Get Started <span>→</span>
-            </Link>
+            <button className="px-10 py-4 rounded-full bg-gradient-to-r from-[#A855F7] to-[#EC4899] text-white text-[14px] font-bold tracking-wide hover:shadow-[0_0_30px_rgba(168,85,247,0.5)] transition-all duration-300 hover:-translate-y-1 inline-flex items-center">
+              Get Started <ArrowRight size={18} className="ml-2" />
+            </button>
           </div>
-          
         </motion.div>
       </div>
     </section>
