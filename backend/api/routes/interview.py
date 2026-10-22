@@ -1,3 +1,4 @@
+
 """
 Interview API routes — powered by InterviewAgent (LLM) and session state tracking.
 The AI generates role-specific questions, evaluates answers, provides detailed coaching feedback,
@@ -14,12 +15,24 @@ from fastapi.responses import StreamingResponse
 
 from backend.agents.interview.agent import InterviewAgent
 from backend.api.dependencies import get_current_user
+from backend.database.firestore import FirestoreDatabase
 from backend.services.speechify_service import get_speechify_service
 
 router = APIRouter(prefix="/api/v1/interview", tags=["interview"])
 
 _agent: InterviewAgent | None = None
 _sessions: Dict[str, Dict[str, Any]] = {}
+_firestore_db: FirestoreDatabase | None = None
+
+
+def _get_firestore() -> FirestoreDatabase | None:
+    global _firestore_db
+    if _firestore_db is None:
+        try:
+            _firestore_db = FirestoreDatabase()
+        except Exception:
+            _firestore_db = None
+    return _firestore_db
 
 
 def _get_agent() -> InterviewAgent:
@@ -73,6 +86,14 @@ async def start_interview(
             "updated_at": now,
         }
         _sessions[session_id] = session_record
+
+        # Persist session in Firestore
+        db = _get_firestore()
+        if db:
+            try:
+                db.create("interviews", session_id, session_record)
+            except Exception:
+                pass
 
         return {
             "session_id": session_id,
@@ -189,6 +210,35 @@ async def get_interview_result(
     session["status"] = "completed"
     session["overall_score"] = overall
 
+    # Update in Firestore
+    db = _get_firestore()
+    if db:
+        try:
+            db.update("interviews", session_id, {
+                "status": "completed",
+                "overall_score": overall,
+                "accuracy_score": accuracy,
+                "completeness_score": completeness,
+                "clarity_score": clarity,
+                "answers": session.get("answers", {}),
+                "evaluations": session.get("evaluations", {}),
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            })
+        except Exception:
+            pass
+
+    # Sync into active CareerState
+    try:
+        from backend.api.dependencies import career_states
+        from backend.agents.career_manager.state import CareerState
+        state = career_states.get(user_id)
+        if state is None:
+            state = CareerState(user_id=user_id, target_role=session.get("target_role", "Software Engineer"))
+            career_states[user_id] = state
+        state.interview_score = overall
+    except Exception:
+        pass
+
     return {
         "session_id": session_id,
         "user_id": user_id,
@@ -211,7 +261,17 @@ async def get_interview_result(
 
 @router.get("/history")
 async def get_interview_history(user_id: str = Depends(get_current_user)):
-    """Returns past interview sessions for the user."""
+    """Returns past interview sessions for the user from Firestore & cache."""
+    db = _get_firestore()
+    firestore_sessions = []
+    if db:
+        try:
+            records = db.list("interviews", filters={"user_id": user_id})
+            for r in records:
+                _sessions[r["session_id"]] = r
+        except Exception:
+            pass
+
     user_sessions = [
         {
             "session_id": s["session_id"],
@@ -229,7 +289,7 @@ async def get_interview_history(user_id: str = Depends(get_current_user)):
 
     return {
         "user_id": user_id,
-        "sessions": user_sessions,
+        "sessions": sorted(user_sessions, key=lambda x: str(x.get("created_at", "")), reverse=True),
     }
 
 

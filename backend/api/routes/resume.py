@@ -166,6 +166,23 @@ async def analyze_resume(
             target_job_id=request.target_job_id,
         )
 
+        # Synchronize with live user CareerState for dashboard & digital twin
+        try:
+            from backend.api.dependencies import career_states
+            from backend.agents.career_manager.state import CareerState
+            state = career_states.get(request.user_id)
+            if state is None:
+                state = CareerState(user_id=request.user_id, target_role=request.target_role or "Software Engineer")
+                career_states[request.user_id] = state
+            if hasattr(result, "resume_score") and result.resume_score is not None:
+                state.resume_score = result.resume_score
+            elif hasattr(result, "ats_score") and result.ats_score is not None:
+                state.resume_score = result.ats_score
+            if request.target_role:
+                state.target_role = request.target_role
+        except Exception:
+            pass
+
         return result
 
     except ValueError as exc:

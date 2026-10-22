@@ -25,16 +25,16 @@ def _get_agent() -> PreparationAgent:
 
 
 class ProfileData(BaseModel):
-    full_name: str = "Navya Sharma"
-    username: str = "navya"
-    email: str = "navya@example.com"
-    target_role: str = "Full Stack Engineer"
-    education: str = "B.Tech Computer Science & Engineering"
-    graduation_year: str = "2027"
-    skills: List[str] = Field(default_factory=lambda: ["Python", "FastAPI", "React", "PostgreSQL", "Docker", "Git"])
-    interests: str = "Scalable cloud distributed systems, modern AI-native applications, web performance"
-    dream_companies: List[str] = Field(default_factory=lambda: ["Google", "Stripe", "Microsoft", "Atlassian"])
-    bio: str = "Passionate engineering student building high-performance web applications and mastering distributed systems."
+    full_name: str = ""
+    username: str = ""
+    email: str = ""
+    target_role: str = "Software Engineer"
+    education: str = ""
+    graduation_year: str = ""
+    skills: List[str] = Field(default_factory=list)
+    interests: str = ""
+    dream_companies: List[str] = Field(default_factory=list)
+    bio: str = ""
 
 
 class ProfileAdvisorRequest(BaseModel):
@@ -45,14 +45,38 @@ class ProfileAdvisorRequest(BaseModel):
     current_skills: Optional[List[str]] = None
 
 
-# In-memory storage for user profiles per authenticated user
+from backend.database.firestore import FirestoreDatabase
+
+# Storage for user profiles with Firebase Firestore persistence
 _user_profiles: Dict[str, Dict[str, Any]] = {}
+_firestore_db: FirestoreDatabase | None = None
+
+
+def _get_firestore() -> FirestoreDatabase | None:
+    global _firestore_db
+    if _firestore_db is None:
+        try:
+            _firestore_db = FirestoreDatabase()
+        except Exception:
+            _firestore_db = None
+    return _firestore_db
 
 
 @router.get("")
 async def get_profile(user_id: str = Depends(get_current_user)) -> Dict[str, Any]:
     """Retrieve the current user profile, career twin summary, and active AI persona."""
     profile = _user_profiles.get(user_id)
+    if not profile:
+        db = _get_firestore()
+        if db:
+            try:
+                db_profile = db.get("profiles", user_id)
+                if db_profile:
+                    profile = db_profile
+                    _user_profiles[user_id] = profile
+            except Exception:
+                pass
+
     if not profile:
         profile = {
             "username": user_id,
@@ -86,11 +110,19 @@ async def update_profile(
     payload: ProfileData,
     user_id: str = Depends(get_current_user),
 ) -> Dict[str, Any]:
-    """Update profile and synchronize with active CareerState."""
+    """Update profile and synchronize with active CareerState and Firebase Firestore."""
     data = payload.dict()
     current = _user_profiles.get(user_id, {})
     current.update(data)
     _user_profiles[user_id] = current
+
+    # Persist to Firebase Firestore
+    db = _get_firestore()
+    if db:
+        try:
+            db.create("profiles", user_id, current)
+        except Exception:
+            pass
 
     # Sync target_role with CareerState
     state = career_states.get(user_id)

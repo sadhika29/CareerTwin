@@ -12,12 +12,13 @@ import Assessment from '../pages/Assessment'
 import Performance from '../pages/Performance'
 import Interview from '../pages/Interview'
 import WhatIfPlanner from '../pages/WhatIfPlanner'
+import Settings from '../pages/Settings'
 import Login from '../pages/Login'
 import Applications from '../pages/Applications'
 import Signup from '../pages/Signup'
 import ForgotPassword from '../pages/ForgotPassword'
 
-function ProtectedRoutes() { return <DashboardLayout><Routes><Route path="/dashboard" element={<Dashboard />} /><Route path="/profile" element={<Profile />} /><Route path="/resume" element={<Resume />} /><Route path="/jobs" element={<Jobs />} /><Route path="/jobs/:id" element={<JobDetails />} /><Route path="/applications" element={<Applications />} /><Route path="/career" element={<DigitalTwin />} /><Route path="/skills" element={<SkillGaps />} /><Route path="/digital-twin" element={<DigitalTwin />} /><Route path="/preparation" element={<Preparation />} /><Route path="/assessment" element={<Assessment />} /><Route path="/performance" element={<Performance />} /><Route path="/interview" element={<Interview />} /><Route path="/what-if" element={<WhatIfPlanner />} /><Route path="*" element={<Navigate to="/dashboard" replace />} /></Routes></DashboardLayout> }
+function ProtectedRoutes() { return <DashboardLayout><Routes><Route path="/dashboard" element={<Dashboard />} /><Route path="/profile" element={<Profile />} /><Route path="/settings" element={<Settings />} /><Route path="/resume" element={<Resume />} /><Route path="/jobs" element={<Jobs />} /><Route path="/jobs/:id" element={<JobDetails />} /><Route path="/applications" element={<Applications />} /><Route path="/career" element={<DigitalTwin />} /><Route path="/skills" element={<SkillGaps />} /><Route path="/digital-twin" element={<DigitalTwin />} /><Route path="/preparation" element={<Preparation />} /><Route path="/assessment" element={<Assessment />} /><Route path="/performance" element={<Performance />} /><Route path="/interview" element={<Interview />} /><Route path="/what-if" element={<WhatIfPlanner />} /><Route path="*" element={<Navigate to="/dashboard" replace />} /></Routes></DashboardLayout> }
 
 function AuthenticatedApp() { return localStorage.getItem('career_user') ? <ProtectedRoutes /> : <Navigate to="/login" replace /> }
 

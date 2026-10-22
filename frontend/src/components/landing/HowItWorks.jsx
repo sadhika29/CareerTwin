@@ -1,181 +1,113 @@
-import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { User, Cpu, Search, Map as MapIcon, TrendingUp } from 'lucide-react'
-import CareerTwinBackground from './CareerTwinBackground'
+import { User, Cpu, BarChart2, Map, TrendingUp } from 'lucide-react'
 
 const steps = [
-  { num: '01', title: 'Create Your Profile', desc: 'Tell us about your skills & goals.', icon: User, offsetDesktop: 0, offsetMobile: 0, color: 'text-purple-400', border: 'border-purple-500/30' },
-  { num: '02', title: 'AI Analysis', desc: 'AI understands your profile.', icon: Cpu, offsetDesktop: -30, offsetMobile: 20, color: 'text-pink-400', border: 'border-pink-500/30' },
-  { num: '03', title: 'Find Skill Gaps', desc: 'Discover skills you need to improve.', icon: Search, offsetDesktop: 30, offsetMobile: -20, color: 'text-blue-400', border: 'border-blue-500/30' },
-  { num: '04', title: 'Get Your Roadmap', desc: 'Get a personalized career plan.', icon: MapIcon, offsetDesktop: -30, offsetMobile: 20, color: 'text-cyan-400', border: 'border-cyan-500/30' },
-  { num: '05', title: 'Practice & Grow', desc: 'Practice and track your progress.', icon: TrendingUp, offsetDesktop: 0, offsetMobile: 0, color: 'text-purple-400', border: 'border-purple-500/30' }
+  {
+    num: '01',
+    title: 'Create Your Profile',
+    desc: 'Tell us about your skills and goals.',
+    icon: User
+  },
+  {
+    num: '02',
+    title: 'AI Analysis',
+    desc: 'Our AI analyzes your profile to understand your strengths.',
+    icon: Cpu
+  },
+  {
+    num: '03',
+    title: 'Find Skill Gaps',
+    desc: 'Discover the skills you need to improve for your target career.',
+    icon: BarChart2
+  },
+  {
+    num: '04',
+    title: 'Get Your Roadmap',
+    desc: 'Get a personalized career plan with clear learning steps.',
+    icon: Map
+  },
+  {
+    num: '05',
+    title: 'Practice & Grow',
+    desc: 'Practice, learn, and grow with AI-powered guidance.',
+    icon: TrendingUp
+  }
 ]
 
 export default function HowItWorks() {
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 1024)
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
-
   return (
-    <section className="py-24 lg:py-32 relative overflow-hidden bg-[#030308]" id="how-it-works">
-      
-      {/* Shared Unified Background */}
-      <CareerTwinBackground />
+    <section className="py-20 lg:py-28 relative overflow-hidden" id="how-it-works">
+      {/* Background soft ambient glowing orbs */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[20%] right-[10%] w-[420px] h-[420px] bg-[#C4A4DA]/15 rounded-full blur-[130px]" />
+        <div className="absolute bottom-[15%] left-[8%] w-[380px] h-[380px] bg-[#ED96D7]/12 rounded-full blur-[110px]" />
+      </div>
 
-      <div className="max-w-[1400px] mx-auto px-6 lg:px-12 relative z-10">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        {/* Main Heading — Prominently centered, no badge or subtitle */}
+        <motion.h2
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-3xl sm:text-4xl lg:text-5xl font-bold font-['Playfair_Display',_serif] text-[#4C2365] tracking-tight text-center mb-14 lg:mb-18"
+        >
+          Build Your Career in{' '}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#7F5D99] to-[#ED96D7]">
+            5 Simple Steps
+          </span>
+        </motion.h2>
 
-        {/* Section Header */}
-        <div className="text-center max-w-2xl mx-auto mb-20 lg:mb-32">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-[rgba(255,255,255,0.12)] text-[11px] font-semibold tracking-wider text-purple-300 mb-6 backdrop-blur-sm shadow-[0_0_15px_rgba(168,85,247,0.10)]"
-          >
-            <span className="text-pink-500">✦</span> HOW IT WORKS
-          </motion.div>
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-            className="text-4xl sm:text-5xl font-bold mb-6 font-['Playfair_Display',_serif] text-white"
-          >
-            Build Your Career in 5 Simple Steps
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-            className="text-[#A1A1AA] text-sm lg:text-[15px] font-['Inter',_sans-serif]"
-          >
-            Tell us about yourself. CareerTwin's intelligence does the rest.
-          </motion.p>
-        </div>
-
-        {/* Steps Container */}
+        {/* Five Step Cards Container */}
         <div className="relative">
-          
-          {/* Desktop Flowing Path (SVG) */}
-          <div className="hidden lg:block absolute top-12 left-[4%] right-[4%] h-[120px]">
-            <svg className="w-full h-full pointer-events-none overflow-visible" preserveAspectRatio="none" viewBox="0 0 1000 100">
-              <defs>
-                <linearGradient id="path-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#A855F7" />
-                  <stop offset="33%" stopColor="#EC4899" />
-                  <stop offset="66%" stopColor="#2563EB" />
-                  <stop offset="100%" stopColor="#06B6D4" />
-                </linearGradient>
-              </defs>
-              
-              {/* Path Glow */}
-              <path 
-                d="M 0 50 C 125 50, 125 20, 250 20 C 375 20, 375 80, 500 80 C 625 80, 625 20, 750 20 C 875 20, 875 50, 1000 50"
-                stroke="url(#path-gradient)" strokeWidth="6" fill="none" opacity="0.15" style={{ filter: "blur(4px)" }}
-              />
-              
-              {/* Solid Path Segment (Animated reveal) */}
-              <motion.path 
-                d="M 0 50 C 125 50, 125 20, 250 20 C 375 20, 375 80, 500 80 C 625 80, 625 20, 750 20 C 875 20, 875 50, 1000 50"
-                stroke="url(#path-gradient)" strokeWidth="1.5" fill="none" opacity="0.4"
-                initial={{ pathLength: 0 }}
-                whileInView={{ pathLength: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 1.5, delay: 1, ease: "easeInOut" }}
-              />
-
-              {/* Traveling Energy Point */}
-              <motion.path 
-                d="M 0 50 C 125 50, 125 20, 250 20 C 375 20, 375 80, 500 80 C 625 80, 625 20, 750 20 C 875 20, 875 50, 1000 50"
-                stroke="url(#path-gradient)" strokeWidth="3" fill="none"
-                strokeDasharray="1 1000" strokeLinecap="round"
-                initial={{ strokeDashoffset: 1000, opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                animate={{ strokeDashoffset: 0 }}
-                transition={{ duration: 5, repeat: Infinity, ease: "linear", delay: 2.5 }}
-                style={{ filter: "drop-shadow(0 0 6px #FFFFFF)" }}
-              />
-            </svg>
+          {/* Desktop Connecting Line — Positioned behind the cards between steps */}
+          <div className="hidden lg:block absolute top-[110px] left-[8%] right-[8%] h-[2px] z-0 pointer-events-none">
+            <div className="w-full h-full border-t-2 border-dashed border-[#C4A4DA]/60" />
+            <motion.div
+              className="absolute top-[-1px] left-0 h-[2px] bg-gradient-to-r from-[#7F5D99] via-[#ED96D7] to-[#4C2365]"
+              initial={{ width: '0%' }}
+              whileInView={{ width: '100%' }}
+              viewport={{ once: true }}
+              transition={{ duration: 1.8, delay: 0.3, ease: 'easeInOut' }}
+            />
           </div>
 
-          <div className="flex flex-col lg:flex-row justify-between relative gap-16 lg:gap-4 px-4 lg:px-8">
-
-            {/* Mobile Flowing Path (SVG) */}
-            <div className="lg:hidden absolute left-12 top-10 bottom-10 w-[60px]">
-              <svg className="w-full h-full pointer-events-none overflow-visible" preserveAspectRatio="none" viewBox="0 0 100 1000">
-                <defs>
-                  <linearGradient id="path-gradient-mob" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#A855F7" />
-                    <stop offset="33%" stopColor="#EC4899" />
-                    <stop offset="66%" stopColor="#2563EB" />
-                    <stop offset="100%" stopColor="#06B6D4" />
-                  </linearGradient>
-                </defs>
-                <path 
-                  d="M 50 0 C 50 125, 70 125, 70 250 C 70 375, 30 375, 30 500 C 30 625, 70 625, 70 750 C 70 875, 50 875, 50 1000"
-                  stroke="url(#path-gradient-mob)" strokeWidth="6" fill="none" opacity="0.15" style={{ filter: "blur(4px)" }}
-                />
-                <motion.path 
-                  d="M 50 0 C 50 125, 70 125, 70 250 C 70 375, 30 375, 30 500 C 30 625, 70 625, 70 750 C 70 875, 50 875, 50 1000"
-                  stroke="url(#path-gradient-mob)" strokeWidth="1.5" fill="none" opacity="0.4"
-                  initial={{ pathLength: 0 }}
-                  whileInView={{ pathLength: 1 }}
+          {/* Cards Grid: 5 columns on desktop, 2-3 on tablet, 1 on mobile */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5 lg:gap-5 items-stretch relative z-10">
+            {steps.map((step, index) => {
+              const Icon = step.icon
+              return (
+                <motion.div
+                  key={step.num}
+                  initial={{ opacity: 0, y: 25 }}
+                  whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ duration: 1.5, delay: 1, ease: "easeInOut" }}
-                />
-                <motion.path 
-                  d="M 50 0 C 50 125, 70 125, 70 250 C 70 375, 30 375, 30 500 C 30 625, 70 625, 70 750 C 70 875, 50 875, 50 1000"
-                  stroke="url(#path-gradient-mob)" strokeWidth="3" fill="none"
-                  strokeDasharray="1 1000" strokeLinecap="round"
-                  initial={{ strokeDashoffset: 1000, opacity: 0 }}
-                  whileInView={{ opacity: 1 }}
-                  viewport={{ once: true }}
-                  animate={{ strokeDashoffset: 0 }}
-                  transition={{ duration: 5, repeat: Infinity, ease: "linear", delay: 2.5 }}
-                  style={{ filter: "drop-shadow(0 0 6px #FFFFFF)" }}
-                />
-              </svg>
-            </div>
-
-            {steps.map((step, index) => (
-              <motion.div
-                key={step.num}
-                initial={{ opacity: 0, y: 25 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ duration: 0.6, delay: 0.3 + (index * 0.15) }}
-                className="relative flex lg:flex-col items-center lg:text-center gap-6 lg:gap-5 flex-1 z-20"
-                style={{ 
-                  transform: isMobile ? `translateX(${step.offsetMobile}px)` : `translateY(${step.offsetDesktop}px)` 
-                }}
-              >
-                {/* Step Circle with Icon */}
-                <div className={`relative w-16 h-16 shrink-0 rounded-full bg-[rgba(10,8,20,0.65)] backdrop-blur-[14px] border ${step.border} flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.3)] transition-all duration-300 hover:shadow-[0_0_25px_rgba(168,85,247,0.2)] group`}>
-                  <div className="absolute -top-4 text-[10px] font-bold uppercase tracking-widest text-[#A1A1AA] lg:-top-6 group-hover:text-white transition-colors duration-300">
-                    Step {step.num}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  className="flex flex-col items-center text-center p-6 sm:p-7 rounded-2xl sm:rounded-3xl bg-white/85 backdrop-blur-md border border-[#4C2365]/35 hover:border-[#4C2365] transition-all duration-300 shadow-[0_4px_20px_rgba(76,35,101,0.06)] hover:shadow-[0_8px_30px_rgba(76,35,101,0.14)] hover:-translate-y-1.5 group h-full justify-between"
+                >
+                  {/* 1. Step Number Badge */}
+                  <div className="inline-flex items-center px-3 py-1 rounded-full text-[11px] font-bold tracking-widest text-[#7F5D99] bg-[#C4A4DA]/20 border border-[#C4A4DA]/35 mb-2">
+                    STEP {step.num}
                   </div>
-                  <step.icon size={22} className={`${step.color} group-hover:scale-110 transition-transform duration-300`} />
-                  {/* Subtle Node Glow */}
-                  <div className={`absolute inset-0 rounded-full opacity-0 group-hover:opacity-20 transition-opacity duration-300 bg-gradient-to-r from-purple-500 to-pink-500 blur-md`} />
-                </div>
 
-                {/* Step Content */}
-                <div className="flex-1 lg:flex-none">
-                  <h3 className="text-[15px] font-bold mb-1.5 text-white font-['Plus_Jakarta_Sans',_sans-serif]">{step.title}</h3>
-                  <p className="text-xs text-[#A1A1AA] max-w-[200px] mx-auto leading-relaxed">{step.desc}</p>
-                </div>
-              </motion.div>
-            ))}
+                  {/* 2. Large Relevant Icon in Pastel Container */}
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#C4A4DA]/35 to-[#ED96D7]/20 border border-[#C4A4DA]/40 flex items-center justify-center text-[#4C2365] my-4 shadow-sm group-hover:scale-105 transition-transform duration-200">
+                    <Icon size={28} />
+                  </div>
+
+                  {/* 3. Bold Step Heading */}
+                  <h3 className="text-base sm:text-lg font-bold text-[#4C2365] font-['Plus_Jakarta_Sans',_sans-serif] leading-tight mb-2">
+                    {step.title}
+                  </h3>
+
+                  {/* 4. Short Description */}
+                  <p className="text-xs sm:text-[13px] text-[#3B1B50] leading-relaxed font-['Inter',_sans-serif] mt-auto">
+                    {step.desc}
+                  </p>
+                </motion.div>
+              )
+            })}
           </div>
         </div>
-
       </div>
     </section>
   )

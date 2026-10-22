@@ -38,11 +38,10 @@ def calculate_readiness(scores: Dict[str, Optional[float]], weights: Optional[Di
 	else:
 		overall = sum(value * configured.get(name, 0.0) for name, value in available.items()) / total_weight
 	weakest = min(available, key=available.get)
-	weakest_label = "DSA" if weakest == "dsa" else weakest
 	return {
 		"overall_score": round(overall, 2),
 		**{name: value for name, value in normalized.items() if value is not None},
-		"weakest_area": weakest_label,
+		"weakest_area": weakest,
 		"recommended_action": f"Improve {weakest.replace('_', ' ')} performance by 10 points",
 	}
 

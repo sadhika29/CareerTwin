@@ -179,57 +179,57 @@ export default function JobDetails() {
       )}
 
       {/* Hero Card */}
-      <div className="bg-background rounded-3xl border border-border shadow-md p-6 md:p-8 mb-8 animate-in slide-in-from-bottom-4">
+      <div className="bg-white rounded-2xl border border-[#E4D5F3] shadow-[0_4px_20px_rgba(84,36,119,0.04)] p-6 md:p-8 mb-8 animate-in slide-in-from-bottom-4">
         <div className="flex flex-col md:flex-row justify-between items-start gap-6">
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-3 mb-2">
-              <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider block">
+              <span className="px-3 py-1 rounded-full bg-[#F3E9FF] border border-[#E4D5F3] text-[#542477] text-xs font-bold uppercase tracking-wider block">
                 Opportunities
               </span>
               {fitReport && (
-                <span className={`px-2.5 py-1 rounded-md text-xs font-black uppercase tracking-widest ${
-                  fitReport.match_percentage >= 75 ? 'bg-success/10 text-success-hover border border-success/20' : 'bg-primary/10 text-primary border border-primary/20'
+                <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${
+                  fitReport.match_percentage >= 75 ? 'bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0]' : 'bg-[#F3E9FF] text-[#542477] border border-[#E4D5F3]'
                 }`}>
                   {fitReport.match_percentage}% AI Fit Match ({fitReport.verdict})
                 </span>
               )}
             </div>
             
-            <h1 className="text-2xl md:text-3xl font-heading font-black text-text-primary mb-3">
+            <h1 className="text-2xl md:text-3xl font-heading font-black text-[#27113D] mb-3">
               {job?.title || 'Job Opportunity'}
             </h1>
             
-            <div className="flex flex-wrap gap-4 md:gap-6 text-sm font-medium text-text-secondary">
-              <span className="flex items-center gap-2"><Building2 size={16} className="text-text-muted" /> {job?.company}</span>
-              <span className="flex items-center gap-2"><MapPin size={16} className="text-text-muted" /> {job?.location || 'Remote'}</span>
-              <span className="flex items-center gap-2"><BriefcaseBusiness size={16} className="text-text-muted" /> Full-time</span>
+            <div className="flex flex-wrap gap-4 md:gap-6 text-sm font-semibold text-[#5F4E75]">
+              <span className="flex items-center gap-2"><Building2 size={16} className="text-[#8A7A9E]" /> {job?.company}</span>
+              <span className="flex items-center gap-2"><MapPin size={16} className="text-[#8A7A9E]" /> {job?.location || 'Remote'}</span>
+              <span className="flex items-center gap-2"><BriefcaseBusiness size={16} className="text-[#8A7A9E]" /> Full-time</span>
             </div>
           </div>
 
           {/* Action CTAs */}
           <div className="flex flex-wrap md:flex-col lg:flex-row gap-3 w-full md:w-auto shrink-0">
             <button
-              className={`px-5 py-2.5 font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 text-sm w-full lg:w-auto ${
+              className={`px-5 py-2.5 font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 text-xs w-full lg:w-auto ${
                 applied 
-                  ? 'bg-background border-2 border-success/30 text-success cursor-default' 
-                  : 'bg-primary hover:bg-primary-hover text-white'
+                  ? 'bg-[#F0FDF4] border border-[#BBF7D0] text-[#16A34A] cursor-default' 
+                  : 'bg-gradient-to-r from-[#542477] to-[#D83CC5] text-white shadow-[0_4px_16px_rgba(84,36,119,0.25)] hover:opacity-95'
               }`}
               onClick={handleTrackApplication}
               disabled={applied}
             >
-              {applied ? <><CheckCircle2 size={16} /> Added to Tracker</> : <><BookmarkPlus size={16} /> Track Application</>}
+              {applied ? <><CheckCircle2 size={15} /> Added to Tracker</> : <><BookmarkPlus size={15} /> Track Application</>}
             </button>
             <button
-              className="px-5 py-2.5 bg-background border border-border text-text-secondary hover:text-text-primary hover:border-border-hover hover:bg-border/10 font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-sm w-full lg:w-auto"
+              className="px-5 py-2.5 bg-white border border-[#E4D5F3] text-[#27113D] hover:border-[#542477] hover:bg-[#FAF7FD] font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-xs w-full lg:w-auto shadow-sm"
               onClick={() => navigate('/preparation', { state: { target_role: job?.title } })}
             >
-              <Target size={16} /> Prepare for Role
+              <Target size={15} className="text-[#542477]" /> Prepare for Role
             </button>
             <button
-              className="px-5 py-2.5 bg-ai/10 border border-ai/20 text-ai-hover hover:bg-ai/20 font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-sm w-full lg:w-auto"
+              className="px-5 py-2.5 bg-[#F3E9FF] border border-[#E4D5F3] text-[#542477] hover:bg-[#542477] hover:text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2 text-xs w-full lg:w-auto shadow-sm"
               onClick={() => navigate('/interview', { state: { target_role: job?.title } })}
             >
-              <Sparkles size={16} /> Mock Interview
+              <Sparkles size={15} /> Mock Interview
             </button>
           </div>
         </div>
@@ -240,21 +240,21 @@ export default function JobDetails() {
         
         {/* Left Column: Role Details */}
         <div className="lg:col-span-2 flex flex-col gap-6">
-          <div className="bg-background rounded-2xl border border-border shadow-sm p-6 md:p-8">
-            <h3 className="text-xl font-heading font-bold text-text-primary mb-4 flex items-center gap-2">
-              <BriefcaseBusiness size={20} className="text-primary" /> Role Overview
+          <div className="bg-white rounded-2xl border border-[#E4D5F3] shadow-[0_4px_20px_rgba(84,36,119,0.03)] p-6 md:p-8">
+            <h3 className="text-xl font-heading font-black text-[#27113D] mb-4 flex items-center gap-2">
+              <BriefcaseBusiness size={20} className="text-[#542477]" /> Role Overview
             </h3>
-            <p className="text-text-secondary leading-relaxed mb-8 whitespace-pre-line">
+            <p className="text-[#5F4E75] leading-relaxed mb-8 whitespace-pre-line text-sm">
               {job?.description}
             </p>
 
             {job?.responsibilities && job.responsibilities.length > 0 && (
               <div className="mb-8">
-                <h4 className="text-base font-bold text-text-primary mb-4 uppercase tracking-wide">Key Responsibilities</h4>
+                <h4 className="text-xs font-bold text-[#27113D] mb-4 uppercase tracking-wider">Key Responsibilities</h4>
                 <ul className="flex flex-col gap-3">
                   {job.responsibilities.map((resp, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm text-text-secondary leading-relaxed">
-                      <span className="text-primary mt-1 shrink-0">•</span>
+                    <li key={i} className="flex items-start gap-3 text-sm text-[#5F4E75] leading-relaxed">
+                      <span className="text-[#542477] font-bold mt-0.5 shrink-0">•</span>
                       <span>{resp}</span>
                     </li>
                   ))}
@@ -263,10 +263,10 @@ export default function JobDetails() {
             )}
 
             <div className="mb-8">
-              <h4 className="text-base font-bold text-text-primary mb-4 uppercase tracking-wide">Required Skills & Technologies</h4>
+              <h4 className="text-xs font-bold text-[#27113D] mb-4 uppercase tracking-wider">Required Skills & Technologies</h4>
               <div className="flex flex-wrap gap-2">
                 {job?.required_skills?.map((s, i) => (
-                  <span key={i} className="px-3 py-1.5 bg-background border border-border rounded-lg text-sm font-bold text-text-primary shadow-sm">
+                  <span key={i} className="px-3 py-1.5 bg-[#FAF7FD] border border-[#E4D5F3] rounded-xl text-xs font-bold text-[#27113D] shadow-sm">
                     {s}
                   </span>
                 ))}
@@ -275,10 +275,10 @@ export default function JobDetails() {
 
             {job?.preferred_skills && job.preferred_skills.length > 0 && (
               <div className="mb-8">
-                <h4 className="text-sm font-bold text-text-muted mb-3 uppercase tracking-wide">Preferred / Bonus Skills</h4>
+                <h4 className="text-xs font-bold text-[#8A7A9E] mb-3 uppercase tracking-wider">Preferred / Bonus Skills</h4>
                 <div className="flex flex-wrap gap-2">
                   {job.preferred_skills.map((s, i) => (
-                    <span key={i} className="px-2.5 py-1 bg-background border border-border/50 rounded-lg text-xs font-semibold text-text-secondary">
+                    <span key={i} className="px-2.5 py-1 bg-[#F3E9FF]/70 border border-[#E4D5F3] rounded-lg text-xs font-semibold text-[#542477]">
                       {s}
                     </span>
                   ))}
@@ -288,11 +288,11 @@ export default function JobDetails() {
 
             {job?.qualifications && job.qualifications.length > 0 && (
               <div>
-                <h4 className="text-base font-bold text-text-primary mb-4 uppercase tracking-wide">Qualifications</h4>
-                <ul className="flex flex-col gap-2">
+                <h4 className="text-xs font-bold text-[#27113D] mb-4 uppercase tracking-wider">Qualifications</h4>
+                <ul className="flex flex-col gap-2.5">
                   {job.qualifications.map((q, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-text-muted">
-                      <CheckCircle2 size={16} className="text-success shrink-0 mt-0.5" />
+                    <li key={i} className="flex items-start gap-2 text-sm text-[#5F4E75]">
+                      <CheckCircle2 size={16} className="text-[#16A34A] shrink-0 mt-0.5" />
                       {q}
                     </li>
                   ))}
@@ -304,14 +304,14 @@ export default function JobDetails() {
 
         {/* Right Column: Multi-Agent AI Fit Intelligence */}
         <div className="flex flex-col gap-6">
-          <div className="bg-gradient-to-br from-background to-ai/5 rounded-2xl border border-ai/20 shadow-sm overflow-hidden sticky top-6">
-            <div className="p-5 border-b border-border/50 bg-background/50 flex justify-between items-center">
-              <div className="flex items-center gap-2 text-ai-hover">
-                <Sparkles size={18} className="fill-ai/20" />
-                <h3 className="font-heading font-bold m-0 text-base">AI Fit Intelligence</h3>
+          <div className="bg-white rounded-2xl border border-[#E4D5F3] shadow-[0_4px_20px_rgba(84,36,119,0.04)] overflow-hidden sticky top-6">
+            <div className="p-5 border-b border-[#E4D5F3] bg-[#FAF7FD] flex justify-between items-center">
+              <div className="flex items-center gap-2 text-[#542477]">
+                <Sparkles size={18} className="text-[#D83CC5]" />
+                <h3 className="font-heading font-black m-0 text-base text-[#27113D]">AI Fit Intelligence</h3>
               </div>
               <button
-                className="px-3 py-1.5 bg-background border border-border hover:border-ai/30 text-text-secondary hover:text-ai font-bold rounded-lg text-xs transition-all flex items-center gap-1.5 disabled:opacity-50"
+                className="px-3 py-1.5 bg-white border border-[#E4D5F3] hover:border-[#542477] text-[#5F4E75] hover:text-[#542477] font-bold rounded-lg text-xs transition-all flex items-center gap-1.5 disabled:opacity-50"
                 onClick={() => runAIFitAnalysis(job, candidateSkills)}
                 disabled={analyzingFit}
               >
@@ -323,42 +323,42 @@ export default function JobDetails() {
             <div className="p-5">
               {analyzingFit ? (
                 <div className="text-center py-10 flex flex-col items-center">
-                  <RefreshCw size={28} className="animate-spin text-ai mb-4" />
-                  <p className="text-sm text-text-muted font-medium">Diagnosing candidate match and generating bridging roadmap...</p>
+                  <RefreshCw size={28} className="animate-spin text-[#542477] mb-4" />
+                  <p className="text-sm text-[#8A7A9E] font-medium">Diagnosing candidate match and generating bridging roadmap...</p>
                 </div>
               ) : fitReport ? (
                 <div className="flex flex-col gap-5 animate-in fade-in duration-300">
                   {/* Score Progress Bar */}
                   <div>
                     <div className="flex justify-between items-end text-sm mb-2">
-                      <span className="font-bold text-text-secondary uppercase tracking-wider text-[10px]">Overall Match Score</span>
-                      <strong className={`text-lg font-black ${fitReport.match_percentage >= 75 ? 'text-success-hover' : 'text-primary'}`}>
+                      <span className="font-bold text-[#8A7A9E] uppercase tracking-wider text-[10px]">Overall Match Score</span>
+                      <strong className={`text-lg font-black ${fitReport.match_percentage >= 75 ? 'text-[#16A34A]' : 'text-[#542477]'}`}>
                         {fitReport.match_percentage}%
                       </strong>
                     </div>
-                    <div className="h-2 rounded-full bg-border overflow-hidden">
+                    <div className="h-2 rounded-full bg-[#E4D5F3] overflow-hidden">
                       <div 
-                        className={`h-full rounded-full transition-all duration-1000 ease-out ${fitReport.match_percentage >= 75 ? 'bg-success' : 'bg-primary'}`} 
+                        className={`h-full rounded-full transition-all duration-1000 ease-out ${fitReport.match_percentage >= 75 ? 'bg-[#16A34A]' : 'bg-gradient-to-r from-[#542477] to-[#D83CC5]'}`} 
                         style={{ width: `${fitReport.match_percentage}%` }} 
                       />
                     </div>
                   </div>
 
-                  <p className="text-sm font-medium text-text-primary leading-relaxed bg-background border border-border p-3 rounded-xl shadow-sm">
+                  <p className="text-sm font-medium text-[#27113D] leading-relaxed bg-[#FAF7FD] border border-[#E4D5F3] p-3.5 rounded-xl shadow-sm">
                     {fitReport.fit_summary}
                   </p>
 
                   {/* Matched Strengths */}
                   {fitReport.matched_strengths && fitReport.matched_strengths.length > 0 && (
-                    <div className="p-4 bg-success/5 rounded-xl border border-success/20 shadow-sm">
-                      <strong className="text-xs font-black text-success-hover uppercase tracking-widest flex items-center gap-1.5 mb-3">
+                    <div className="p-4 bg-[#F0FDF4] rounded-xl border border-[#BBF7D0] shadow-sm">
+                      <strong className="text-xs font-black text-[#16A34A] uppercase tracking-widest flex items-center gap-1.5 mb-3">
                         <CheckCircle2 size={14} /> Verified Strengths ({fitReport.matched_strengths.length})
                       </strong>
-                      <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-2.5">
                         {fitReport.matched_strengths.map((item, idx) => (
-                          <div key={idx} className="text-xs text-text-secondary leading-relaxed">
-                            <span className="font-bold text-success-hover mr-1.5">•</span>
-                            <strong className="text-text-primary">{item.skill}:</strong> {item.relevance}
+                          <div key={idx} className="text-xs text-[#5F4E75] leading-relaxed">
+                            <span className="font-bold text-[#16A34A] mr-1.5">•</span>
+                            <strong className="text-[#27113D]">{item.skill}:</strong> {item.relevance}
                           </div>
                         ))}
                       </div>
@@ -367,15 +367,15 @@ export default function JobDetails() {
 
                   {/* Critical Gaps & Bridging Strategy */}
                   {fitReport.critical_gaps && fitReport.critical_gaps.length > 0 && (
-                    <div className="p-4 bg-error/5 rounded-xl border border-error/20 shadow-sm">
-                      <strong className="text-xs font-black text-error-hover uppercase tracking-widest flex items-center gap-1.5 mb-3">
+                    <div className="p-4 bg-[#FFF1F2] rounded-xl border border-[#FECDD3] shadow-sm">
+                      <strong className="text-xs font-black text-[#E11D48] uppercase tracking-widest flex items-center gap-1.5 mb-3">
                         <Target size={14} /> Priority Skill Gaps
                       </strong>
-                      <div className="flex flex-col gap-3">
+                      <div className="flex flex-col gap-2.5">
                         {fitReport.critical_gaps.map((item, idx) => (
-                          <div key={idx} className="text-xs text-text-secondary leading-relaxed">
-                            <span className="font-bold text-error-hover mr-1.5">•</span>
-                            <strong className="text-text-primary">{item.skill}:</strong> {item.bridging_strategy}
+                          <div key={idx} className="text-xs text-[#5F4E75] leading-relaxed">
+                            <span className="font-bold text-[#E11D48] mr-1.5">•</span>
+                            <strong className="text-[#27113D]">{item.skill}:</strong> {item.bridging_strategy}
                           </div>
                         ))}
                       </div>
@@ -384,8 +384,8 @@ export default function JobDetails() {
 
                   {/* Interview Focus Areas */}
                   {fitReport.interview_focus_areas && (
-                    <div className="p-4 bg-background rounded-xl border border-border shadow-sm">
-                      <strong className="text-xs font-black text-text-muted uppercase tracking-widest flex items-center gap-1.5 mb-3">
+                    <div className="p-4 bg-[#FAF7FD] rounded-xl border border-[#E4D5F3] shadow-sm">
+                      <strong className="text-xs font-black text-[#8A7A9E] uppercase tracking-widest flex items-center gap-1.5 mb-3">
                         <Award size={14} /> Anticipated Interview Areas
                       </strong>
                       <div className="flex flex-wrap gap-2">

@@ -1,24 +1,32 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=Fredoka:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=Fredoka:wght@400;500;600;700&family=Manrope:wght@600;700;800&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #6C63FF;
-  --color-primary-hover: #5146D8;
-  --color-primary-light: #EEECFF;
-  --color-ai: #06B6D4;
-  --color-success: #22C55E;
-  --color-warning: #F59E0B;
-  --color-error: #EF4444;
-  --color-background: #F8FAFC;
+  --color-primary: #542477;
+  --color-primary-hover: #3E165B;
+  --color-primary-light: #F3E9FF;
+  --color-ai: #9333EA;
+  --color-success: #16A34A;
+  --color-warning: #D97706;
+  --color-error: #E11D48;
+  --color-background: #FAF7FD;
   --color-card: #FFFFFF;
-  --color-text-primary: #0F172A;
-  --color-text-secondary: #64748B;
-  --color-text-muted: #94A3B8;
-  --color-border: #E2E8F0;
-  --color-sidebar: #111827;
+  --color-text-primary: #27113D;
+  --color-text-secondary: #5F4E75;
+  --color-text-muted: #8A7A9E;
+  --color-border: #E4D5F3;
+  --color-sidebar: #FBF8FF;
+
+  /* Brand Palette */
+  --color-brand-bg: #C4A4DA;
+  --color-brand-deep: #4C2365;
+  --color-brand-secondary: #7F5D99;
+  --color-brand-pink: #ED96D7;
+  --color-brand-accent: #D83CC5;
 
   --font-sans: 'Inter', sans-serif;
   --font-heading: 'Plus Jakarta Sans', sans-serif;
+  --font-serif: 'Playfair Display', serif;
 
   --shadow-subtle: 0 4px 20px rgba(15, 23, 42, 0.06);
 
@@ -34,6 +42,11 @@
   --animate-orbit: orbit 10s linear infinite;
   --animate-orbit-reverse: orbit-reverse 14s linear infinite;
   --animate-twinkle: twinkle 2.5s ease-in-out infinite;
+  --animate-float-gentle: float-gentle 6s ease-in-out infinite;
+  --animate-pulse-soft: pulse-soft 4s ease-in-out infinite;
+  --animate-orbit-slow: orbit-slow 20s linear infinite;
+  --animate-orbit-slow-reverse: orbit-slow-reverse 25s linear infinite;
+  --animate-sparkle-float: sparkle-float 8s ease-in-out infinite;
 }
 
 @layer base {
@@ -98,4 +111,26 @@
 @keyframes twinkle {
   0%, 100% { opacity: 0.35; transform: scale(0.8); }
   50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* New animations for lavender redesign */
+@keyframes float-gentle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-16px); }
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.05); }
+}
+@keyframes orbit-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes orbit-slow-reverse {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+@keyframes sparkle-float {
+  0%, 100% { opacity: 0.2; transform: translateY(0) scale(0.8); }
+  50% { opacity: 0.8; transform: translateY(-20px) scale(1.1); }
 }

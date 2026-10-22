@@ -25,6 +25,18 @@ async def get_current_user(
         if user_id:
             return user_id
 
+        # Also attempt Firebase Admin ID token verification if Firebase is configured
+        try:
+            import firebase_admin
+            from firebase_admin import auth as fb_auth
+            if firebase_admin._apps:
+                decoded = fb_auth.verify_id_token(token)
+                uid = decoded.get("uid") or decoded.get("sub")
+                if uid:
+                    return uid
+        except Exception:
+            pass
+
     # 2. X-User-ID Header Check (explicitly supplied)
     if x_user_id and x_user_id.strip() and x_user_id not in ("null", "undefined", "string"):
         return x_user_id.strip()

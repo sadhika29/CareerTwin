@@ -9,12 +9,9 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid
 } from 'recharts';
 
-const DEFAULT_SCORES = {
-  resume: 82, job_match: 76, dsa: 61, aptitude: 74, technical: 70, interview: 65, overall: 72
-};
-
 export default function DigitalTwin() {
   const [twin, setTwin] = useState(null);
+  const [history, setHistory] = useState([]);
   const [insight, setInsight] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -22,35 +19,34 @@ export default function DigitalTwin() {
     Promise.all([
       getDigitalTwin().catch(() => null),
       getReadinessHistory().catch(() => []),
-    ]).then(([twinData]) => {
-      setTwin(twinData || DEFAULT_SCORES);
+      axiosClient.get('/dashboard/insight').catch(() => null),
+    ]).then(([twinData, historyData, insightRes]) => {
+      setTwin(twinData);
+      setHistory(Array.isArray(historyData) ? historyData : []);
+      if (insightRes?.data?.ai_insight) setInsight(insightRes.data.ai_insight);
     }).finally(() => setLoading(false));
-
-    axiosClient.get('/dashboard/insight').then(res => {
-      if (res.data?.ai_insight) setInsight(res.data.ai_insight);
-    }).catch(() => {});
   }, []);
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <div className="w-12 h-12 border-4 border-border border-t-primary rounded-full animate-spin mb-4"></div>
-        <h2 className="text-xl font-heading font-bold text-text-primary">Syncing your Digital Twin...</h2>
+        <div className="w-12 h-12 border-4 border-[#E4D5F3] border-t-[#542477] rounded-full animate-spin mb-4"></div>
+        <h2 className="text-xl font-heading font-bold text-[#27113D]">Syncing your Digital Twin...</h2>
       </div>
     );
   }
 
   const scores = {
-    resume: twin?.resume_score ?? twin?.resume ?? DEFAULT_SCORES.resume,
-    experience: twin?.job_match_score ?? twin?.job_match ?? DEFAULT_SCORES.job_match,
-    dsa: twin?.dsa_score ?? twin?.dsa ?? DEFAULT_SCORES.dsa,
-    projects: twin?.aptitude_score ?? twin?.aptitude ?? DEFAULT_SCORES.aptitude,
-    skills: twin?.technical_score ?? twin?.technical ?? DEFAULT_SCORES.technical,
-    interview: twin?.interview_score ?? twin?.interview ?? DEFAULT_SCORES.interview,
+    resume: twin?.resume_score ?? twin?.resume ?? 0,
+    experience: twin?.job_match_score ?? twin?.job_match ?? 0,
+    dsa: twin?.dsa_score ?? twin?.dsa ?? 0,
+    projects: twin?.aptitude_score ?? twin?.aptitude ?? 0,
+    skills: twin?.technical_score ?? twin?.technical ?? 0,
+    interview: twin?.interview_score ?? twin?.interview ?? 0,
   };
 
   const overallScore = Math.round(
-    twin?.overall_score ?? DEFAULT_SCORES.overall
+    twin?.overall_score ?? 0
   );
 
   const radarData = [
@@ -62,12 +58,12 @@ export default function DigitalTwin() {
     { area: 'DSA', value: scores.dsa, fullMark: 100 },
   ];
 
-  const trendData = [
-    { name: 'Week 1', value: 58 },
-    { name: 'Week 2', value: 63 },
-    { name: 'Week 3', value: 66 },
-    { name: 'Current', value: overallScore }
-  ];
+  const trendData = history.length > 0 
+    ? history.map((h, i) => ({ name: `Snapshot ${i + 1}`, value: Math.round(h.overall_score || 0) }))
+    : [
+        { name: 'Initial', value: overallScore },
+        { name: 'Current', value: overallScore }
+      ];
 
   return (
     <div className="animate-in fade-in duration-500 pb-12">

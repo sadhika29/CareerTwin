@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, ArrowRight } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export default function LandingNavbar() {
@@ -11,7 +11,7 @@ export default function LandingNavbar() {
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 50)
+      setScrolled(window.scrollY > 20)
 
       const sections = ['home', 'features', 'how-it-works', 'about']
       let current = 'home'
@@ -51,108 +51,124 @@ export default function LandingNavbar() {
 
   return (
     <>
-      <motion.header
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className={`fixed top-0 w-full z-50 transition-all duration-300 flex items-center h-[76px] border-b border-white/[0.12] ${scrolled ? 'bg-[#050509]/65 backdrop-blur-[16px]' : 'bg-transparent'
-          }`}
+      <header
+        className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 border-b border-[#7F5D99]/30 ${
+          scrolled
+            ? 'bg-white/95 backdrop-blur-md shadow-[0_2px_15px_rgba(76,35,101,0.06)]'
+            : 'bg-white/90 backdrop-blur-md shadow-[0_1px_8px_rgba(76,35,101,0.03)]'
+        }`}
       >
-        <div className="max-w-9xl mx-auto px-9 flex items-center justify-between w-full relative">
-          <div className="flex items-center gap-2.5 cursor-pointer group transition-opacity hover:opacity-90" onClick={() => scrollToSection('home')}>
-            <img src="/logo.png" alt="CareerTwin Logo" className="h-[63px] w-[63px] object-contain transition-transform group-hover:scale-105" />
-            <span className="font-bold text-[32.5px] tracking-tight">
-              <span className="text-white">Career</span>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#A855F7] to-[#EC4899]">Twin</span>
+        <div className="w-full max-w-[1180px] mx-auto px-4 sm:px-6 h-[74px] flex items-center justify-between relative">
+          {/* Left Branding - Text wordmark only, no separate butterfly logo */}
+          <div
+            className="flex items-center cursor-pointer select-none transition-opacity hover:opacity-90"
+            onClick={() => scrollToSection('home')}
+          >
+            <span className="font-bold text-[28px] sm:text-[30px] tracking-tight leading-none font-sans">
+              <span className="text-[#4C2365]">Career</span>
+              <span className="text-[#7F5D99]">Twin</span>
             </span>
           </div>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
-            {navLinks.map((link, i) => {
-              const isActive = activeSection === link.id;
+          {/* Desktop Navigation Links - Centered, bold & dark purple */}
+          <nav className="hidden md:flex items-center gap-1 lg:gap-2 absolute left-1/2 -translate-x-1/2">
+            {navLinks.map((link) => {
+              const isActive = activeSection === link.id
               return (
                 <button
                   key={link.name}
                   onClick={() => scrollToSection(link.id)}
-                  className={`relative text-sm font-medium transition-colors py-1 ${isActive ? 'text-[#EC4899]' : 'text-[#A1A1AA] hover:text-white'
-                    }`}
+                  className={`relative px-4 py-2 text-[15px] font-semibold transition-all rounded-lg ${
+                    isActive
+                      ? 'text-[#4C2365]'
+                      : 'text-[#4C2365]/80 hover:text-[#4C2365] hover:bg-[#C4A4DA]/15'
+                  }`}
                 >
                   {link.name}
                   {isActive && (
                     <motion.div
-                      layoutId="nav-indicator-desktop"
-                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-[110%] h-[3px] rounded-full bg-gradient-to-r from-[#A855F7] to-[#EC4899]"
-                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                      layoutId="nav-active-underline"
+                      className="absolute bottom-0.5 left-3 right-3 h-[2px] rounded-full bg-[#4C2365]"
+                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                     />
                   )}
                 </button>
-              );
+              )
             })}
           </nav>
 
-          <div className="hidden md:flex items-center gap-4">
+          {/* Right CTA - Login and Get Started */}
+          <div className="hidden md:flex items-center gap-3">
             <Link
               to="/login"
-              className="px-5 py-2 rounded-full text-sm font-medium bg-white/[0.02] border border-[#A855F7]/30 hover:border-[#A855F7]/60 hover:bg-[#A855F7]/10 transition-all text-white hover:-translate-y-[2px]"
+              className="h-10 px-5 flex items-center justify-center rounded-full text-sm font-semibold border-2 border-[#4C2365] text-[#4C2365] bg-transparent hover:bg-[#4C2365] hover:text-white transition-all duration-200"
             >
               Login
             </Link>
             <Link
               to="/signup"
-              className="px-5 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-[#A855F7] to-[#EC4899] hover:from-[#9333EA] hover:to-[#DB2777] text-white transition-all shadow-[0_0_15px_rgba(168,85,247,0.3)] hover:shadow-[0_0_20px_rgba(168,85,247,0.5)] hover:-translate-y-[2px]"
+              className="h-10 px-5 flex items-center justify-center gap-1.5 rounded-full text-sm font-semibold bg-gradient-to-r from-[#4C2365] to-[#7F5D99] text-white shadow-[0_4px_14px_rgba(76,35,101,0.25)] hover:shadow-[0_6px_20px_rgba(76,35,101,0.35)] hover:-translate-y-[1px] transition-all duration-200"
             >
-              Get Started
+              Get Started <ArrowRight size={15} />
             </Link>
           </div>
 
-          {/* Mobile Menu Toggle */}
+          {/* Mobile Menu Toggle Button */}
           <button
-            className="md:hidden text-[#A1A1AA] hover:text-white"
+            className="md:hidden p-2 rounded-lg text-[#4C2365] hover:bg-[#C4A4DA]/15 transition-colors focus:outline-none focus:ring-2 focus:ring-[#7F5D99]/40"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle mobile menu"
           >
             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
-      </motion.header>
+      </header>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu Dropdown */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed inset-0 z-40 bg-[#050507]/95 backdrop-blur-xl flex flex-col pt-24 px-6 md:hidden"
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="fixed top-16 sm:top-[72px] left-0 w-full z-40 bg-white/95 backdrop-blur-xl border-b border-[#7F5D99]/30 shadow-lg px-6 py-6 md:hidden flex flex-col gap-3"
           >
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-1">
               {navLinks.map((link) => {
-                const isActive = activeSection === link.id;
+                const isActive = activeSection === link.id
                 return (
                   <button
                     key={link.name}
                     onClick={() => scrollToSection(link.id)}
-                    className={`text-left text-2xl font-semibold transition-colors ${isActive ? 'text-[#c855ff]' : 'text-gray-300 hover:text-white'
-                      }`}
+                    className={`text-left text-base font-semibold px-4 py-2.5 rounded-xl transition-colors ${
+                      isActive
+                        ? 'text-[#4C2365] bg-[#C4A4DA]/20'
+                        : 'text-[#4C2365]/80 hover:text-[#4C2365] hover:bg-[#C4A4DA]/10'
+                    }`}
                   >
                     {link.name}
                   </button>
-                );
+                )
               })}
+            </div>
 
-              <div className="h-px w-full bg-white/10 my-4" />
+            <div className="h-px w-full bg-[#7F5D99]/20 my-2" />
 
+            <div className="flex flex-col sm:flex-row gap-2.5">
               <Link
                 to="/login"
-                className="w-full py-4 text-center rounded-xl font-medium border border-purple-500/30 text-white"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full h-11 flex items-center justify-center rounded-full text-sm font-semibold border-2 border-[#4C2365] text-[#4C2365] bg-transparent hover:bg-[#4C2365] hover:text-white transition-colors"
               >
                 Login
               </Link>
               <Link
                 to="/signup"
-                className="w-full py-4 text-center rounded-xl font-medium bg-gradient-to-r from-purple-600 to-pink-500 text-white"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full h-11 flex items-center justify-center gap-1.5 rounded-full text-sm font-semibold bg-gradient-to-r from-[#4C2365] to-[#7F5D99] text-white shadow-[0_4px_14px_rgba(76,35,101,0.25)] transition-colors"
               >
-                Get Started
+                Get Started <ArrowRight size={15} />
               </Link>
             </div>
           </motion.div>
