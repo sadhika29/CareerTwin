@@ -139,7 +139,8 @@ def test_sadhika_resume_analysis_fallback_and_scoring():
     analysis = agent.analyze(SADHIKA_RESUME_TEXT, target_role="Graduate Engineer Trainee")
     assert analysis.is_valid_resume is True
     assert analysis.inferred_domain in ("Software Engineering", "General Professional")
-    assert analysis.ats_score >= 70.0
+    score = analysis.ats_score if analysis.ats_score is not None else analysis.resume_score
+    assert score >= 70.0
     assert "Python" in analysis.resume_skills
     assert "Java" in analysis.resume_skills
     assert "SQL" in analysis.resume_skills

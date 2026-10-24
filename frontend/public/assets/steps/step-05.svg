@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" fill="none">
+  <defs>
+    <!-- Soft Shadows -->
+    <filter id="shadow5" x="-10%" y="-10%" width="130%" height="130%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#4C2365" flood-opacity="0.2" />
+    </filter>
+    <filter id="starShadow5" x="-20%" y="-20%" width="140%" height="140%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#3B1B50" flood-opacity="0.3" />
+    </filter>
+
+    <!-- Gradients -->
+    <linearGradient id="bar5Grad4" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#6B21A8" />
+      <stop offset="100%" stop-color="#4C2365" />
+    </linearGradient>
+    <linearGradient id="starGrad5" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9333EA" />
+      <stop offset="100%" stop-color="#581C87" />
+    </linearGradient>
+    <linearGradient id="arrowGrad5" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7C3AED" />
+      <stop offset="100%" stop-color="#581C87" />
+    </linearGradient>
+  </defs>
+
+  <!-- Accent Dash to the left of the Star -->
+  <line x1="39" y1="12" x2="42" y2="15" stroke="#7C3AED" stroke-width="2.5" stroke-linecap="round" />
+
+  <!-- 5-Point Star (Top Right above tallest bar) -->
+  <g filter="url(#starShadow5)">
+    <!-- Star centered at (49, 14), outer radius ~7.5, inner radius ~3.5 -->
+    <polygon points="49,6.5 51.3,11.5 56.5,12 52.5,15.8 53.8,21 49,18.2 44.2,21 45.5,15.8 41.5,12 46.7,11.5" 
+             fill="url(#starGrad5)" />
+  </g>
+
+  <!-- 4 Ascending Vertical Bars -->
+  <g filter="url(#shadow5)">
+    <!-- Bar 1 (Shortest) -->
+    <rect x="13" y="46" width="7" height="12" rx="3.5" fill="#C4A4DA" />
+    <!-- Bar 2 -->
+    <rect x="23" y="40" width="7" height="18" rx="3.5" fill="#A78BFA" />
+    <!-- Bar 3 -->
+    <rect x="33" y="32" width="7" height="26" rx="3.5" fill="#8B5CF6" />
+    <!-- Bar 4 (Tallest) -->
+    <rect x="43" y="24" width="8" height="34" rx="4" fill="url(#bar5Grad4)" />
+
+    <!-- Upward Swooping Arrow -->
+    <!-- Curved tail that widens or sweeps smoothly up-right -->
+    <path d="M 10 44 C 18 43, 26 39, 34 26" 
+          stroke="url(#arrowGrad5)" stroke-width="3.5" stroke-linecap="round" fill="none" />
+    
+    <!-- Arrowhead at (35, 24) pointing up-right -->
+    <polygon points="35,17 38.5,28 32,24" fill="#581C87" />
+  </g>
+</svg>

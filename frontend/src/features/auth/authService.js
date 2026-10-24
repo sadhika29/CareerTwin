@@ -275,6 +275,13 @@ export async function requestPasswordReset(email) {
 
 export function signOut() {
   SESSION_KEYS.forEach((key) => localStorage.removeItem(key))
+  // Clear all user session items to ensure strict state isolation between accounts
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const k = localStorage.key(i)
+    if (k && k.startsWith('career_') && k !== 'career_remember') {
+      localStorage.removeItem(k)
+    }
+  }
   if (auth && auth.signOut) {
     auth.signOut().catch(() => {})
   }

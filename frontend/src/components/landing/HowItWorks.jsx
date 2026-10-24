@@ -1,36 +1,35 @@
 import { motion } from 'framer-motion'
-import { User, Cpu, BarChart2, Map, TrendingUp } from 'lucide-react'
 
 const steps = [
   {
     num: '01',
     title: 'Create Your Profile',
     desc: 'Tell us about your skills and goals.',
-    icon: User
+    icon: '/assets/steps/step-01.svg'
   },
   {
     num: '02',
     title: 'AI Analysis',
     desc: 'Our AI analyzes your profile to understand your strengths.',
-    icon: Cpu
+    icon: '/assets/steps/step-02.svg'
   },
   {
     num: '03',
     title: 'Find Skill Gaps',
     desc: 'Discover the skills you need to improve for your target career.',
-    icon: BarChart2
+    icon: '/assets/steps/step-03.svg'
   },
   {
     num: '04',
     title: 'Get Your Roadmap',
     desc: 'Get a personalized career plan with clear learning steps.',
-    icon: Map
+    icon: '/assets/steps/step-04.svg'
   },
   {
     num: '05',
     title: 'Practice & Grow',
     desc: 'Practice, learn, and grow with AI-powered guidance.',
-    icon: TrendingUp
+    icon: '/assets/steps/step-05.svg'
   }
 ]
 
@@ -51,10 +50,7 @@ export default function HowItWorks() {
           viewport={{ once: true }}
           className="text-3xl sm:text-4xl lg:text-5xl font-bold font-['Playfair_Display',_serif] text-[#4C2365] tracking-tight text-center mb-14 lg:mb-18"
         >
-          Build Your Career in{' '}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#7F5D99] to-[#ED96D7]">
-            5 Simple Steps
-          </span>
+          Build Your Career in 5 Simple Steps
         </motion.h2>
 
         {/* Five Step Cards Container */}
@@ -74,7 +70,6 @@ export default function HowItWorks() {
           {/* Cards Grid: 5 columns on desktop, 2-3 on tablet, 1 on mobile */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5 lg:gap-5 items-stretch relative z-10">
             {steps.map((step, index) => {
-              const Icon = step.icon
               return (
                 <motion.div
                   key={step.num}
@@ -91,7 +86,7 @@ export default function HowItWorks() {
 
                   {/* 2. Large Relevant Icon in Pastel Container */}
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#C4A4DA]/35 to-[#ED96D7]/20 border border-[#C4A4DA]/40 flex items-center justify-center text-[#4C2365] my-4 shadow-sm group-hover:scale-105 transition-transform duration-200">
-                    <Icon size={28} />
+                    <img src={step.icon} alt={step.title} className="w-12 h-12 object-contain" />
                   </div>
 
                   {/* 3. Bold Step Heading */}

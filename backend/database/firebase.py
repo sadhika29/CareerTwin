@@ -39,9 +39,8 @@ def initialize_firebase():
         )
 
     if not storage_bucket:
-        raise ValueError(
-            "FIREBASE_STORAGE_BUCKET is not configured."
-        )
+        project_id = os.getenv("FIREBASE_PROJECT_ID", "carrr-c4bc0")
+        storage_bucket = f"{project_id}.firebasestorage.app"
 
     cred = credentials.Certificate(credentials_path)
 

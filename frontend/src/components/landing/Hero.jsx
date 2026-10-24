@@ -120,15 +120,19 @@ export default function Hero() {
           className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3.5 max-w-4xl mx-auto mb-10 sm:mb-12"
         >
           {capabilities.map((cap, idx) => (
-            <div
+            <button
               key={idx}
-              className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-[#4C2365] bg-white/75 border border-[#C4A4DA]/40 rounded-full px-4 py-2 sm:px-4.5 sm:py-2.5 backdrop-blur-sm shadow-[0_2px_8px_rgba(76,35,101,0.05)] transition-all duration-200 hover:shadow-[0_4px_14px_rgba(76,35,101,0.12)] hover:border-[#7F5D99]/60 hover:-translate-y-0.5"
+              onClick={() => {
+                const el = document.getElementById('features')
+                if (el) el.scrollIntoView({ behavior: 'smooth' })
+              }}
+              className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-[#4C2365] bg-white/75 border border-[#C4A4DA]/40 rounded-full px-4 py-2 sm:px-4.5 sm:py-2.5 backdrop-blur-sm shadow-[0_2px_8px_rgba(76,35,101,0.05)] transition-all duration-200 hover:shadow-[0_4px_14px_rgba(76,35,101,0.12)] hover:border-[#7F5D99]/60 hover:-translate-y-0.5 cursor-pointer"
             >
               <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[#C4A4DA]/25 text-[#7F5D99]">
                 <cap.icon size={13} />
               </span>
               <span>{cap.text}</span>
-            </div>
+            </button>
           ))}
         </motion.div>
       </div>

@@ -87,6 +87,8 @@ class PreparationAgent:
         data = _parse_json(raw)
         if not isinstance(data, list):
             raise ValueError("LLM did not return a JSON array for assessment generation")
+        if count and len(data) > count:
+            data = data[:count]
         # Ensure question_ids are unique and category is injected
         for i, q in enumerate(data):
             q.setdefault("question_id", f"{category.lower()}-ai-{i+1}")

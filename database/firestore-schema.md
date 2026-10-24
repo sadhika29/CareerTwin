@@ -130,8 +130,48 @@ Stores technical diagnostic tests, quizzes, and skill evaluation reports.
 
 ---
 
+### 2.6 Collection: `resume_chunks` & Subcollection `users/{user_id}/resumes/{resume_id}/chunks`
+Stores segmented text chunks extracted from uploaded resumes for durable RAG, semantic search, and vector index reconstruction.
+
+- **Document ID:** `{resume_id}_chunk_{idx}`
+- **Ownership:** `user_id` field must match `request.auth.uid`
+
+| Field | Type | Description |
+|---|---|---|
+| `chunk_id` | String | Unique chunk identifier (`{resume_id}_chunk_{idx}`) |
+| `resume_id` | String | Parent resume UUID |
+| `user_id` | String | Owner Firebase UID |
+| `sequence_number` | Number | Sequential index (0, 1, 2, ...) |
+| `text` | String | Extracted text chunk |
+| `page` | Number | Document page number |
+| `total_chunks` | Number | Total chunk count for parent resume |
+| `created_at` | Timestamp | Ingestion timestamp |
+
+---
+
+### 2.7 Collection: `digital_twin_snapshots`
+Stores historical career readiness evaluations and persona metrics computed by CareerTwin.
+
+- **Document ID:** `{user_id}:{created_at}`
+- **Ownership:** `user_id` field must match `request.auth.uid`
+
+| Field | Type | Description |
+|---|---|---|
+| `user_id` | String | Owner Firebase UID |
+| `target_role` | String | Target career role |
+| `overall_score`| Number | Weighted readiness percentage (0–100) |
+| `resume_score` | Number | ATS resume score |
+| `dsa_score` | Number | DSA proficiency score |
+| `technical_score`| Number| Domain technical score |
+| `interview_score`| Number| Interview simulation score |
+| `created_at` | Timestamp | ISO 8601 evaluation timestamp |
+
+---
+
 ## 3. Storage Architecture
 
 Binary files (resumes, documents) are stored in Firebase Storage / designated persistent storage paths:
+- `users/{user_id}/resumes/{resume_id}/{filename}`
 - `resumes/{user_id}/{resume_id}.pdf`
 - Document blobs are never stored directly in Firestore documents to maintain document size limits (< 1MB) and ensure rapid read performance.
+

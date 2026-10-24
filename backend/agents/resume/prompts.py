@@ -9,45 +9,76 @@ Analyze the following key areas:
 3. Structural Completeness: Summary/Objective, Experience/Work History, Education, Skills, Projects, Certifications.
 4. Content Quality: Action verbs (e.g. "Spearheaded", "Engineered", "Managed", "Delivered"), quantifiable metrics/KPIs (%, $, numbers), role relevance.
 5. Domain & Industry Relevance: Match against industry standards and career benchmarks for the specified target role (or inferred profession).
-6. ATS Formatting & Keyword Density: Identify missing domain keywords, critical competencies, and formatting gaps.
-7. Sentence Formation & Grammar: Identify weak, passive, grammatically flawed, or vague bullet points and sentences. Provide high-impact Google XYZ-format rewrites ("Accomplished [X] as measured by [Y], by doing [Z]").
+6. Job Description Matching (CRITICAL):
+   - If a target Job Description IS provided:
+     * Compare the resume against the target Job Description.
+     * Calculate a realistic ats_score (0-100) based strictly on keyword match, required skills, and experience match with that specific job.
+     * Identify missing keywords/skills from the Job Description with context: why relevant, status ("absent" vs "weakly_represented"), and suggested placement in resume.
+     * Prioritize recommendations according to the requirements of that specific role.
+   - If a target Job Description is NOT provided:
+     * Set ats_score to null.
+     * Do NOT invent or fabricate job-specific missing keywords. Set missing_keyword_details and keyword_gaps to empty lists.
+     * Provide general resume-improvement recommendations only.
+7. Grammar & Resume Corrections (REAL ISSUES):
+   - Identify actual grammar mistakes, spelling errors, punctuation issues, wordiness, awkward phrasing, and inconsistent capitalization in the candidate's resume text.
+   - Provide original text excerpt, identified problem, suggested correction, explanation, and issue_type ("grammar", "spelling", "punctuation", "wordiness", "passive_voice", "formatting").
+   - Do NOT fabricate mistakes if none exist.
+8. Resume Improvement Recommendations:
+   - Provide actionable suggestions across: Professional Summary, Work Experience, Quantifiable Achievements, Technical Skills, Education/Certs, Readability, Organization.
+   - For each: area, issue, why it matters, action to take, and an example of improved wording.
+   - Examples must be grounded in the resume or use explicit placeholders like "[X%]", "[Y metric]". NEVER invent false certifications, metrics, or career history.
 
 Return ONLY valid JSON.
 
-The JSON must contain exactly these fields:
+The JSON must contain these fields:
 {
     "is_valid_resume": boolean,
     "inferred_domain": string,
     "resume_score": number,
-    "ats_score": number,
+    "ats_score": number or null,
+    "has_target_job": boolean,
     "resume_skills": ["skill1", "skill2"],
     "resume_strengths": ["strength1", "strength2"],
     "resume_weaknesses": ["weakness1", "weakness2"],
     "missing_sections": ["section1"],
-    "keyword_gaps": ["keyword1", "keyword2"],
-    "recommendations": ["recommendation1", "recommendation2"],
+    "keyword_gaps": ["keyword1"],
+    "missing_keyword_details": [
+        {
+            "keyword": "Kubernetes",
+            "relevance": "Required for cloud deployment in the target job description",
+            "status": "absent",
+            "suggested_placement": "Technical Skills or DevOps Projects section"
+        }
+    ],
+    "recommendations": ["recommendation1"],
+    "structured_recommendations": [
+        {
+            "area": "Quantifiable Achievements",
+            "issue": "Bullet points list duties rather than measurable outcomes",
+            "why": "Hiring managers and ATS filters look for business impact and scale",
+            "action": "Use the Google XYZ formula: Accomplished [X] as measured by [Y], by doing [Z]",
+            "example": "Optimized database queries, reducing average API response latency by [X%] across [Y] monthly active users."
+        }
+    ],
+    "grammar_issues": [
+        {
+            "original": "worked on backend features",
+            "problem": "Weak passive phrasing and lack of impact",
+            "suggested_correction": "Architected resilient backend REST APIs",
+            "explanation": "Strong action verbs demonstrate active leadership and clear ownership.",
+            "issue_type": "passive_voice"
+        }
+    ],
     "sentence_improvements": [
         {
-            "original": "original sentence from resume",
-            "improved": "improved professional high-impact sentence",
-            "reason": "explanation of grammar, clarity, or metric enhancement",
+            "original": "original sentence",
+            "improved": "improved sentence",
+            "reason": "explanation",
             "issue_type": "grammar"
         }
     ],
-    "repaired_text": "Complete cleaned and polished resume text with all sentence improvements applied"
+    "repaired_text": "Complete cleaned resume text"
 }
-
-Rules:
-- If the document is clearly NOT a resume (e.g., an invoice, book chapter, random text, or empty), set is_valid_resume to false and provide clear recommendations on uploading a proper CV.
-- resume_score must be a realistic number between 0 and 100 based on quality, impact, and formatting.
-- ats_score must be a realistic number between 0 and 100 based on keyword alignment, skill coverage, and section completeness.
-- inferred_domain should name the primary professional field (e.g. "Human Resources", "Product Management", "Software Engineering", "Data Science", "Finance", "Marketing").
-- resume_skills must contain comprehensive list of technical, analytical, domain, and soft skills extracted directly from the candidate's resume.
-- resume_strengths must highlight specific achievements, quantifiable impacts, strong tool stacks, or clean structure.
-- resume_weaknesses must give constructive critique (e.g., missing metrics, lack of specific domain keywords, vague bullet points).
-- keyword_gaps must contain missing high-impact keywords and frameworks essential for the target role in modern industry.
-- recommendations must provide clear, actionable bullet point enhancements (including suggested XYZ format rewrites).
-- Base your analysis strictly on the provided resume text and industry standards.
 """
 
 
@@ -59,6 +90,7 @@ def build_resume_analysis_prompt(
     profile: dict | None = None,
     target_role: str | None = None,
     target_job: str | None = None,
+    job_description: str | None = None,
     rag_context: str | None = None,
 ) -> str:
     profile = profile or {}
@@ -68,10 +100,27 @@ def build_resume_analysis_prompt(
         "",
         f"TARGET ROLE:\n{target_role or 'Not specified'}",
         "",
-        f"TARGET JOB:\n{target_job or 'Not specified'}",
+        f"TARGET JOB ID:\n{target_job or 'Not specified'}",
         "",
         f"STUDENT PROFILE:\n{profile}",
     ]
+
+    if job_description and job_description.strip():
+        safe_jd = wrap_untrusted_document("TARGET_JOB_DESCRIPTION", job_description.strip())
+        prompt_parts.extend([
+            "",
+            "TARGET JOB DESCRIPTION (Compare resume against this):",
+            safe_jd,
+            "",
+            "IMPORTANT: Calculate ats_score (0-100) based strictly on match with the above Job Description.",
+            "Extract actual missing skills and qualifications required by this Job Description into missing_keyword_details.",
+        ])
+    else:
+        prompt_parts.extend([
+            "",
+            "NO TARGET JOB DESCRIPTION SUPPLIED:",
+            "Set ats_score to null. Do NOT fabricate missing keywords for a non-existent job description. Set keyword_gaps and missing_keyword_details to empty arrays.",
+        ])
 
     if rag_context and rag_context.strip():
         prompt_parts.extend([
@@ -90,4 +139,4 @@ def build_resume_analysis_prompt(
         "Provide the required JSON response adhering strictly to the system instructions.",
     ])
 
-    return "\n".join(prompt_parts)
+    return "\n".join(prompt_parts)

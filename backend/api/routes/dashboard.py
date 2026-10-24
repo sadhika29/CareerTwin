@@ -120,6 +120,7 @@ async def get_dashboard_insight(user_id: str = Depends(get_current_user)):
 
 
 @router.get("/stats")
+@router.get("/overview")
 async def get_dashboard_stats(user_id: str = Depends(get_current_user)):
     """
     Calculates live KPI metrics and scores exclusively from the user's persistent records:
@@ -170,6 +171,16 @@ async def get_dashboard_stats(user_id: str = Depends(get_current_user)):
 
     # 3. Interview Readiness
     user_sessions = [s for s in _sessions.values() if s.get("user_id") == user_id]
+    if not user_sessions:
+        try:
+            from backend.database.firestore import FirestoreDatabase
+            iv_db = FirestoreDatabase()
+            iv_records = iv_db.list("interviews", filters={"user_id": user_id})
+            if iv_records:
+                user_sessions = iv_records
+        except Exception:
+            pass
+
     completed_interviews = [s for s in user_sessions if s.get("status") == "completed" and s.get("overall_score") is not None]
     interview_score = None
     if completed_interviews:
@@ -177,6 +188,16 @@ async def get_dashboard_stats(user_id: str = Depends(get_current_user)):
 
     # 4. Assessment Reports / Skills Progress
     reports = _user_test_reports.get(user_id, [])
+    if not reports:
+        try:
+            from backend.database.firestore import FirestoreDatabase
+            asmt_db = FirestoreDatabase()
+            asmt_records = asmt_db.list("assessments", filters={"user_id": user_id})
+            if asmt_records:
+                reports = asmt_records
+        except Exception:
+            pass
+
     technical_reports = [r for r in reports if r.get("score") is not None]
     skills_score = None
     if technical_reports:

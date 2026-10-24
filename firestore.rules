@@ -47,10 +47,63 @@ service cloud.firestore {
       allow write: if isAuthenticated() && (resource == null || resource.data.user_id == request.auth.uid);
     }
 
-    // 7. Skills (Taxonomy catalog): Read-only for authenticated users
+    // 7. Users subcollection hierarchy: Complete ownership by owner UID
+    match /users/{userId}/{allChildren=**} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // 8. Resume Chunks: Subcollection and top-level chunks
+    match /resumes/{resumeId}/chunks/{chunkId} {
+      allow read, update, delete: if isAuthenticated() && resource.data.user_id == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.user_id == request.auth.uid;
+    }
+
+    match /resume_chunks/{chunkId} {
+      allow read, update, delete: if isAuthenticated() && resource.data.user_id == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.user_id == request.auth.uid;
+    }
+
+    // 9. Digital Twin Snapshots: Historical readiness snapshots
+    match /digital_twin_snapshots/{snapshotId} {
+      allow read, update, delete: if isAuthenticated() && resource.data.user_id == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.user_id == request.auth.uid;
+    }
+
+    // 10. Skills (Taxonomy catalog): Read-only for authenticated users
     match /skills/{skillId} {
       allow read: if isAuthenticated();
       allow write: if false; // Admin managed
     }
+
+    // 11. Career Plans: Roadmaps & readiness analysis
+    match /career_plans/{planId} {
+      allow read, update, delete: if isAuthenticated() && resource.data.user_id == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.user_id == request.auth.uid;
+    }
+
+    // 12. Saved Resume Analyses: Users can read, save, and delete their own analyses
+    match /analyses/{analysisId} {
+      allow read, update, delete: if isAuthenticated() && resource.data.user_id == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.user_id == request.auth.uid;
+    }
+
+    // 13. Job Interactions (Viewed, Saved, Applied user activity)
+    match /job_interactions/{interactionId} {
+      allow read, update, delete: if isAuthenticated() && resource.data.user_id == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.user_id == request.auth.uid;
+    }
+
+    // 14. User Skills
+    match /user_skills/{userSkillId} {
+      allow read, update, delete: if isAuthenticated() && resource.data.user_id == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.user_id == request.auth.uid;
+    }
+
+    // 15. Learning Progress (DSA, Aptitude, Programming topics)
+    match /learning_progress/{progressId} {
+      allow read, update, delete: if isAuthenticated() && resource.data.user_id == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.user_id == request.auth.uid;
+    }
   }
 }
+

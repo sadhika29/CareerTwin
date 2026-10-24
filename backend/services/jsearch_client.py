@@ -33,7 +33,7 @@ class JSearchClient:
             "User-Agent": "CareerTwin-Intelligence/1.0",
         }
 
-    def _execute_get(self, path: str, timeout: int = 15) -> Optional[Dict[str, Any]]:
+    def _execute_get(self, path: str, timeout: int = 4) -> Optional[Dict[str, Any]]:
         conn = None
         try:
             conn = http.client.HTTPSConnection(OPENWEBNINJA_HOST, timeout=timeout)

@@ -19,12 +19,29 @@ import {
   ChevronLeft,
   ExternalLink
 } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { saveRedirectPath } from '../../features/auth/authRedirect'
 
 export default function Features() {
+  const navigate = useNavigate()
   const [selectedFeature, setSelectedFeature] = useState(null)
   const [demoFeature, setDemoFeature] = useState(null)
   const [demoStep, setDemoStep] = useState(0)
+
+  // Navigate to feature if logged in, otherwise redirect to login with preserved destination
+  const handleGetStarted = (feature) => {
+    const route = feature?.route || '/dashboard'
+    const isAuthenticated = Boolean(localStorage.getItem('career_user'))
+
+    if (isAuthenticated) {
+      navigate(route)
+    } else {
+      saveRedirectPath(route)
+      navigate(`/login?returnTo=${encodeURIComponent(route)}`, {
+        state: { from: route, featureId: feature?.id, featureTitle: feature?.title }
+      })
+    }
+  }
 
   // Close modals on Escape key
   useEffect(() => {
@@ -42,6 +59,7 @@ export default function Features() {
     {
       id: 'resume-analysis',
       title: 'Resume Analysis',
+      route: '/resume',
       icon: FileText,
       description: 'Analyze your resume, identify strengths, and receive actionable suggestions to improve it.',
       badge: 'Smart ATS Scanner',
@@ -77,6 +95,7 @@ export default function Features() {
     {
       id: 'skill-gap-analysis',
       title: 'Skill Gap Analysis',
+      route: '/skills',
       icon: BarChart2,
       description: 'Discover missing skills by comparing your current abilities with your target career requirements.',
       badge: 'Competency Mapping',
@@ -108,6 +127,7 @@ export default function Features() {
     {
       id: 'personalized-roadmap',
       title: 'Personalized Roadmap',
+      route: '/career',
       icon: Map,
       description: 'Get a structured learning plan with recommended skills, milestones, and practical next steps.',
       badge: 'Dynamic Curriculum',
@@ -139,10 +159,11 @@ export default function Features() {
       ]
     },
     {
-      id: 'job-matching',
-      title: 'Job Matching',
+      id: 'job-tracking',
+      title: 'Job Tracking',
+      route: '/jobs',
       icon: Briefcase,
-      description: 'Discover suitable job opportunities based on your skills, interests, and career goals.',
+      description: 'Discover and track suitable job opportunities based on your skills, interests, and career goals.',
       badge: 'Precision Fit',
       previewData: {
         matches: [
@@ -193,6 +214,7 @@ export default function Features() {
     {
       id: 'dsa-practice',
       title: 'DSA Practice',
+      route: '/assessment',
       icon: Code,
       description: 'Practice coding problems, improve problem-solving skills, and track your progress.',
       badge: 'Algorithmic Mastery',
@@ -232,10 +254,11 @@ export default function Features() {
       ]
     },
     {
-      id: 'ai-mock-interviews',
-      title: 'AI Mock Interviews',
+      id: 'interview-prep',
+      title: 'Interview Preparation',
+      route: '/interview',
       icon: MessageSquare,
-      description: 'Practice realistic interviews, answer questions, and receive feedback to improve your performance.',
+      description: 'Practice realistic AI mock interviews, answer questions, and receive feedback to improve your performance.',
       badge: 'Interactive Simulator',
       previewData: {
         interviewType: 'System Design & Architectural Trade-offs',
@@ -334,12 +357,14 @@ export default function Features() {
 
                 {/* Card Bottom: Two Action Buttons */}
                 <div className="grid grid-cols-2 gap-3 pt-3 border-t border-[#4C2365]/10 mt-auto">
-                  {/* Explore Button */}
+                  {/* Get Started Button */}
                   <button
-                    onClick={() => handleOpenExplore(feature)}
+                    onClick={() => handleGetStarted(feature)}
+                    data-testid={`get-started-${feature.id}`}
+                    aria-label={`Get Started with ${feature.title}`}
                     className="h-10 px-3.5 rounded-full text-xs sm:text-sm font-semibold bg-gradient-to-r from-[#4C2365] to-[#7F5D99] text-white shadow-[0_2px_8px_rgba(76,35,101,0.2)] hover:shadow-[0_4px_14px_rgba(76,35,101,0.35)] hover:-translate-y-0.5 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                   >
-                    <span>Explore</span>
+                    <span>Get Started</span>
                     <ArrowRight size={14} />
                   </button>
 
@@ -661,12 +686,17 @@ export default function Features() {
                   >
                     <Play size={12} fill="currentColor" /> Watch Walkthrough Demo
                   </button>
-                  <Link
-                    to="/signup"
-                    className="w-full sm:w-auto px-6 py-2.5 rounded-full text-xs font-semibold bg-gradient-to-r from-[#4C2365] to-[#7F5D99] text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center justify-center gap-1.5 transition-all"
+                  <button
+                    onClick={() => {
+                      const feat = selectedFeature
+                      setSelectedFeature(null)
+                      handleGetStarted(feat)
+                    }}
+                    data-testid={`modal-get-started-${selectedFeature.id}`}
+                    className="w-full sm:w-auto px-6 py-2.5 rounded-full text-xs font-semibold bg-gradient-to-r from-[#4C2365] to-[#7F5D99] text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                   >
                     Get Started Free <ArrowRight size={13} />
-                  </Link>
+                  </button>
                 </div>
               </div>
             </motion.div>
@@ -778,12 +808,17 @@ export default function Features() {
                     Next Step <ChevronRight size={14} />
                   </button>
                 ) : (
-                  <Link
-                    to="/signup"
-                    className="px-5 py-2 rounded-full text-xs font-semibold bg-gradient-to-r from-[#4C2365] to-[#7F5D99] text-white shadow-md hover:shadow-lg flex items-center gap-1 transition-all"
+                  <button
+                    onClick={() => {
+                      const feat = demoFeature
+                      setDemoFeature(null)
+                      handleGetStarted(feat)
+                    }}
+                    data-testid={`demo-get-started-${demoFeature.id}`}
+                    className="px-5 py-2 rounded-full text-xs font-semibold bg-gradient-to-r from-[#4C2365] to-[#7F5D99] text-white shadow-md hover:shadow-lg flex items-center gap-1 transition-all cursor-pointer"
                   >
-                    Try Feature Free <ArrowRight size={13} />
-                  </Link>
+                    Get Started Free <ArrowRight size={13} />
+                  </button>
                 )}
               </div>
             </motion.div>

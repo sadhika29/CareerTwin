@@ -26,6 +26,27 @@ async def analyze(payload: CareerAnalyzeRequest, user_id: str = Depends(get_curr
 			setattr(state, f"{name}_score", value)
 	result = await manager.run(AgentRequest(user_id=user_id, target_role=payload.target_role, target_job_id=payload.target_job_id, request="full career analysis", data={"profile": payload.profile}), state)
 	career_states[user_id] = result
+
+	# Persist career plan to Firestore
+	try:
+		from datetime import datetime, timezone
+		from backend.database.firestore import FirestoreDatabase
+		db = FirestoreDatabase()
+		plan_doc = {
+			"user_id": user_id,
+			"target_role": result.target_role,
+			"target_job_id": result.target_job_id,
+			"readiness_score": result.digital_twin_score,
+			"skill_gaps": result.skill_gaps,
+			"next_action": result.next_action,
+			"metadata": result.metadata,
+			"updated_at": datetime.now(timezone.utc).isoformat(),
+		}
+		db.create("career_plans", f"{user_id}_latest", plan_doc)
+		db.create(f"users/{user_id}/careerPlans", "latest", plan_doc)
+	except Exception:
+		pass
+
 	return _response(result)
 
 
@@ -33,6 +54,25 @@ async def analyze(payload: CareerAnalyzeRequest, user_id: str = Depends(get_curr
 async def readiness(user_id: str = Depends(get_current_user)):
 	state = career_states.get(user_id)
 	if state is None:
+		# Attempt restore from Firestore
+		try:
+			from backend.database.firestore import FirestoreDatabase
+			db = FirestoreDatabase()
+			plan = db.get("career_plans", f"{user_id}_latest")
+			if plan:
+				twin = plan.get("metadata", {}).get("digital_twin", {})
+				return CareerResponse(
+					user_id=user_id,
+					target_role=plan.get("target_role", "Software Engineer"),
+					target_job_id=plan.get("target_job_id"),
+					readiness_score=plan.get("readiness_score", 0.0),
+					skill_gaps=plan.get("skill_gaps", []),
+					weakest_area=twin.get("weakest_area"),
+					next_action=plan.get("next_action"),
+					what_if=plan.get("metadata", {}).get("what_if"),
+				)
+		except Exception:
+			pass
 		return CareerResponse(user_id=user_id)
 	return _response(state)
 

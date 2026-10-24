@@ -98,6 +98,26 @@ async def register(payload: RegisterRequest):
 	}
 	_users[username] = user
 	_save_users()
+
+	# Safely initialize persistent profile in Firestore (strictly non-secret metadata)
+	try:
+		import time
+		from backend.database.firestore import FirestoreDatabase
+		db = FirestoreDatabase()
+		profile_data = {
+			"user_id": user["id"],
+			"username": user["username"],
+			"full_name": user["full_name"],
+			"email": user["email"],
+			"target_role": "Software Engineer",
+			"skills": [],
+			"created_at": time.time(),
+			"updated_at": time.time(),
+		}
+		db.create("profiles", user["id"], profile_data)
+	except Exception:
+		pass
+
 	return _session(user)
 
 

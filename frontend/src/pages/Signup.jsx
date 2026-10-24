@@ -1,12 +1,15 @@
 import { useState, useMemo } from 'react'
 import { Eye, EyeOff, LockKeyhole, Mail, UserRound, LoaderCircle, ArrowRight, CheckCircle2 } from 'lucide-react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { signInWithGoogle, signInWithGithub, signUp } from '../features/auth/authService'
 import LandingNavbar from '../components/landing/LandingNavbar'
+import { getRedirectDestination } from '../features/auth/authRedirect'
 
 export default function Signup() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -30,7 +33,9 @@ export default function Signup() {
     delay: Math.random() * 3,
   })), [])
 
-  if (localStorage.getItem('career_user')) return <Navigate to="/dashboard" replace />
+  if (localStorage.getItem('career_user')) {
+    return <Navigate to={getRedirectDestination(location, searchParams)} replace />
+  }
 
   const update = (key) => (event) => setForm({ ...form, [key]: event.target.value })
 
@@ -65,7 +70,8 @@ export default function Signup() {
         password: form.password,
         confirm_password: form.confirmPassword
       })
-      navigate('/dashboard', { replace: true })
+      const destination = getRedirectDestination(location, searchParams)
+      navigate(destination, { replace: true })
     } catch (authError) {
       setError(authError.message || 'Unable to create your account.')
     } finally {
@@ -78,7 +84,8 @@ export default function Signup() {
     setLoading(true)
     try {
       await signInWithGoogle()
-      navigate('/dashboard', { replace: true })
+      const destination = getRedirectDestination(location, searchParams)
+      navigate(destination, { replace: true })
     } catch (authError) {
       setError(authError.message || 'Google sign-up failed.')
     } finally {
@@ -91,7 +98,8 @@ export default function Signup() {
     setLoading(true)
     try {
       await signInWithGithub()
-      navigate('/dashboard', { replace: true })
+      const destination = getRedirectDestination(location, searchParams)
+      navigate(destination, { replace: true })
     } catch (authError) {
       setError(authError.message || 'GitHub sign-up failed.')
     } finally {
@@ -372,7 +380,11 @@ export default function Signup() {
           {/* 9. Login Link */}
           <div className="flex items-center justify-center gap-1.5 mt-7 text-xs sm:text-sm text-[#7F5D99]">
             <span>Already have an account?</span>
-            <Link to="/login" className="text-[#4C2365] font-bold hover:text-[#ED96D7] transition-colors">
+            <Link
+              to={searchParams.get('returnTo') ? `/login?returnTo=${encodeURIComponent(searchParams.get('returnTo'))}` : '/login'}
+              state={{ from: searchParams.get('returnTo') || location.state?.from }}
+              className="text-[#4C2365] font-bold hover:text-[#ED96D7] transition-colors"
+            >
               Login
             </Link>
           </div>

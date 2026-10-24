@@ -6,8 +6,11 @@ from backend.main import app
 client = TestClient(app)
 
 
+import uuid
+
 def test_register_and_login():
-    username = "navya_auth_test"
+    uid_suffix = uuid.uuid4().hex[:6]
+    username = f"navya_auth_{uid_suffix}"
     response = client.post("/api/v1/auth/register", json={
         "full_name": "Navya Test",
         "username": username,

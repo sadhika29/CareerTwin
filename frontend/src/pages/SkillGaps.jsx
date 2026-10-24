@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import axiosClient from '../api/axiosClient';
 import { getSkillTaxonomy, analyzeSkills } from '../features/skills/skillService';
 import { getResumes } from '../features/resume/resumeService';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';

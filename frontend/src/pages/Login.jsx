@@ -1,12 +1,15 @@
 import { useState, useMemo } from 'react'
 import { Eye, EyeOff, LockKeyhole, Mail, LoaderCircle, ArrowRight } from 'lucide-react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { signIn, signInWithGoogle, signInWithGithub } from '../features/auth/authService'
 import LandingNavbar from '../components/landing/LandingNavbar'
+import { getRedirectDestination } from '../features/auth/authRedirect'
 
 export default function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
   const [form, setForm] = useState({ identifier: '', password: '' })
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
@@ -23,7 +26,9 @@ export default function Login() {
     delay: Math.random() * 3,
   })), [])
 
-  if (localStorage.getItem('career_user')) return <Navigate to="/dashboard" replace />
+  if (localStorage.getItem('career_user')) {
+    return <Navigate to={getRedirectDestination(location, searchParams)} replace />
+  }
 
   const submit = async (event) => {
     event.preventDefault()
@@ -39,7 +44,8 @@ export default function Login() {
       } else {
         localStorage.removeItem('career_remember')
       }
-      navigate('/dashboard', { replace: true })
+      const destination = getRedirectDestination(location, searchParams)
+      navigate(destination, { replace: true })
     } catch (authError) {
       setError(authError.message || 'Unable to sign in. Check your details and try again.')
     } finally {
@@ -52,7 +58,8 @@ export default function Login() {
     setLoading(true)
     try {
       await signInWithGoogle()
-      navigate('/dashboard', { replace: true })
+      const destination = getRedirectDestination(location, searchParams)
+      navigate(destination, { replace: true })
     } catch (authError) {
       setError(authError.message || 'Google sign in failed.')
     } finally {
@@ -65,7 +72,8 @@ export default function Login() {
     setLoading(true)
     try {
       await signInWithGithub()
-      navigate('/dashboard', { replace: true })
+      const destination = getRedirectDestination(location, searchParams)
+      navigate(destination, { replace: true })
     } catch (authError) {
       setError(authError.message || 'GitHub sign in failed.')
     } finally {
@@ -260,7 +268,11 @@ export default function Login() {
           {/* 12. Bottom Sign-Up Prompt */}
           <div className="flex items-center justify-center gap-1.5 mt-8 text-xs sm:text-sm text-[#7F5D99]">
             <span>Don't have an account?</span>
-            <Link to="/signup" className="text-[#4C2365] font-bold hover:text-[#ED96D7] transition-colors">
+            <Link
+              to={searchParams.get('returnTo') ? `/signup?returnTo=${encodeURIComponent(searchParams.get('returnTo'))}` : '/signup'}
+              state={{ from: searchParams.get('returnTo') || location.state?.from }}
+              className="text-[#4C2365] font-bold hover:text-[#ED96D7] transition-colors"
+            >
               Sign Up
             </Link>
           </div>

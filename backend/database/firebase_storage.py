@@ -43,23 +43,48 @@ class FirebaseResumeStorage(ResumeStorage):
             local_store = LocalResumeStorage()
             return local_store.upload(file_path=file_path, destination_path=destination_path)
 
+    def _clean_path(self, storage_path: str) -> str:
+        if storage_path.startswith("gs://"):
+            parts = storage_path[5:].split("/", 1)
+            return parts[1] if len(parts) > 1 else storage_path
+        return storage_path
+
     def delete(
         self,
         storage_path: str,
     ) -> None:
-        """Delete a resume from Firebase Storage."""
+        """Delete a resume from Firebase Storage or local fallback storage."""
+        if not storage_path.startswith("gs://"):
+            try:
+                from backend.database.local_storage import LocalResumeStorage
+                LocalResumeStorage().delete(storage_path)
+            except Exception:
+                pass
+            return
 
-        blob = self.bucket.blob(storage_path)
-
-        if blob.exists():
-            blob.delete()
+        try:
+            clean = self._clean_path(storage_path)
+            blob = self.bucket.blob(clean)
+            if blob.exists():
+                blob.delete()
+        except Exception:
+            pass
 
     def exists(
         self,
         storage_path: str,
     ) -> bool:
-        """Check whether a resume exists in Firebase Storage."""
+        """Check whether a resume exists in Firebase Storage or local fallback storage."""
+        if not storage_path.startswith("gs://"):
+            try:
+                from backend.database.local_storage import LocalResumeStorage
+                return LocalResumeStorage().exists(storage_path)
+            except Exception:
+                return False
 
-        blob = self.bucket.blob(storage_path)
-
-        return blob.exists()
+        try:
+            clean = self._clean_path(storage_path)
+            blob = self.bucket.blob(clean)
+            return blob.exists()
+        except Exception:
+            return False

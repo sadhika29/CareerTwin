@@ -116,9 +116,51 @@ async def create_application(
     """Add a new job application to tracker and persist in Firestore."""
     apps = _applications.setdefault(user_id, [])
 
+    # Prevent duplicates: if an application already exists for this job_id, update it
+    if payload.job_id:
+        existing = next((a for a in apps if a.get("job_id") == payload.job_id), None)
+        if existing:
+            existing["status"] = payload.status or "Applied"
+            if payload.notes:
+                existing["notes"] = payload.notes
+            if payload.url:
+                existing["url"] = payload.url
+            db = _get_firestore()
+            if db:
+                try:
+                    db.update("applications", f"{user_id}_{existing['id']}", existing)
+                except Exception:
+                    pass
+
+            # Sync with JobInteractionService if applied
+            if existing.get("status") in ("Applied", "Interviewing", "Offer"):
+                try:
+                    from backend.services.job_interaction_service import JobInteractionService
+                    JobInteractionService().record_application(
+                        user_id=user_id,
+                        job_id=payload.job_id,
+                        application_id=existing["id"],
+                        job_data={
+                            "title": existing.get("role"),
+                            "company": existing.get("company"),
+                            "location": existing.get("location"),
+                            "job_url": existing.get("url"),
+                        },
+                    )
+                except Exception:
+                    pass
+
+            return {
+                "user_id": user_id,
+                "application": existing,
+                "message": "Existing application updated successfully",
+                "status": "success",
+            }
+
     new_app = {
         "id": f"app-{uuid.uuid4().hex[:8]}",
         "user_id": user_id,
+        "job_id": payload.job_id,
         "company": payload.company,
         "role": payload.role,
         "location": payload.location or "Remote",
@@ -140,6 +182,24 @@ async def create_application(
         try:
             doc_id = f"{user_id}_{new_app['id']}"
             db.create("applications", doc_id, new_app)
+        except Exception:
+            pass
+
+    # Sync with JobInteractionService if applied or job_id provided
+    if payload.job_id and (payload.status in ("Applied", "Interviewing", "Offer") or not payload.status):
+        try:
+            from backend.services.job_interaction_service import JobInteractionService
+            JobInteractionService().record_application(
+                user_id=user_id,
+                job_id=payload.job_id,
+                application_id=new_app["id"],
+                job_data={
+                    "title": payload.role,
+                    "company": payload.company,
+                    "location": payload.location,
+                    "job_url": payload.url,
+                },
+            )
         except Exception:
             pass
 

@@ -71,3 +71,82 @@ class CareerManagerSkillEnvelope(BaseModel):
     agent: str = "skill"
     status: str = "success"
     data: SkillAnalysisResponse
+
+
+class UserSkillCreateRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100, description="Skill name")
+    category: str = Field(default="Programming Languages", description="Category")
+    proficiency: float = Field(default=50.0, ge=0.0, le=100.0, description="Current proficiency %")
+    target_proficiency: float = Field(default=80.0, ge=0.0, le=100.0, description="Target proficiency %")
+    notes: str = Field(default="", max_length=500, description="Optional notes")
+    learning_goal: str = Field(default="", max_length=500, description="Optional learning goal")
+
+
+class UserSkillUpdateRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=100)
+    category: str | None = None
+    proficiency: float | None = Field(default=None, ge=0.0, le=100.0)
+    target_proficiency: float | None = Field(default=None, ge=0.0, le=100.0)
+    notes: str | None = None
+    learning_goal: str | None = None
+
+
+class UserSkillItem(BaseModel):
+    id: str
+    user_id: str
+    name: str
+    category: str
+    proficiency: float
+    target_proficiency: float
+    proficiency_source: str = "self-assessed"
+    notes: str = ""
+    learning_goal: str = ""
+    created_at: str
+    updated_at: str
+
+
+class UserSkillsSummary(BaseModel):
+    total_skills: int
+    proficient_skills: int
+    skills_to_improve: int
+    target_role: str
+
+
+class UserSkillsResponse(BaseModel):
+    skills: list[UserSkillItem]
+    summary: UserSkillsSummary
+
+
+class TargetRoleUpdateRequest(BaseModel):
+    target_role: str = Field(..., min_length=1, max_length=100)
+
+
+class LearningProgressItem(BaseModel):
+    id: str
+    user_id: str
+    resource_id: str
+    category: str
+    topic: str
+    title: str
+    status: str
+    notes: str = ""
+    last_practiced_at: str | None = None
+    completed_at: str | None = None
+    created_at: str
+    updated_at: str
+
+
+class LearningProgressUpdateRequest(BaseModel):
+    resource_id: str = Field(..., min_length=1)
+    category: str = Field(..., min_length=1)
+    topic: str = Field(default="")
+    title: str = Field(default="")
+    status: str = Field(default="Not Started")  # Not Started, In Progress, Solved, Completed, Revision
+    notes: str = Field(default="")
+
+
+class LearningProgressResponse(BaseModel):
+    progress: list[LearningProgressItem]
+    progress_map: dict[str, LearningProgressItem]
+    counts: dict[str, int]
+

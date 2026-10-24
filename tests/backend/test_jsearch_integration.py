@@ -52,10 +52,13 @@ def test_jsearch_client_normalization():
     assert any(s in extracted for s in ["python", "fastapi", "docker", "postgresql", "aws"])
 
 
+from backend.services.himalayas_client import HimalayasClient
+
+@patch.object(HimalayasClient, "search_jobs", return_value=[])
 @patch.object(JSearchClient, "search_jobs")
-def test_job_agent_uses_live_jsearch_priority(mock_search):
+def test_job_agent_uses_live_jsearch_priority(mock_jsearch, mock_himalayas):
     """Verify JobAgent.find_jobs_with_ai prioritizes live market JSearch listings."""
-    mock_search.return_value = [
+    mock_jsearch.return_value = [
         {
             "job_id": "live_job_001",
             "title": "Full Stack Python Engineer",
@@ -107,7 +110,7 @@ def test_live_search_api_route(mock_search):
         }
     ]
 
-    res = client.get("/api/v1/jobs/live/search?query=Machine+Learning+Engineer&location=Bengaluru")
+    res = client.get("/api/v1/jobs/live/search?query=Machine+Learning+Engineer&location=Bengaluru&source=jsearch")
     assert res.status_code == 200
     data = res.json()
     assert data["query"] == "Machine Learning Engineer"

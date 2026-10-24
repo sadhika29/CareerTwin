@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, UserRound, FileText, BriefcaseBusiness, 
-  Target, BookOpen, ClipboardCheck, Network, 
+  Target, BookOpen, Network, 
   MessageSquareText, Settings, LogOut,
   BarChart2, X, Sparkles
 } from 'lucide-react';
@@ -19,7 +19,6 @@ export default function Sidebar({ open, onNavigate }) {
     { to: '/dashboard', label: 'Overview', Icon: LayoutDashboard },
     { to: '/resume', label: 'Resume', Icon: FileText },
     { to: '/jobs', label: 'Jobs', Icon: BriefcaseBusiness },
-    { to: '/applications', label: 'Applications', Icon: ClipboardCheck },
     { to: '/skills', label: 'Skills', Icon: Target },
     { to: '/preparation', label: 'Preparation', Icon: BookOpen },
     { to: '/interview', label: 'Interview', Icon: MessageSquareText },
