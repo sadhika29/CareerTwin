@@ -11,7 +11,7 @@ from backend.services.resume_parser import (
 
 # Path to the generated test fixture — a sample resume PDF committed to the repo.
 SAMPLE_PDF = "tests/fixtures/sample_resume.pdf"
-SAMPLE_DOCX = "Enterprise_Product_Engineering_Blueprint_v1.docx"
+SAMPLE_DOCX = "tests/fixtures/sample_resume.docx"
 
 
 def test_validate_file_exists():

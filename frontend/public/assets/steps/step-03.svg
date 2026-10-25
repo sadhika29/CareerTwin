@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" fill="none">
+  <defs>
+    <!-- Soft Shadows -->
+    <filter id="shadow3" x="-10%" y="-10%" width="130%" height="130%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#4C2365" flood-opacity="0.2" />
+    </filter>
+
+    <!-- Gradients -->
+    <linearGradient id="rimGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9A65D5" />
+      <stop offset="50%" stop-color="#7C3AED" />
+      <stop offset="100%" stop-color="#581C87" />
+    </linearGradient>
+    <linearGradient id="handleGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6B21A8" />
+      <stop offset="100%" stop-color="#3B1B50" />
+    </linearGradient>
+    <linearGradient id="lensGrad3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#F4EFFC" />
+    </linearGradient>
+    <linearGradient id="barGrad3Middle" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#9A65D5" />
+      <stop offset="100%" stop-color="#7C3AED" />
+    </linearGradient>
+    <linearGradient id="barGrad3Tall" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#6B21A8" />
+      <stop offset="100%" stop-color="#4C2365" />
+    </linearGradient>
+  </defs>
+
+  <!-- Accent Rays (Top Right) -->
+  <line x1="50" y1="17" x2="55" y2="12" stroke="#8B5CF6" stroke-width="3" stroke-linecap="round" />
+  <line x1="55" y1="23" x2="61" y2="20" stroke="#8B5CF6" stroke-width="3" stroke-linecap="round" />
+
+  <!-- Magnifying Glass with Handle -->
+  <g filter="url(#shadow3)">
+    <!-- Handle extending bottom right -->
+    <rect x="42.5" y="44.5" width="8" height="18" rx="4" transform="rotate(-45 46.5 53.5)" fill="url(#handleGrad3)" />
+
+    <!-- Outer Rim -->
+    <circle cx="33" cy="34" r="19" fill="url(#rimGrad3)" />
+
+    <!-- Inner Glass / Lens -->
+    <circle cx="33" cy="34" r="13.5" fill="url(#lensGrad3)" />
+
+    <!-- 3 Ascending Rounded Bars inside Lens -->
+    <!-- Bar 1 (Short) -->
+    <rect x="23" y="35" width="4.5" height="8" rx="2.25" fill="#C4A4DA" />
+    <!-- Bar 2 (Medium) -->
+    <rect x="29.5" y="29.5" width="4.5" height="13.5" rx="2.25" fill="url(#barGrad3Middle)" />
+    <!-- Bar 3 (Tall) -->
+    <rect x="36" y="24" width="5.5" height="19" rx="2.75" fill="url(#barGrad3Tall)" />
+  </g>
+</svg>

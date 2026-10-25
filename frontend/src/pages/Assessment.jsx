@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Page } from './_shared'
 import { CheckCircle2, XCircle, AlertCircle, RefreshCw, ArrowRight, ArrowLeft, Clock, Award } from 'lucide-react'
 import { createAssessment } from '../features/preparation/preparationService'
 
@@ -241,6 +240,20 @@ export default function Assessment() {
     }
 
     setTestReport(report)
+
+    // Persist to backend
+    const uid = localStorage.getItem('career_user') || 'user_default';
+    axiosClient.post('/preparation/assessment/submit', {
+      user_id: uid,
+      assessment_id: report.assessment_id,
+      category: selectedCategory,
+      answers: {
+        ...answers,
+        __questions__: questions
+      }
+    }).catch(err => {
+      console.warn('Backend sync for assessment report:', err);
+    });
   }, [answers, isRemediation, questions, selectedCategory])
 
   // Timer countdown during assessment

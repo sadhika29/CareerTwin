@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import axiosClient from '../api/axiosClient';
 import { getSkillTaxonomy, analyzeSkills } from '../features/skills/skillService';
 import { getResumes } from '../features/resume/resumeService';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
@@ -7,10 +8,11 @@ import { Target, X, Check, ArrowRight, BookOpen, AlertCircle, AlertTriangle, Che
 
 export default function SkillGaps() {
   const [targetRole, setTargetRole] = useState('Software Engineer');
-  const [currentSkills, setCurrentSkills] = useState(['Python', 'FastAPI', 'React', 'PostgreSQL', 'Docker', 'Git']);
+  const [currentSkills, setCurrentSkills] = useState([]);
   const [customSkillInput, setCustomSkillInput] = useState('');
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const userId = localStorage.getItem('career_user') || '';
 
@@ -24,19 +26,37 @@ export default function SkillGaps() {
   };
 
   useEffect(() => {
-    getResumes(userId).then(res => {
-      const list = res.resumes || res || [];
-      if (list.length > 0 && list[0].analysis?.resume_skills) {
-        setCurrentSkills(list[0].analysis.resume_skills);
-      }
-    }).catch(() => {});
+    // Fetch profile and resume to get real user skills
+    Promise.allSettled([
+      axiosClient.get('/profile'),
+      getResumes(userId)
+    ]).then(([profRes, resumeRes]) => {
+      let combined = [];
+      let detectedRole = 'Software Engineer';
 
-    runSkillGapAnalysis(targetRole, currentSkills);
+      if (profRes.status === 'fulfilled' && profRes.value?.data?.profile) {
+        const p = profRes.value.data.profile;
+        if (p.skills && Array.isArray(p.skills)) combined = [...p.skills];
+        if (p.target_role) detectedRole = p.target_role;
+      }
+
+      if (resumeRes.status === 'fulfilled') {
+        const list = resumeRes.value?.resumes || resumeRes.value || [];
+        if (list.length > 0 && list[0].analysis?.resume_skills) {
+          combined = Array.from(new Set([...combined, ...list[0].analysis.resume_skills]));
+        }
+      }
+
+      setTargetRole(detectedRole);
+      setCurrentSkills(combined);
+      runSkillGapAnalysis(detectedRole, combined);
+    });
   }, []);
 
   const runSkillGapAnalysis = async (role, skills) => {
     try {
       setLoading(true);
+      setErrorMsg('');
       const reqSkills = roleTemplates[role] || roleTemplates['Software Engineer'];
       const res = await analyzeSkills({
         user_id: userId,
@@ -46,28 +66,7 @@ export default function SkillGaps() {
       });
       setAnalysis(res);
     } catch (err) {
-      console.warn('Skill analysis backend fallback:', err);
-      const reqSkills = roleTemplates[role] || roleTemplates['Software Engineer'];
-      const lowerCand = skills.map(s => s.toLowerCase());
-      const matched = reqSkills.filter(s => lowerCand.includes(s.toLowerCase()));
-      const gaps = reqSkills.filter(s => !lowerCand.includes(s.toLowerCase()));
-      
-      setAnalysis({
-        current_skills: skills,
-        required_skills: reqSkills,
-        matched_skills: matched,
-        skill_gaps: gaps,
-        skill_gap_score: reqSkills.length ? Math.round((matched.length / reqSkills.length) * 100) : 30,
-        priority_skills: gaps.map((g, idx) => ({
-          skill_name: g,
-          priority: idx === 0 ? 'HIGH' : idx === 1 ? 'HIGH' : 'MEDIUM',
-          reason: `High demand proficiency required for ${role} career readiness.`
-        })),
-        learning_recommendations: [
-          `Prioritize mastering ${gaps[0] || 'System Design'} through hands-on architecture exercises.`,
-          `Build a portfolio project demonstrating integration with ${gaps[1] || 'Cloud Services'}.`
-        ]
-      });
+      setErrorMsg(err.response?.data?.detail || 'Skill gap analysis failed to complete.');
     } finally {
       setLoading(false);
     }
@@ -101,93 +100,106 @@ export default function SkillGaps() {
   return (
     <div className="animate-in fade-in duration-500 pb-12">
       <div className="mb-8">
-        <h1 className="text-3xl font-heading font-bold text-text-primary mb-2 flex items-center gap-3">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#F3E9FF] border border-[#E4D5F3] text-[#542477] text-xs font-bold uppercase tracking-wider mb-2">
+          <Target size={13} className="text-[#D83CC5]" />
+          CareerTwin Skill Intelligence
+        </div>
+        <h1 className="text-3xl font-heading font-black text-[#27113D] tracking-tight flex items-center gap-3">
           Skill Intelligence
-          <Target size={24} className="text-primary" />
+          <Target size={26} className="text-[#542477]" />
         </h1>
-        <p className="text-text-secondary text-base">Prioritize the smallest set of skills that unlocks your next role.</p>
+        <p className="text-[#5F4E75] text-base mt-1">Prioritize the smallest set of skills that unlocks your next role.</p>
       </div>
+
+      {errorMsg && (
+        <div className="bg-[#FFF1F2] border border-[#FECDD3] text-[#E11D48] text-xs font-semibold p-4 rounded-xl mb-6 flex items-center justify-between">
+          <span>{errorMsg}</span>
+          <button onClick={() => setErrorMsg('')} className="underline text-[11px] ml-2">Dismiss</button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
         {/* Controls Card */}
         <div className="lg:col-span-4 flex flex-col gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Role Target</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-6">
-                <label className="block text-xs font-bold text-text-primary mb-2 uppercase tracking-wide">
-                  Target Role
-                </label>
-                <select
-                  value={targetRole}
-                  onChange={handleRoleChange}
-                  className="w-full px-4 py-2.5 rounded-lg border border-border bg-background text-sm text-text-primary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-                >
-                  {Object.keys(roleTemplates).map(r => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
-                </select>
-              </div>
+          <div className="bg-white rounded-2xl border border-[#E4D5F3] p-6 shadow-[0_4px_20px_rgba(84,36,119,0.04)]">
+            <h3 className="text-lg font-heading font-black text-[#27113D] mb-4">Role Target</h3>
+            
+            <div className="mb-6">
+              <label className="block text-xs font-bold text-[#27113D] mb-2 uppercase tracking-wider">
+                Target Role
+              </label>
+              <select
+                value={targetRole}
+                onChange={handleRoleChange}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#E4D5F3] bg-[#FAF7FD] text-xs font-semibold text-[#27113D] focus:outline-none focus:border-[#542477] transition-all"
+              >
+                {Object.keys(roleTemplates).map(r => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+              </select>
+            </div>
 
-              {analysis && (
-                <div className="mb-6">
-                  <h4 className="text-xs font-bold text-text-primary mb-2 uppercase tracking-wide">Role Readiness</h4>
-                  <div className="flex items-center gap-4 mb-2">
-                    <span className="text-3xl font-heading font-black text-primary">{analysis.skill_gap_score || 0}%</span>
-                    <div className="flex-1">
-                      <Progress value={analysis.skill_gap_score || 0} colorClass="bg-primary" showValue={false} />
+            {analysis && (
+              <div className="mb-6">
+                <h4 className="text-xs font-bold text-[#27113D] mb-2 uppercase tracking-wider">Role Readiness</h4>
+                <div className="flex items-center gap-4 mb-2">
+                  <span className="text-3xl font-heading font-black text-[#542477]">{analysis.skill_gap_score || 0}%</span>
+                  <div className="flex-1">
+                    <div className="h-2.5 rounded-full bg-[#E4D5F3] overflow-hidden">
+                      <div 
+                        className="h-full rounded-full bg-gradient-to-r from-[#542477] to-[#D83CC5] transition-all duration-1000"
+                        style={{ width: `${analysis.skill_gap_score || 0}%` }}
+                      />
                     </div>
                   </div>
-                  <p className="text-xs text-text-muted">Based on overlap with top industry requirements.</p>
                 </div>
-              )}
-
-              <div className="pt-6 border-t border-border">
-                <label className="block text-xs font-bold text-text-primary mb-2 uppercase tracking-wide">
-                  Add Verified Skill
-                </label>
-                <form onSubmit={handleAddSkill} className="flex gap-2 mb-4">
-                  <input 
-                    value={customSkillInput} 
-                    onChange={e => setCustomSkillInput(e.target.value)} 
-                    placeholder="e.g. Kubernetes, Redis..." 
-                    className="flex-1 px-4 py-2 rounded-lg border border-border bg-background text-sm text-text-primary focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-                  />
-                  <button type="submit" className="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-sm font-semibold rounded-lg transition-colors">
-                    Add
-                  </button>
-                </form>
-
-                <div className="text-xs font-bold text-text-muted uppercase tracking-wider mb-3">
-                  Your Profile ({currentSkills.length})
-                </div>
-                <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                  {currentSkills.map((s, idx) => (
-                    <span key={idx} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-background border border-border text-text-secondary">
-                      {s}
-                      <button 
-                        type="button"
-                        onClick={() => handleRemoveSkill(s)}
-                        className="text-text-muted hover:text-error transition-colors"
-                      >
-                        <X size={14} />
-                      </button>
-                    </span>
-                  ))}
-                </div>
+                <p className="text-xs text-[#8A7A9E]">Based on overlap with top industry requirements.</p>
               </div>
-            </CardContent>
-          </Card>
+            )}
+
+            <div className="pt-6 border-t border-[#E4D5F3]">
+              <label className="block text-xs font-bold text-[#27113D] mb-2 uppercase tracking-wider">
+                Add Verified Skill
+              </label>
+              <form onSubmit={handleAddSkill} className="flex gap-2 mb-4">
+                <input 
+                  value={customSkillInput} 
+                  onChange={e => setCustomSkillInput(e.target.value)} 
+                  placeholder="e.g. Kubernetes, Redis..." 
+                  className="flex-1 px-3.5 py-2 rounded-xl border border-[#E4D5F3] bg-[#FAF7FD] text-xs text-[#27113D] placeholder-[#8A7A9E] focus:outline-none focus:border-[#542477]"
+                />
+                <button type="submit" className="px-4 py-2 bg-gradient-to-r from-[#542477] to-[#D83CC5] text-white text-xs font-bold rounded-xl shadow-sm hover:opacity-95 transition-all">
+                  Add
+                </button>
+              </form>
+
+              <div className="text-xs font-bold text-[#8A7A9E] uppercase tracking-wider mb-3">
+                Your Profile ({currentSkills.length})
+              </div>
+              <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                {currentSkills.map((s, idx) => (
+                  <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold bg-[#F3E9FF] border border-[#E4D5F3] text-[#542477]">
+                    {s}
+                    <button 
+                      type="button"
+                      onClick={() => handleRemoveSkill(s)}
+                      className="text-[#8A7A9E] hover:text-[#E11D48] transition-colors"
+                    >
+                      <X size={13} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Analysis Output */}
         <div className="lg:col-span-8 flex flex-col gap-6">
           {loading ? (
-            <div className="flex-1 flex flex-col items-center justify-center min-h-[400px] border border-border rounded-xl bg-card">
-              <div className="w-10 h-10 border-4 border-border border-t-primary rounded-full animate-spin mb-4"></div>
-              <h2 className="text-lg font-heading font-semibold text-text-primary">Analyzing skills...</h2>
+            <div className="flex-1 flex flex-col items-center justify-center min-h-[400px] border border-[#E4D5F3] rounded-2xl bg-white shadow-sm">
+              <div className="w-10 h-10 border-4 border-[#E4D5F3] border-t-[#542477] rounded-full animate-spin mb-4"></div>
+              <h2 className="text-sm font-heading font-bold text-[#27113D]">Analyzing skills...</h2>
             </div>
           ) : analysis ? (
             <>
@@ -195,116 +207,108 @@ export default function SkillGaps() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 
                 {/* High Priority Gaps */}
-                <Card className="border-error/20 bg-error/5 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-error"></div>
-                  <CardHeader className="border-error/10 pb-4">
-                    <div className="flex justify-between items-center">
-                      <CardTitle className="text-error flex items-center gap-2">
-                        <AlertCircle size={18} /> High Priority
-                      </CardTitle>
-                      <span className="px-2 py-0.5 rounded-md bg-error/20 text-error text-xs font-bold uppercase tracking-wider">
-                        {highPriority.length} Gaps
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
+                <div className="bg-[#FFF1F2] border border-[#FECDD3] rounded-2xl p-6 shadow-sm relative overflow-hidden">
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="text-sm font-black text-[#E11D48] flex items-center gap-2 uppercase tracking-wide">
+                      <AlertCircle size={18} /> High Priority
+                    </h4>
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#E11D48]/10 text-[#E11D48] border border-[#FECDD3] text-[10px] font-black uppercase tracking-wider">
+                      {highPriority.length} Gaps
+                    </span>
+                  </div>
+                  <div>
                     {highPriority.length ? (
-                      <ul className="flex flex-col gap-4">
+                      <ul className="flex flex-col gap-3.5">
                         {highPriority.map((item, idx) => (
-                          <li key={idx} className="flex flex-col gap-1">
-                            <strong className="text-sm text-text-primary">{item.skill_name}</strong>
-                            <p className="text-xs text-text-secondary leading-relaxed">{item.reason}</p>
+                          <li key={idx} className="flex flex-col gap-0.5">
+                            <strong className="text-sm font-bold text-[#27113D]">{item.skill_name}</strong>
+                            <p className="text-xs text-[#5F4E75] leading-relaxed">{item.reason}</p>
                           </li>
                         ))}
                       </ul>
                     ) : (
-                      <div className="text-sm font-medium text-success flex items-center gap-2">
+                      <div className="text-xs font-semibold text-[#16A34A] flex items-center gap-2">
                         <CheckCircle2 size={16} /> No critical high priority gaps!
                       </div>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
 
                 {/* Medium Priority Gaps */}
-                <Card className="border-warning/30 bg-warning/5 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-warning"></div>
-                  <CardHeader className="border-warning/10 pb-4">
-                    <div className="flex justify-between items-center">
-                      <CardTitle className="text-warning flex items-center gap-2">
-                        <AlertTriangle size={18} /> Medium Priority
-                      </CardTitle>
-                      <span className="px-2 py-0.5 rounded-md bg-warning/20 text-warning text-xs font-bold uppercase tracking-wider">
-                        {mediumPriority.length} Gaps
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
+                <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-2xl p-6 shadow-sm relative overflow-hidden">
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="text-sm font-black text-[#D97706] flex items-center gap-2 uppercase tracking-wide">
+                      <AlertTriangle size={18} /> Medium Priority
+                    </h4>
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#D97706]/10 text-[#D97706] border border-[#FDE68A] text-[10px] font-black uppercase tracking-wider">
+                      {mediumPriority.length} Gaps
+                    </span>
+                  </div>
+                  <div>
                     {mediumPriority.length ? (
-                      <ul className="flex flex-col gap-4">
+                      <ul className="flex flex-col gap-3.5">
                         {mediumPriority.map((item, idx) => (
-                          <li key={idx} className="flex flex-col gap-1">
-                            <strong className="text-sm text-text-primary">{item.skill_name}</strong>
-                            <p className="text-xs text-text-secondary leading-relaxed">{item.reason}</p>
+                          <li key={idx} className="flex flex-col gap-0.5">
+                            <strong className="text-sm font-bold text-[#27113D]">{item.skill_name}</strong>
+                            <p className="text-xs text-[#5F4E75] leading-relaxed">{item.reason}</p>
                           </li>
                         ))}
                       </ul>
                     ) : (
-                      <div className="text-sm text-text-muted">No medium priority gaps.</div>
+                      <div className="text-xs text-[#8A7A9E]">No medium priority gaps.</div>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Matched Skills */}
-                <Card>
-                  <CardHeader className="pb-4">
-                    <div className="flex justify-between items-center">
-                      <CardTitle className="text-success flex items-center gap-2">
-                        <CheckCircle2 size={18} /> Verified Matches
-                      </CardTitle>
-                      <span className="px-2 py-0.5 rounded-md bg-success/20 text-success text-xs font-bold uppercase tracking-wider">
-                        {matchedSkills.length} Matched
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
+                <div className="bg-white rounded-2xl border border-[#E4D5F3] p-6 shadow-[0_4px_20px_rgba(84,36,119,0.03)]">
+                  <div className="flex justify-between items-center mb-4">
+                    <h4 className="text-sm font-black text-[#16A34A] flex items-center gap-2 uppercase tracking-wide">
+                      <CheckCircle2 size={18} /> Verified Matches
+                    </h4>
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0] text-[10px] font-black uppercase tracking-wider">
+                      {matchedSkills.length} Matched
+                    </span>
+                  </div>
+                  <div>
                     {matchedSkills.length ? (
-                      <ul className="flex flex-col gap-3">
+                      <ul className="flex flex-col gap-2.5">
                         {matchedSkills.map((s, idx) => (
-                          <li key={idx} className="flex justify-between items-center text-sm">
-                            <span className="font-semibold text-text-primary">{s}</span>
-                            <span className="flex items-center gap-1 text-xs font-bold text-success">
-                              <Check size={14} /> Verified
+                          <li key={idx} className="flex justify-between items-center text-xs py-1 border-b border-[#FAF7FD] last:border-0">
+                            <span className="font-bold text-[#27113D]">{s}</span>
+                            <span className="flex items-center gap-1 text-[10px] font-bold text-[#16A34A] bg-[#F0FDF4] px-2 py-0.5 rounded-md border border-[#BBF7D0]">
+                              <Check size={12} /> Verified
                             </span>
                           </li>
                         ))}
                       </ul>
                     ) : (
-                      <div className="text-sm text-text-muted">No matching skills found.</div>
+                      <div className="text-xs text-[#8A7A9E]">No matching skills found.</div>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
 
                 {/* AI Recommendations */}
                 {analysis.learning_recommendations && analysis.learning_recommendations.length > 0 && (
-                  <Card className="bg-primary text-white border-none shadow-lg">
-                    <CardHeader className="border-white/10 pb-4">
-                      <CardTitle className="text-white flex items-center gap-2">
-                        <BookOpen size={18} /> Remediation Strategy
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pt-0">
-                      <ul className="flex flex-col gap-4">
+                  <div className="bg-gradient-to-br from-[#542477] to-[#7951D1] text-white rounded-2xl p-6 shadow-lg">
+                    <div className="mb-4">
+                      <h4 className="text-sm font-black text-white flex items-center gap-2 uppercase tracking-wide">
+                        <BookOpen size={18} className="text-[#ED96D7]" /> Remediation Strategy
+                      </h4>
+                    </div>
+                    <div>
+                      <ul className="flex flex-col gap-3.5">
                         {analysis.learning_recommendations.map((rec, i) => (
-                          <li key={i} className="flex items-start gap-2.5 text-sm">
-                            <ArrowRight size={16} className="text-white/70 mt-0.5 shrink-0" />
+                          <li key={i} className="flex items-start gap-2.5 text-xs">
+                            <ArrowRight size={15} className="text-[#ED96D7] mt-0.5 shrink-0" />
                             <span className="leading-relaxed text-white/90">{rec}</span>
                           </li>
                         ))}
                       </ul>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 )}
               </div>
             </>

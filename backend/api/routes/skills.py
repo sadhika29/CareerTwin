@@ -1,18 +1,69 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 
 from backend.agents.skills.agent import SkillAgent
 from backend.database.firestore import FirestoreDatabase
 from backend.schemas.skill import (
     CareerManagerSkillEnvelope,
+    LearningProgressItem,
+    LearningProgressResponse,
+    LearningProgressUpdateRequest,
     SkillAnalysisRequest,
     SkillAnalysisResponse,
     SkillCatalogResponse,
     SkillGapRequest,
     SkillGapResponse,
     SkillItem,
+    TargetRoleUpdateRequest,
+    UserSkillCreateRequest,
+    UserSkillItem,
+    UserSkillsResponse,
+    UserSkillsSummary,
+    UserSkillUpdateRequest,
 )
 from backend.services.llm_service import LLMService
 from backend.services.skill_service import SkillService
+from backend.services.user_skill_service import UserSkillService
+
+
+async def get_auth_user_id(
+    x_user_id: str | None = Header(default=None),
+    authorization: str | None = Header(default=None),
+    user_id: str | None = Query(default=None),
+) -> str:
+    # 1. Bearer Token Check
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ")[1].strip()
+        from backend.api.routes.auth import _tokens
+        uid = _tokens.get(token)
+        if uid:
+            return uid
+        try:
+            import firebase_admin
+            from firebase_admin import auth as fb_auth
+            if not firebase_admin._apps:
+                from backend.database.firebase import initialize_firebase
+                initialize_firebase()
+            if firebase_admin._apps:
+                decoded = fb_auth.verify_id_token(token)
+                uid = decoded.get("uid") or decoded.get("sub")
+                if uid:
+                    return uid
+        except Exception:
+            pass
+
+    # 2. X-User-ID Header Check
+    if x_user_id and x_user_id.strip() and x_user_id not in ("null", "undefined", "string"):
+        return x_user_id.strip()
+
+    # 3. Query Param fallback (if explicitly supplied)
+    if user_id and user_id.strip() and user_id not in ("null", "undefined", "string"):
+        return user_id.strip()
+
+    raise HTTPException(
+        status_code=401,
+        detail="Authentication required. Please provide a valid Bearer token, X-User-ID header, or user_id.",
+    )
+
 
 router = APIRouter(
     prefix="/skills",
@@ -185,3 +236,157 @@ async def get_skill_gaps(
         raise
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc))
+
+
+# --------------------------------------------------------------------------
+# USER SKILLS MANAGEMENT ENDPOINTS
+# --------------------------------------------------------------------------
+
+@router.get(
+    "/user",
+    response_model=UserSkillsResponse,
+)
+async def get_user_skills(
+    user_id: str = Depends(get_auth_user_id),
+):
+    """Retrieve all skills and live summary metrics for the authenticated user."""
+    try:
+        service = UserSkillService()
+        skills, summary = service.get_user_skills(user_id)
+        return UserSkillsResponse(
+            skills=[UserSkillItem(**s) for s in skills],
+            summary=UserSkillsSummary(**summary),
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch user skills: {exc}")
+
+
+@router.post(
+    "/user",
+    response_model=UserSkillItem,
+    status_code=201,
+)
+async def create_user_skill(
+    payload: UserSkillCreateRequest,
+    user_id: str = Depends(get_auth_user_id),
+):
+    """Add a new skill to the authenticated user's profile with duplicate validation."""
+    try:
+        service = UserSkillService()
+        skill = service.create_skill(user_id=user_id, data=payload.model_dump())
+        return UserSkillItem(**skill)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to create skill: {exc}")
+
+
+@router.patch(
+    "/user/target-role",
+    response_model=UserSkillsSummary,
+)
+async def update_user_target_role(
+    payload: TargetRoleUpdateRequest,
+    user_id: str = Depends(get_auth_user_id),
+):
+    """Update target role for user in profile and return refreshed summary."""
+    try:
+        service = UserSkillService()
+        clean_role = service.set_user_target_role(user_id, payload.target_role)
+        _, summary = service.get_user_skills(user_id)
+        summary["target_role"] = clean_role
+        return UserSkillsSummary(**summary)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to update target role: {exc}")
+
+
+@router.patch(
+    "/user/{skill_id}",
+    response_model=UserSkillItem,
+)
+async def update_user_skill(
+    skill_id: str,
+    payload: UserSkillUpdateRequest,
+    user_id: str = Depends(get_auth_user_id),
+):
+    """Update fields of an existing skill with strict ownership checks."""
+    try:
+        service = UserSkillService()
+        data = {k: v for k, v in payload.model_dump().items() if v is not None}
+        updated = service.update_skill(user_id=user_id, skill_id=skill_id, data=data)
+        return UserSkillItem(**updated)
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"Skill not found: {skill_id}")
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to update skill: {exc}")
+
+
+@router.delete(
+    "/user/{skill_id}",
+)
+async def delete_user_skill(
+    skill_id: str,
+    user_id: str = Depends(get_auth_user_id),
+):
+    """Delete a user's skill with ownership validation."""
+    try:
+        service = UserSkillService()
+        service.delete_skill(user_id=user_id, skill_id=skill_id)
+        return {"status": "success", "message": f"Skill {skill_id} deleted successfully."}
+    except KeyError:
+        raise HTTPException(status_code=404, detail=f"Skill not found: {skill_id}")
+    except PermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to delete skill: {exc}")
+
+
+# --------------------------------------------------------------------------
+# LEARNING & PRACTICE PROGRESS ENDPOINTS
+# --------------------------------------------------------------------------
+
+@router.get(
+    "/learning/progress",
+    response_model=LearningProgressResponse,
+)
+async def get_learning_progress(
+    category: str | None = Query(default=None),
+    user_id: str = Depends(get_auth_user_id),
+):
+    """Retrieve practice progress for DSA, Aptitude, or Programming topics."""
+    try:
+        service = UserSkillService()
+        res = service.get_learning_progress(user_id=user_id, category=category)
+        items = [LearningProgressItem(**r) for r in res["progress"]]
+        items_map = {k: LearningProgressItem(**v) for k, v in res["progress_map"].items()}
+        return LearningProgressResponse(
+            progress=items,
+            progress_map=items_map,
+            counts=res["counts"],
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch learning progress: {exc}")
+
+
+@router.post(
+    "/learning/progress",
+    response_model=LearningProgressItem,
+)
+async def update_learning_progress(
+    payload: LearningProgressUpdateRequest,
+    user_id: str = Depends(get_auth_user_id),
+):
+    """Record practice status, notes, or completion for a learning resource."""
+    try:
+        service = UserSkillService()
+        record = service.update_learning_progress(user_id=user_id, data=payload.model_dump())
+        return LearningProgressItem(**record)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to update learning progress: {exc}")
+

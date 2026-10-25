@@ -28,12 +28,23 @@ class JobResponse(BaseModel):
     job_url: str
     description: str
 
-    required_skills: list[str]
-    preferred_skills: list[str]
-    experience_requirements: list[str]
-    qualifications: list[str]
-    responsibilities: list[str]
-    keywords: list[str]
+    required_skills: list[str] = Field(default_factory=list)
+    preferred_skills: list[str] = Field(default_factory=list)
+    experience_requirements: list[str] = Field(default_factory=list)
+    qualifications: list[str] = Field(default_factory=list)
+    responsibilities: list[str] = Field(default_factory=list)
+    keywords: list[str] = Field(default_factory=list)
+
+    work_arrangement: str | None = None
+    employment_type: str | None = None
+    experience_level: str | None = None
+    industry: str | None = None
+    salary_range: str | None = None
+    source: str | None = None
+    source_badge: str | None = None
+    employer_logo: str | None = None
+    posting_date: str | None = None
+    last_synchronized_at: str | None = None
 
     created_at: str | None = None
     updated_at: str | None = None
@@ -80,6 +91,12 @@ class JobMatchRequest(BaseModel):
     experience_years: float | None = None
     target_role: str | None = None
     weights: JobMatchWeights | None = None
+    title: str | None = None
+    company: str | None = None
+    location: str | None = None
+    description: str | None = None
+    required_skills: list[str] = Field(default_factory=list)
+    job_url: str | None = None
 
 
 class JobMatchResponse(BaseModel):
@@ -94,6 +111,9 @@ class JobMatchResponse(BaseModel):
     missing_skills: list[str] = Field(default_factory=list)
     missing_requirements: list[str] = Field(default_factory=list)
     details: dict = Field(default_factory=dict)
+    resume_id: str | None = None
+    resume_filename: str | None = None
+    evaluated_at: str | None = None
 
 
 class JobListResponse(BaseModel):

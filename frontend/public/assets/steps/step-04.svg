@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" fill="none">
+  <defs>
+    <!-- Soft Shadows -->
+    <filter id="shadow4" x="-10%" y="-10%" width="130%" height="130%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#4C2365" flood-opacity="0.18" />
+    </filter>
+    <filter id="pinShadow4" x="-20%" y="-20%" width="140%" height="140%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#3B1B50" flood-opacity="0.25" />
+    </filter>
+
+    <!-- Gradients -->
+    <linearGradient id="pinGrad4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8338EC" />
+      <stop offset="100%" stop-color="#541388" />
+    </linearGradient>
+    <linearGradient id="panelGradLeft" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#E9D5FF" />
+      <stop offset="100%" stop-color="#DDD6FE" />
+    </linearGradient>
+    <linearGradient id="panelGradMid" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#FAF5FF" />
+    </linearGradient>
+    <linearGradient id="panelGradRight" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#F3E8FF" />
+      <stop offset="100%" stop-color="#E9D5FF" />
+    </linearGradient>
+  </defs>
+
+  <!-- 3D Accordion Folded Map -->
+  <g filter="url(#shadow4)">
+    <!-- Left Fold Panel -->
+    <polygon points="10,24 25,18 25,50 10,56" fill="url(#panelGradLeft)" stroke="#D8B4FE" stroke-width="0.8" />
+    
+    <!-- Middle Fold Panel -->
+    <polygon points="25,18 41,24 41,56 25,50" fill="url(#panelGradMid)" stroke="#E9D5FF" stroke-width="0.8" />
+    
+    <!-- Right Fold Panel -->
+    <polygon points="41,24 57,18 57,50 41,56" fill="url(#panelGradRight)" stroke="#D8B4FE" stroke-width="0.8" />
+
+    <!-- Dotted Path / Route -->
+    <!-- Curved path connecting waypoints to destination pin -->
+    <path d="M 18 42 C 21 34, 30 33, 36 37 C 42 41, 46 45, 48 44 C 52 42, 52 33, 52 28" 
+          stroke="#7C3AED" stroke-width="2.6" stroke-dasharray="3.2 2.4" stroke-linecap="round" fill="none" />
+
+    <!-- Waypoint 1 (Left) -->
+    <circle cx="18" cy="42" r="4" fill="#7C3AED" stroke="#FFFFFF" stroke-width="1.8" />
+
+    <!-- Waypoint 2 (Middle) -->
+    <circle cx="36" cy="37" r="4.5" fill="#6B21A8" stroke="#FFFFFF" stroke-width="1.8" />
+
+    <!-- Waypoint 3 (Lower Right) -->
+    <circle cx="48" cy="44" r="3.8" fill="#7C3AED" stroke="#FFFFFF" stroke-width="1.8" />
+  </g>
+
+  <!-- Location Map Pin (Top Right) -->
+  <g filter="url(#pinShadow4)">
+    <!-- Teardrop Pin Shape pointing to (52, 28) -->
+    <path d="M 52 11 C 47.5 11, 44 14.5, 44 19 C 44 24, 52 29, 52 29 C 52 29, 60 24, 60 19 C 60 14.5, 56.5 11, 52 11 Z" 
+          fill="url(#pinGrad4)" stroke="#FFFFFF" stroke-width="1.2" />
+    <!-- White Inner Hole of the Pin -->
+    <circle cx="52" cy="18.5" r="3.2" fill="#FFFFFF" />
+  </g>
+</svg>

@@ -114,7 +114,8 @@ class JobService:
     def get_job(
         self,
         job_id: str,
-        user_id: str,
+        user_id: str = "",
+        require_ownership: bool = False,
     ) -> Job:
 
         if not job_id:
@@ -130,10 +131,16 @@ class JobService:
                 f"Job not found: {job_id}"
             )
 
-        if document.get("user_id") != user_id:
+        doc_user = document.get("user_id", "")
+        if require_ownership and doc_user != user_id:
             raise ValueError(
                 "Job does not belong to this user."
             )
+        elif not require_ownership and user_id and doc_user not in (user_id, "shared_catalog", "system", "live_market", ""):
+            # If ownership is not strictly required, allow viewing shared catalog jobs
+            # but reject if it belongs exclusively to another specific private user
+            if doc_user and doc_user != user_id and not doc_user.startswith("shared_"):
+                raise ValueError("Job does not belong to this user.")
 
         return Job(
             job_id=document.get("job_id", job_id),
@@ -218,7 +225,7 @@ class JobService:
         user_id: str,
     ) -> None:
         """Delete a job after verifying ownership."""
-        _ = self.get_job(job_id=job_id, user_id=user_id)
+        _ = self.get_job(job_id=job_id, user_id=user_id, require_ownership=True)
         self.database.delete(collection="jobs", document_id=job_id)
 
     def check_eligibility(
@@ -341,6 +348,7 @@ class JobService:
         experience_years: float | None = None,
         target_role: str | None = None,
         weights: dict | None = None,
+        job_fallback_data: dict | None = None,
     ) -> dict:
         """
         Calculate a multi-factor weighted job match score.
@@ -351,7 +359,50 @@ class JobService:
         - 15% experience
         - 10% role alignment
         """
-        job = self.get_job(job_id=job_id, user_id=user_id)
+        job = None
+        try:
+            job = self.get_job(job_id=job_id, user_id=user_id)
+        except Exception:
+            if job_fallback_data and isinstance(job_fallback_data, dict):
+                req_skills = job_fallback_data.get("required_skills") or []
+                pref_skills = job_fallback_data.get("preferred_skills") or []
+                desc = job_fallback_data.get("description", "")
+                if not req_skills and desc:
+                    from backend.services.skill_service import SkillService
+                    extracted = SkillService.extract_skills(f"{job_fallback_data.get('title', '')}\n{desc}")
+                    req_skills = extracted[:6]
+                    pref_skills = extracted[6:12]
+
+                job = Job(
+                    job_id=job_id,
+                    user_id=user_id,
+                    title=job_fallback_data.get("title") or "Software Engineer",
+                    company=job_fallback_data.get("company") or "Technology Company",
+                    location=job_fallback_data.get("location") or "Remote",
+                    job_url=job_fallback_data.get("job_url") or "",
+                    description=desc,
+                    required_skills=req_skills,
+                    preferred_skills=pref_skills,
+                    experience_requirements=job_fallback_data.get("experience_requirements") or [],
+                    qualifications=job_fallback_data.get("qualifications") or [],
+                    responsibilities=job_fallback_data.get("responsibilities") or [],
+                    keywords=req_skills[:8],
+                )
+                try:
+                    self.database.create(
+                        collection="jobs",
+                        document_id=job_id,
+                        data={
+                            **job.__dict__,
+                            "created_at": datetime.now(timezone.utc),
+                            "updated_at": datetime.now(timezone.utc),
+                        },
+                    )
+                except Exception:
+                    pass
+
+        if job is None:
+            raise FileNotFoundError(f"Job not found: {job_id}")
 
         w_req = weights.get("required_skills", 0.40) if weights else 0.40
         w_pref = weights.get("preferred_skills", 0.20) if weights else 0.20

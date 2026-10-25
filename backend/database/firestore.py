@@ -54,7 +54,7 @@ class FirestoreDatabase:
         document_id: str,
         data: dict,
     ) -> None:
-        """Update a Firestore document."""
+        """Update a Firestore document with merge semantics."""
 
         document_ref = (
             self.db
@@ -62,7 +62,7 @@ class FirestoreDatabase:
             .document(document_id)
         )
 
-        document_ref.update(data)
+        document_ref.set(data, merge=True)
 
     def delete(
         self,
@@ -93,4 +93,12 @@ class FirestoreDatabase:
         if limit:
             query = query.limit(limit)
         docs = query.stream()
-        return [doc.to_dict() for doc in docs]
+        results = []
+        for doc in docs:
+            d = doc.to_dict()
+            if "id" not in d:
+                d["id"] = doc.id
+            if "document_id" not in d:
+                d["document_id"] = doc.id
+            results.append(d)
+        return results

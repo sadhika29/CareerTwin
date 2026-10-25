@@ -1,6 +1,8 @@
 import hashlib
 import hmac
+import json
 import secrets
+from pathlib import Path
 from typing import Dict
 from uuid import uuid4
 
@@ -9,26 +11,47 @@ from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
-# Development store until the Firebase repository is connected.
-_users: Dict[str, dict] = {}
+STORAGE_FILE = Path(__file__).resolve().parents[3] / "storage" / "users.json"
+
+
+def _load_users() -> Dict[str, dict]:
+	try:
+		if STORAGE_FILE.exists():
+			with open(STORAGE_FILE, "r", encoding="utf-8") as f:
+				return json.load(f)
+	except Exception:
+		pass
+	return {}
+
+
+def _save_users():
+	try:
+		STORAGE_FILE.parent.mkdir(parents=True, exist_ok=True)
+		with open(STORAGE_FILE, "w", encoding="utf-8") as f:
+			json.dump(_users, f, indent=2)
+	except Exception:
+		pass
+
+
+_users: Dict[str, dict] = _load_users()
 _tokens: Dict[str, str] = {}
 
 
 class RegisterRequest(BaseModel):
-	full_name: str = Field(min_length=2, max_length=100)
-	username: str = Field(min_length=3, max_length=40)
-	email: str = Field(min_length=5, max_length=160)
-	password: str = Field(min_length=8, max_length=128)
-	confirm_password: str = Field(min_length=8, max_length=128)
+	full_name: str = Field(min_length=1, max_length=100)
+	username: str = Field(min_length=2, max_length=60)
+	email: str = Field(min_length=3, max_length=160)
+	password: str = Field(min_length=6, max_length=128)
+	confirm_password: str = Field(min_length=6, max_length=128)
 
 
 class LoginRequest(BaseModel):
-	identifier: str = Field(min_length=3, max_length=160)
+	identifier: str = Field(min_length=1, max_length=160)
 	password: str = Field(min_length=1, max_length=128)
 
 
 class ForgotPasswordRequest(BaseModel):
-	email: str = Field(min_length=5, max_length=160)
+	email: str = Field(min_length=3, max_length=160)
 
 
 def _key(value: str) -> str:
@@ -42,9 +65,12 @@ def _hash_password(password: str, salt: bytes | None = None) -> str:
 
 
 def _verify_password(password: str, stored: str) -> bool:
-	salt_hex, digest_hex = stored.split("$", 1)
-	actual = _hash_password(password, bytes.fromhex(salt_hex)).split("$", 1)[1]
-	return hmac.compare_digest(actual, digest_hex)
+	try:
+		salt_hex, digest_hex = stored.split("$", 1)
+		actual = _hash_password(password, bytes.fromhex(salt_hex)).split("$", 1)[1]
+		return hmac.compare_digest(actual, digest_hex)
+	except Exception:
+		return False
 
 
 def _session(user: dict) -> dict:
@@ -57,14 +83,41 @@ def _session(user: dict) -> dict:
 async def register(payload: RegisterRequest):
 	if payload.password != payload.confirm_password:
 		raise HTTPException(status_code=400, detail="Passwords do not match.")
-	if not any(character.isdigit() for character in payload.password) or not any(not character.isalnum() for character in payload.password):
-		raise HTTPException(status_code=400, detail="Password must contain a number and special character.")
+	if len(payload.password) < 6:
+		raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")
 	username = _key(payload.username)
 	email = _key(payload.email)
-	if username in _users or any(user["email"] == email for user in _users.values()):
-		raise HTTPException(status_code=409, detail="An account with those details already exists.")
-	user = {"id": f"user_{uuid4().hex[:12]}", "full_name": payload.full_name.strip(), "username": username, "email": email, "password_hash": _hash_password(payload.password)}
+	if username in _users or any(user.get("email") == email for user in _users.values()):
+		raise HTTPException(status_code=409, detail="An account with this email or username already exists. Please login instead.")
+	user = {
+		"id": f"user_{uuid4().hex[:12]}",
+		"full_name": payload.full_name.strip(),
+		"username": username,
+		"email": email,
+		"password_hash": _hash_password(payload.password),
+	}
 	_users[username] = user
+	_save_users()
+
+	# Safely initialize persistent profile in Firestore (strictly non-secret metadata)
+	try:
+		import time
+		from backend.database.firestore import FirestoreDatabase
+		db = FirestoreDatabase()
+		profile_data = {
+			"user_id": user["id"],
+			"username": user["username"],
+			"full_name": user["full_name"],
+			"email": user["email"],
+			"target_role": "Software Engineer",
+			"skills": [],
+			"created_at": time.time(),
+			"updated_at": time.time(),
+		}
+		db.create("profiles", user["id"], profile_data)
+	except Exception:
+		pass
+
 	return _session(user)
 
 

@@ -52,15 +52,39 @@ class GenerateStrategyRequest(BaseModel):
     description: Optional[str] = None
 
 
-# In-memory storage for applications per user
+from backend.database.firestore import FirestoreDatabase
+
+# Storage for applications per user with Firebase Firestore persistence
 _applications: Dict[str, List[Dict[str, Any]]] = {}
+_firestore_db: FirestoreDatabase | None = None
+
+
+def _get_firestore() -> FirestoreDatabase | None:
+    global _firestore_db
+    if _firestore_db is None:
+        try:
+            _firestore_db = FirestoreDatabase()
+        except Exception:
+            _firestore_db = None
+    return _firestore_db
 
 
 @router.get("")
 async def get_applications(user_id: str = Depends(get_current_user)) -> Dict[str, Any]:
-    """Retrieve all tracked applications and aggregate analytics."""
-    apps = _applications.get(user_id, [])
-    if user_id not in _applications:
+    """Retrieve all tracked applications and aggregate analytics with Firestore support."""
+    apps = _applications.get(user_id)
+    if apps is None:
+        # Load from Firestore
+        db = _get_firestore()
+        if db:
+            try:
+                records = db.list("applications", filters={"user_id": user_id})
+                if records:
+                    apps = sorted(records, key=lambda x: x.get("created_at", x.get("date", "")), reverse=True)
+            except Exception:
+                pass
+        if apps is None:
+            apps = []
         _applications[user_id] = apps
 
     total = len(apps)
@@ -89,16 +113,60 @@ async def create_application(
     payload: CreateApplicationRequest,
     user_id: str = Depends(get_current_user),
 ) -> Dict[str, Any]:
-    """Add a new job application to tracker."""
+    """Add a new job application to tracker and persist in Firestore."""
     apps = _applications.setdefault(user_id, [])
+
+    # Prevent duplicates: if an application already exists for this job_id, update it
+    if payload.job_id:
+        existing = next((a for a in apps if a.get("job_id") == payload.job_id), None)
+        if existing:
+            existing["status"] = payload.status or "Applied"
+            if payload.notes:
+                existing["notes"] = payload.notes
+            if payload.url:
+                existing["url"] = payload.url
+            db = _get_firestore()
+            if db:
+                try:
+                    db.update("applications", f"{user_id}_{existing['id']}", existing)
+                except Exception:
+                    pass
+
+            # Sync with JobInteractionService if applied
+            if existing.get("status") in ("Applied", "Interviewing", "Offer"):
+                try:
+                    from backend.services.job_interaction_service import JobInteractionService
+                    JobInteractionService().record_application(
+                        user_id=user_id,
+                        job_id=payload.job_id,
+                        application_id=existing["id"],
+                        job_data={
+                            "title": existing.get("role"),
+                            "company": existing.get("company"),
+                            "location": existing.get("location"),
+                            "job_url": existing.get("url"),
+                        },
+                    )
+                except Exception:
+                    pass
+
+            return {
+                "user_id": user_id,
+                "application": existing,
+                "message": "Existing application updated successfully",
+                "status": "success",
+            }
 
     new_app = {
         "id": f"app-{uuid.uuid4().hex[:8]}",
+        "user_id": user_id,
+        "job_id": payload.job_id,
         "company": payload.company,
         "role": payload.role,
         "location": payload.location or "Remote",
         "status": payload.status or "Saved",
         "date": time.strftime("%Y-%m-%d"),
+        "created_at": time.time(),
         "salary": payload.salary or "Competitive",
         "notes": payload.notes or "Added to CareerTwin tracker.",
         "next_step": "Review role requirements and tailor profile.",
@@ -107,6 +175,33 @@ async def create_application(
         "url": payload.url,
     }
     apps.insert(0, new_app)
+
+    # Persist in Firebase Firestore
+    db = _get_firestore()
+    if db:
+        try:
+            doc_id = f"{user_id}_{new_app['id']}"
+            db.create("applications", doc_id, new_app)
+        except Exception:
+            pass
+
+    # Sync with JobInteractionService if applied or job_id provided
+    if payload.job_id and (payload.status in ("Applied", "Interviewing", "Offer") or not payload.status):
+        try:
+            from backend.services.job_interaction_service import JobInteractionService
+            JobInteractionService().record_application(
+                user_id=user_id,
+                job_id=payload.job_id,
+                application_id=new_app["id"],
+                job_data={
+                    "title": payload.role,
+                    "company": payload.company,
+                    "location": payload.location,
+                    "job_url": payload.url,
+                },
+            )
+        except Exception:
+            pass
 
     return {
         "user_id": user_id,
@@ -122,7 +217,7 @@ async def update_application(
     payload: UpdateApplicationRequest,
     user_id: str = Depends(get_current_user),
 ) -> Dict[str, Any]:
-    """Update application status, notes, or next interview step."""
+    """Update application status, notes, or next interview step in Firestore."""
     apps = _applications.setdefault(user_id, [])
     target = next((a for a in apps if a["id"] == app_id), None)
     if not target:
@@ -137,6 +232,15 @@ async def update_application(
     if payload.interview_date is not None:
         target["interview_date"] = payload.interview_date
 
+    # Update in Firestore
+    db = _get_firestore()
+    if db:
+        try:
+            doc_id = f"{user_id}_{app_id}"
+            db.update("applications", doc_id, target)
+        except Exception:
+            pass
+
     return {
         "user_id": user_id,
         "application": target,
@@ -150,13 +254,22 @@ async def delete_application(
     app_id: str,
     user_id: str = Depends(get_current_user),
 ) -> Dict[str, Any]:
-    """Remove application from tracker."""
+    """Remove application from tracker and Firestore."""
     apps = _applications.setdefault(user_id, [])
     initial_len = len(apps)
     _applications[user_id] = [a for a in apps if a["id"] != app_id]
 
     if len(_applications[user_id]) == initial_len:
         raise HTTPException(status_code=404, detail="Application not found")
+
+    # Delete from Firestore
+    db = _get_firestore()
+    if db:
+        try:
+            doc_id = f"{user_id}_{app_id}"
+            db.delete("applications", doc_id)
+        except Exception:
+            pass
 
     return {
         "user_id": user_id,

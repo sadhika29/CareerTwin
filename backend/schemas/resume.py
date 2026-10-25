@@ -1,3 +1,4 @@
+from typing import Any
 from pydantic import BaseModel, Field
 
 
@@ -15,11 +16,36 @@ class ResumeAnalysisRequest(BaseModel):
     user_id: str
     target_role: str | None = None
     target_job_id: str | None = None
+    job_description: str | None = None
+
+
+class MissingKeywordItem(BaseModel):
+    keyword: str
+    relevance: str = ""
+    status: str = "absent"  # "absent" or "weakly_represented"
+    suggested_placement: str = ""
+
+
+class GrammarIssue(BaseModel):
+    original: str
+    problem: str
+    suggested_correction: str
+    explanation: str
+    issue_type: str = "grammar"  # "grammar", "spelling", "punctuation", "wordiness", "passive_voice", "formatting"
+
+
+class ResumeRecommendationItem(BaseModel):
+    area: str
+    issue: str
+    why: str
+    action: str
+    example: str = ""
 
 
 class ResumeAnalysisResponse(BaseModel):
     resume_score: float
-    ats_score: float
+    ats_score: float | None = None
+    has_target_job: bool = False
 
     is_valid_resume: bool = True
     inferred_domain: str = "General Professional"
@@ -32,9 +58,13 @@ class ResumeAnalysisResponse(BaseModel):
 
     missing_sections: list[str] = Field(default_factory=list)
     keyword_gaps: list[str] = Field(default_factory=list)
+    missing_keyword_details: list[MissingKeywordItem] = Field(default_factory=list)
+
     recommendations: list[str] = Field(default_factory=list)
+    structured_recommendations: list[ResumeRecommendationItem] = Field(default_factory=list)
 
     sentence_improvements: list[dict] = Field(default_factory=list)
+    grammar_issues: list[GrammarIssue] = Field(default_factory=list)
     repaired_text: str = ""
 
     keyword_match: float = 0.0
@@ -42,6 +72,7 @@ class ResumeAnalysisResponse(BaseModel):
     experience_relevance: float = 0.0
     section_completeness: float = 0.0
     missing_keywords: list[str] = Field(default_factory=list)
+    job_description_snippet: str | None = None
 
 
 class ATSAnalysisResponse(BaseModel):
@@ -94,7 +125,53 @@ class ResumeListResponse(BaseModel):
     total: int
 
 
+class SaveAnalysisRequest(BaseModel):
+    user_id: str
+    resume_id: str
+    filename: str
+    job_description: str | None = None
+    target_role: str | None = None
+    ats_score: float | None = None
+    resume_score: float
+    has_target_job: bool = False
+    resume_skills: list[str] = Field(default_factory=list)
+    missing_keywords: list[str] = Field(default_factory=list)
+    missing_keyword_details: list[dict] = Field(default_factory=list)
+    grammar_issues: list[dict] = Field(default_factory=list)
+    structured_recommendations: list[dict] = Field(default_factory=list)
+    recommendations: list[str] = Field(default_factory=list)
+    sentence_improvements: list[dict] = Field(default_factory=list)
+    inferred_domain: str | None = None
+    analysis_id: str | None = None
+
+
+class SavedAnalysisResponse(BaseModel):
+    analysis_id: str
+    user_id: str
+    resume_id: str
+    filename: str
+    job_description: str | None = None
+    target_role: str | None = None
+    ats_score: float | None = None
+    resume_score: float
+    has_target_job: bool = False
+    resume_skills: list[str] = Field(default_factory=list)
+    missing_keywords: list[str] = Field(default_factory=list)
+    missing_keyword_details: list[dict] = Field(default_factory=list)
+    grammar_issues: list[dict] = Field(default_factory=list)
+    structured_recommendations: list[dict] = Field(default_factory=list)
+    recommendations: list[str] = Field(default_factory=list)
+    sentence_improvements: list[dict] = Field(default_factory=list)
+    inferred_domain: str | None = None
+    created_at: str
+
+
+class SavedAnalysisListResponse(BaseModel):
+    analyses: list[SavedAnalysisResponse]
+    total: int
+
+
 class CareerManagerResumeEnvelope(BaseModel):
     agent: str = "resume"
     status: str = "success"
-    data: ResumeAnalysisResponse
+    data: ResumeAnalysisResponse

@@ -35,8 +35,20 @@ router = APIRouter(prefix="/api/v1/preparation", tags=["preparation"])
 # Shared agent instance (lazy LLM init)
 _agent: PreparationAgent | None = None
 
-# In-memory report storage (would be Firestore in production)
+# In-memory and Firestore report storage
 _user_test_reports: Dict[str, List[Dict[str, Any]]] = {}
+_firestore_db = None
+
+
+def _get_firestore():
+    global _firestore_db
+    if _firestore_db is None:
+        try:
+            from backend.database.firestore import FirestoreDatabase
+            _firestore_db = FirestoreDatabase()
+        except Exception:
+            _firestore_db = None
+    return _firestore_db
 
 
 def _get_agent() -> PreparationAgent:
@@ -153,11 +165,18 @@ async def today_tasks_with_context(payload: Dict[str, Any], user_id: str = Depen
 
 @router.get("/progress")
 async def current_progress(user_id: str = Depends(get_current_user)):
+    reports = _user_test_reports.get(user_id, [])
+    total_completed = len(reports)
+    # Target 5 sessions per weekly plan
+    weekly_target = 5
+    sessions_completed = min(total_completed, weekly_target)
+    completion = int(round((sessions_completed / weekly_target) * 100)) if weekly_target > 0 else 0
+
     return {
         "user_id": user_id,
-        "completion": 68,
-        "weekly_sessions_completed": 4,
-        "weekly_sessions_total": 6,
+        "completion": completion,
+        "weekly_sessions_completed": sessions_completed,
+        "weekly_sessions_total": weekly_target,
     }
 
 
@@ -313,6 +332,51 @@ async def submit_assessment(payload: AssessmentSubmission):
 
         final_report = {**report, "user_id": payload.user_id}
         _user_test_reports.setdefault(payload.user_id, []).append(final_report)
+
+        # Persist report to Firestore
+        db = _get_firestore()
+        if db:
+            try:
+                doc_id = f"{payload.user_id}_{final_report.get('assessment_id', uuid.uuid4().hex[:8])}"
+                # Save sanitized summary to Firestore
+                report_to_save = {
+                    "assessment_id": final_report.get("assessment_id"),
+                    "user_id": payload.user_id,
+                    "category": final_report.get("category"),
+                    "score": final_report.get("score"),
+                    "accuracy": final_report.get("accuracy"),
+                    "total_questions": final_report.get("total_questions"),
+                    "correct_answers": final_report.get("correct_answers"),
+                    "incorrect_answers": final_report.get("incorrect_answers"),
+                    "unattempted": final_report.get("unattempted"),
+                    "weak_topics": final_report.get("weak_topics", []),
+                    "completed_at": final_report.get("completed_at"),
+                }
+                db.create("assessments", doc_id, report_to_save)
+            except Exception:
+                pass
+
+        # Sync score into active CareerState
+        try:
+            from backend.api.dependencies import career_states
+            from backend.agents.career_manager.state import CareerState
+            state = career_states.get(payload.user_id)
+            if state is None:
+                state = CareerState(user_id=payload.user_id, target_role="Software Engineer")
+                career_states[payload.user_id] = state
+
+            category_lower = str(payload.assessment_id).lower()
+            sc = final_report.get("score")
+            if sc is not None:
+                if "dsa" in category_lower:
+                    state.dsa_score = float(sc)
+                elif "apt" in category_lower:
+                    state.aptitude_score = float(sc)
+                else:
+                    state.technical_score = float(sc)
+        except Exception:
+            pass
+
         return final_report
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Assessment evaluation failed: {str(e)}")
@@ -364,12 +428,24 @@ async def reattempt_incomplete(payload: ReattemptIncompleteRequest):
 
 
 # ---------------------------------------------------------------------------
-# REPORTS (static for now — would be fetched from Firestore in production)
+# REPORTS — persistent in Firestore
 # ---------------------------------------------------------------------------
 
 @router.get("/reports")
 async def get_test_reports(user_id: str = Depends(get_current_user)):
-    reports = _user_test_reports.get(user_id, [])
+    """Retrieve all persistent test reports for the authenticated user."""
+    reports = _user_test_reports.get(user_id)
+    if reports is None or len(reports) == 0:
+        db = _get_firestore()
+        if db:
+            try:
+                db_reports = db.list("assessments", filters={"user_id": user_id})
+                if db_reports:
+                    reports = db_reports
+                    _user_test_reports[user_id] = reports
+            except Exception:
+                pass
+    reports = reports or []
     return {
         "user_id": user_id,
         "reports": reports,

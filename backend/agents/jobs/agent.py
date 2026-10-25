@@ -126,16 +126,43 @@ class JobAgent:
         """
         Use Gemini LLM and RAG to dynamically discover and generate live market job opportunities.
         """
-        # 1. Priority: Retrieve live verified market job postings from OpenWebNinja JSearch
+        # 1. Priority: Retrieve live verified market job postings from Himalayas & OpenWebNinja JSearch
         try:
-            from backend.services.jsearch_client import JSearchClient
-            jsearch = JSearchClient()
+            live_jobs = []
             search_query = target_role or query or (f"{candidate_skills[0]} Developer" if candidate_skills else "Software Engineer")
-            live_jobs = jsearch.search_jobs(
-                query=search_query,
-                location=location,
-                num_pages=1,
-            )
+
+            # A. Himalayas Remote Jobs
+            try:
+                from backend.services.himalayas_client import HimalayasClient
+                h_jobs = HimalayasClient().search_jobs(query=search_query, limit=count)
+                live_jobs.extend(h_jobs)
+            except Exception:
+                pass
+
+            # B. OpenWebNinja JSearch
+            if len(live_jobs) < count:
+                try:
+                    from backend.services.jsearch_client import JSearchClient
+                    jsearch = JSearchClient()
+                    j_jobs = jsearch.search_jobs(
+                        query=search_query,
+                        location=location,
+                        num_pages=1,
+                    )
+                    live_jobs.extend(j_jobs)
+                except Exception:
+                    pass
+
+            # C. SerpApi Google Jobs
+            if len(live_jobs) < count:
+                try:
+                    from backend.services.serpapi_client import SerpApiClient
+                    s_client = SerpApiClient()
+                    s_jobs = s_client.search_jobs(query=search_query, location=location)
+                    live_jobs.extend(s_jobs)
+                except Exception:
+                    pass
+
             if live_jobs:
                 # Cache live postings to Firestore for seamless details & match tracking
                 try:
@@ -149,6 +176,7 @@ class JobAgent:
                 return live_jobs[:count]
         except Exception:
             pass
+
 
         # 2. Secondary: Dynamic LLM market generation if live API query is unavailable
         rag_context = self._get_rag_context(

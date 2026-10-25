@@ -30,7 +30,9 @@ def test_system_root_redirect():
 # 2. AUTH ENDPOINTS
 # ==========================================
 def test_auth_register_and_login():
-    unique_user = f"user_ep_{pytest.__version__.replace('.', '')}"
+    import uuid
+    rand_id = uuid.uuid4().hex[:8]
+    unique_user = f"user_{rand_id}"
     register_payload = {
         "full_name": "Test Engineer",
         "username": f"u_{unique_user[:8]}",
@@ -39,7 +41,7 @@ def test_auth_register_and_login():
         "confirm_password": "Password123!",
     }
     res = client.post("/api/v1/auth/register", json=register_payload)
-    assert res.status_code in (201, 400)
+    assert res.status_code in (201, 400, 409)
 
     login_payload = {
         "identifier": register_payload["username"],
