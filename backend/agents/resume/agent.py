@@ -511,15 +511,11 @@ class ResumeAgent:
             if has_job_description:
                 response["has_target_job"] = True
                 response["ats_score"] = float(response.get("ats_score") or calculated_ats_score or 75.0)
-                llm_details = response.get("missing_keyword_details") or []
-                if llm_details:
-                    response["missing_keyword_details"] = [
-                        MissingKeywordItem(**item) if isinstance(item, dict) else item
-                        for item in llm_details
-                    ]
-                else:
-                    response["missing_keyword_details"] = missing_kw_details
-                response["keyword_gaps"] = [item.keyword for item in response["missing_keyword_details"]]
+                # Missing keywords are based only on requirements extracted from
+                # the user's job description and checked against resume text.
+                # LLM-suggested gaps may be useful as prose, but are not evidence.
+                response["missing_keyword_details"] = missing_kw_details
+                response["keyword_gaps"] = keyword_gaps
                 response["missing_keywords"] = response["keyword_gaps"]
             else:
                 response["has_target_job"] = False

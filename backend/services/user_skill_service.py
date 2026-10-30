@@ -1,7 +1,7 @@
 """
 User Skill and Learning Resource Service for CareerTwin.
 Provides robust persistence with Firebase Firestore and in-memory cache fallback.
-Enforces strict user isolation, deduplication, proficiency boundaries,
+Enforces strict user isolation, deduplication, and validated skill levels,
 and learning progress tracking.
 """
 from __future__ import annotations
@@ -12,12 +12,35 @@ from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
 from backend.database.firestore import FirestoreDatabase
+from firebase_admin import firestore
 
 logger = logging.getLogger(__name__)
 
 # Global in-memory caches for fast access and testing isolation
 _user_skills_cache: Dict[str, Dict[str, Dict[str, Any]]] = {}
 _learning_progress_cache: Dict[str, Dict[str, Dict[str, Any]]] = {}
+
+SKILL_LEVELS = ("Beginner", "Intermediate", "Advanced", "Expert")
+SKILL_LEVEL_RANK = {level: rank for rank, level in enumerate(SKILL_LEVELS)}
+
+
+def legacy_proficiency_to_level(value: Any) -> str | None:
+    """Map old percentages using [0,25) Beginner, [25,50) Intermediate,
+    [50,75) Advanced, [75,100] Expert. Out-of-range/invalid data stays unset.
+    """
+    try:
+        percentage = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not 0 <= percentage <= 100:
+        return None
+    if percentage < 25:
+        return "Beginner"
+    if percentage < 50:
+        return "Intermediate"
+    if percentage < 75:
+        return "Advanced"
+    return "Expert"
 
 
 def _now_iso() -> str:
@@ -39,10 +62,50 @@ class UserSkillService:
     # SKILLS MANAGEMENT
     # --------------------------------------------------------------------------
 
+    def _normalize_skill_record(self, user_id: str, skill_id: str, source: Dict[str, Any]) -> Dict[str, Any]:
+        """Map legacy percentage records at read time and preserve their source values."""
+        skill = dict(source)
+        current_level = skill.get("current_level")
+        target_level = skill.get("target_level")
+        if current_level not in SKILL_LEVEL_RANK:
+            current_level = legacy_proficiency_to_level(skill.get("proficiency"))
+        if target_level not in SKILL_LEVEL_RANK:
+            target_level = legacy_proficiency_to_level(skill.get("target_proficiency"))
+
+        migration = {
+            "current_level": current_level,
+            "target_level": target_level,
+        }
+        if "proficiency" in skill:
+            migration["legacy_proficiency"] = skill["proficiency"]
+            migration["proficiency"] = firestore.DELETE_FIELD
+        if "target_proficiency" in skill:
+            migration["legacy_target_proficiency"] = skill["target_proficiency"]
+            migration["target_proficiency"] = firestore.DELETE_FIELD
+
+        if self.database and any(skill.get(key) != value for key, value in migration.items()):
+            try:
+                self.database.update("user_skills", f"{user_id}_{skill_id}", migration)
+            except Exception as exc:
+                logger.warning("Could not persist legacy skill-level mapping for %s: %s", skill_id, exc)
+
+        skill.update(migration)
+        # Keep old optional fields stored as archival data, but no longer return/use them.
+        skill.pop("proficiency", None)
+        skill.pop("target_proficiency", None)
+        skill.pop("notes", None)
+        skill.pop("learning_goal", None)
+        skill.pop("legacy_proficiency", None)
+        skill.pop("legacy_target_proficiency", None)
+        return skill
+
     def _load_user_skills(self, user_id: str) -> Dict[str, Dict[str, Any]]:
         """Retrieve skills for user from cache or Firestore."""
         if user_id in _user_skills_cache:
-            return _user_skills_cache[user_id]
+            cached = _user_skills_cache[user_id]
+            for sid, record in list(cached.items()):
+                cached[sid] = self._normalize_skill_record(user_id, sid, record)
+            return cached
 
         skills_map: Dict[str, Dict[str, Any]] = {}
         if self.database:
@@ -51,7 +114,7 @@ class UserSkillService:
                 for d in docs:
                     sid = d.get("id") or d.get("skill_id")
                     if sid:
-                        skills_map[sid] = d
+                        skills_map[sid] = self._normalize_skill_record(user_id, sid, d)
             except Exception as exc:
                 logger.warning(f"Failed to load user_skills from Firestore for user {user_id}: {exc}")
 
@@ -66,16 +129,22 @@ class UserSkillService:
         skills_list.sort(key=lambda s: s.get("updated_at", ""), reverse=True)
 
         total_skills = len(skills_list)
-        proficient_skills = sum(1 for s in skills_list if float(s.get("proficiency", 0)) >= 70.0)
+        advanced_skills = sum(
+            1 for s in skills_list
+            if SKILL_LEVEL_RANK.get(s.get("current_level"), -1) >= SKILL_LEVEL_RANK["Advanced"]
+        )
         skills_to_improve = sum(
-            1 for s in skills_list if float(s.get("proficiency", 0)) < float(s.get("target_proficiency", 80.0))
+            1 for s in skills_list
+            if s.get("current_level") in SKILL_LEVEL_RANK
+            and s.get("target_level") in SKILL_LEVEL_RANK
+            and SKILL_LEVEL_RANK[s["current_level"]] < SKILL_LEVEL_RANK[s["target_level"]]
         )
 
         target_role = self.get_user_target_role(user_id)
 
         summary = {
             "total_skills": total_skills,
-            "proficient_skills": proficient_skills,
+            "advanced_skills": advanced_skills,
             "skills_to_improve": skills_to_improve,
             "target_role": target_role,
         }
@@ -131,19 +200,18 @@ class UserSkillService:
         skill_id = f"skill_{uuid4().hex[:10]}"
         now = _now_iso()
 
-        proficiency = max(0.0, min(100.0, float(data.get("proficiency", 50.0))))
-        target_proficiency = max(0.0, min(100.0, float(data.get("target_proficiency", 80.0))))
+        current_level = data.get("current_level")
+        target_level = data.get("target_level")
+        if current_level not in SKILL_LEVEL_RANK or target_level not in SKILL_LEVEL_RANK:
+            raise ValueError("Current and target skill levels must be selected from the supported levels.")
 
         skill_record = {
             "id": skill_id,
             "user_id": user_id,
             "name": name,
             "category": data.get("category", "Programming Languages"),
-            "proficiency": proficiency,
-            "target_proficiency": target_proficiency,
-            "proficiency_source": data.get("proficiency_source", "self-assessed"),
-            "notes": (data.get("notes") or "").strip(),
-            "learning_goal": (data.get("learning_goal") or "").strip(),
+            "current_level": current_level,
+            "target_level": target_level,
             "created_at": now,
             "updated_at": now,
         }
@@ -172,6 +240,7 @@ class UserSkillService:
             doc_id = f"{user_id}_{skill_id}"
             existing = self.database.get("user_skills", doc_id)
             if existing and existing.get("user_id") == user_id:
+                existing = self._normalize_skill_record(user_id, skill_id, existing)
                 skills_map[skill_id] = existing
 
         if not existing:
@@ -195,17 +264,11 @@ class UserSkillService:
         if "category" in data and data["category"] is not None:
             existing["category"] = str(data["category"]).strip()
 
-        if "proficiency" in data and data["proficiency"] is not None:
-            existing["proficiency"] = max(0.0, min(100.0, float(data["proficiency"])))
-
-        if "target_proficiency" in data and data["target_proficiency"] is not None:
-            existing["target_proficiency"] = max(0.0, min(100.0, float(data["target_proficiency"])))
-
-        if "notes" in data and data["notes"] is not None:
-            existing["notes"] = str(data["notes"]).strip()
-
-        if "learning_goal" in data and data["learning_goal"] is not None:
-            existing["learning_goal"] = str(data["learning_goal"]).strip()
+        for field in ("current_level", "target_level"):
+            if field in data and data[field] is not None:
+                if data[field] not in SKILL_LEVEL_RANK:
+                    raise ValueError(f"Unsupported {field.replace('_', ' ')}: {data[field]}")
+                existing[field] = data[field]
 
         now = _now_iso()
         existing["updated_at"] = now

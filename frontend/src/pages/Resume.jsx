@@ -12,13 +12,33 @@ import { auth } from '../firebase';
 import { 
   UploadCloud, FileText, CheckCircle2, AlertTriangle, RefreshCw, 
   ShieldCheck, Sparkles, Check, ChevronRight, Bookmark, BookmarkCheck,
-  Trash2, History, Target, AlertCircle, FileSearch, ArrowRight, Lightbulb,
+  Trash2, History, Target, AlertCircle,
   Info
 } from 'lucide-react';
+
+function getUniqueMissingKeywords(analysisResult) {
+  const source = Array.isArray(analysisResult?.missing_keywords) && analysisResult.missing_keywords.length
+    ? analysisResult.missing_keywords
+    : (analysisResult?.missing_keyword_details || []).map((item) =>
+        typeof item === 'string' ? item : item?.keyword
+      );
+  const seen = new Set();
+
+  return source.reduce((keywords, value) => {
+    const keyword = (typeof value === 'string' ? value : value?.keyword || '').trim();
+    const normalized = keyword.toLocaleLowerCase();
+    if (keyword && !seen.has(normalized)) {
+      seen.add(normalized);
+      keywords.push(keyword);
+    }
+    return keywords;
+  }, []);
+}
 
 export default function Resume() {
   const [file, setFile] = useState(null);
   const [jobDescription, setJobDescription] = useState('');
+  const [analyzedJobDescription, setAnalyzedJobDescription] = useState('');
   const [targetRole, setTargetRole] = useState('');
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
@@ -101,7 +121,9 @@ export default function Resume() {
                   sentence_improvements: an.sentence_improvements || [],
                   is_valid_resume: true,
                 });
-                if (detail.job_description) setJobDescription(detail.job_description);
+                const restoredJobDescription = detail.job_description || an.job_description || '';
+                setJobDescription(restoredJobDescription);
+                setAnalyzedJobDescription(restoredJobDescription);
                 setSaveSuccess(false);
               }
             }
@@ -184,6 +206,7 @@ export default function Resume() {
         job_description: jdToSend && jdToSend.trim() ? jdToSend.trim() : undefined,
       });
       setAnalysisResult(result);
+      setAnalyzedJobDescription(jdToSend?.trim() || '');
       setActiveResumeId(resumeId);
       sessionStorage.setItem('career_active_resume_id', resumeId);
       if (customFilename) {
@@ -236,11 +259,12 @@ export default function Resume() {
     }
   };
 
-  const handleLoadSaved = (saved) => {
+  function handleLoadSaved(saved) {
     setActiveResumeId(saved.resume_id);
     setActiveFilename(saved.filename);
     setTargetRole(saved.target_role || '');
     setJobDescription(saved.job_description || '');
+    setAnalyzedJobDescription(saved.job_description || '');
     setAnalysisResult({
       resume_score: saved.resume_score,
       ats_score: saved.ats_score,
@@ -260,7 +284,7 @@ export default function Resume() {
     setActiveTab('current');
     if (saved.analysis_id) sessionStorage.setItem('career_active_analysis_id', saved.analysis_id);
     if (saved.resume_id) sessionStorage.setItem('career_active_resume_id', saved.resume_id);
-  };
+  }
 
   const handleSelectRecentResume = async (selectedResume) => {
     setActiveResumeId(selectedResume.resume_id);
@@ -297,7 +321,9 @@ export default function Resume() {
           sentence_improvements: an.sentence_improvements || [],
           is_valid_resume: true,
         });
-        if (detail.job_description) setJobDescription(detail.job_description);
+        const restoredJobDescription = detail.job_description || an.job_description || '';
+        setJobDescription(restoredJobDescription);
+        setAnalyzedJobDescription(restoredJobDescription);
         setSaveSuccess(false);
         setActiveTab('current');
       } else {
@@ -323,6 +349,13 @@ export default function Resume() {
       alert(err.response?.data?.detail || 'Failed to delete saved analysis.');
     }
   };
+
+  const missingKeywords = getUniqueMissingKeywords(analysisResult);
+  const hasCurrentJobAnalysis = Boolean(
+    jobDescription.trim() &&
+    analysisResult?.has_target_job &&
+    jobDescription.trim() === analyzedJobDescription.trim()
+  );
 
   return (
     <div className="animate-in fade-in duration-500 pb-12 space-y-8">
@@ -800,42 +833,23 @@ export default function Resume() {
                       </h3>
                     </div>
 
-                    {analysisResult.has_target_job ? (
-                      (() => {
-                        const uniqueKeywords = Array.from(
-                          new Set(
-                            (analysisResult.missing_keywords && analysisResult.missing_keywords.length > 0)
-                              ? analysisResult.missing_keywords
-                              : (analysisResult.missing_keyword_details || []).map((item) =>
-                                  typeof item === 'string' ? item : item?.keyword
-                                )
-                          )
-                        ).filter(Boolean);
-
-                        return uniqueKeywords.length > 0 ? (
-                          <div className="flex flex-wrap gap-2">
-                            {uniqueKeywords.map((kw, i) => (
-                              <span
-                                key={i}
-                                className="px-3 py-1 bg-[#FAF7FD] border border-[#E4D5F3] text-[#542477] text-xs font-semibold rounded-lg hover:border-[#542477]/40 transition-colors"
-                              >
-                                {kw}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="p-3.5 rounded-xl bg-[#F0FDF4] border border-[#BBF7D0] text-[#16A34A] text-xs flex items-center gap-2">
-                            <CheckCircle2 size={16} className="shrink-0" />
-                            <span>All core technical requirements in the target job description were matched in your resume!</span>
-                          </div>
-                        );
-                      })()
-                    ) : (
-                      /* Small message when user has not supplied a job description */
-                      <div className="p-3.5 rounded-xl bg-[#FAF7FD] border border-[#E4D5F3] text-xs text-[#78678C] flex items-center gap-2">
-                        <Info size={15} className="shrink-0 text-[#542477]" />
-                        <span>Please provide a job description to identify missing keywords.</span>
+                    {!jobDescription.trim() ? (
+                      <p className="text-xs text-[#78678C]">Add a job description to see job-specific missing keywords.</p>
+                    ) : !hasCurrentJobAnalysis ? (
+                      <p className="text-xs text-[#78678C]">Analyze this resume with the current job description to see missing keywords.</p>
+                    ) : missingKeywords.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {missingKeywords.map((keyword) => (
+                          <span
+                            key={keyword.toLocaleLowerCase()}
+                            className="rounded-lg bg-[#F3E9FF] px-3 py-1 text-xs font-semibold text-[#542477]"
+                          >
+                            {keyword}
+                          </span>
+                        ))}
                       </div>
+                    ) : (
+                      <p className="text-xs text-[#78678C]">No missing keywords were identified for this job description.</p>
                     )}
                   </div>
 

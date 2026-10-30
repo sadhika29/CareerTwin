@@ -7,6 +7,7 @@ import urllib.parse
 from typing import Any, Dict, List, Optional
 
 from backend.services.skill_service import SkillService
+from backend.services.job_description import normalize_job_description
 
 logger = logging.getLogger(__name__)
 
@@ -138,7 +139,8 @@ class HimalayasClient:
             salary_range = f"Up to ${int(max_salary):,} {currency}/{salary_period}"
 
         # Description and clean text
-        desc = raw.get("description") or raw.get("excerpt") or ""
+        source_description = raw.get("description") or raw.get("excerpt") or ""
+        desc = normalize_job_description(source_description)
 
         # Extract skills using CareerTwin SkillService taxonomy
         skills_corpus = f"{title}\n{desc}"
@@ -170,6 +172,7 @@ class HimalayasClient:
             "salary_currency": currency,
             "salary_range": salary_range,
             "description": desc,
+            "_source_description": source_description if source_description != desc else None,
             "excerpt": raw.get("excerpt") or "",
             "application_link": raw.get("applicationLink") or f"https://himalayas.app/companies/{company_slug}/jobs",
             "apply_url": raw.get("applicationLink") or f"https://himalayas.app/companies/{company_slug}/jobs",

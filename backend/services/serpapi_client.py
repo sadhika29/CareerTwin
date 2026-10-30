@@ -8,6 +8,7 @@ import urllib.parse
 from typing import Any, Dict, List, Optional
 
 from backend.services.skill_service import SkillService
+from backend.services.job_description import normalize_job_description
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +112,8 @@ class SerpApiClient:
         location = raw.get("location") or "Remote"
         via = raw.get("via") or ""
         thumbnail = raw.get("thumbnail") or ""
-        desc = raw.get("description") or ""
+        source_description = raw.get("description") or ""
+        desc = normalize_job_description(source_description)
 
         # Deterministic unique ID
         raw_id = raw.get("job_id") or f"{title}_{company}_{location}"
@@ -172,6 +174,7 @@ class SerpApiClient:
             "employment_type": employment_type,
             "salary_range": salary_range,
             "description": desc,
+            "_source_description": source_description if source_description != desc else None,
             "application_link": job_url,
             "apply_url": job_url,
             "job_url": job_url,

@@ -1,4 +1,5 @@
 import re
+from backend.services.job_description import normalize_job_description
 
 
 def normalize_text(text: str) -> str:
@@ -7,7 +8,8 @@ def normalize_text(text: str) -> str:
     if not text:
         return ""
 
-    text = text.replace("\r\n", "\n")
+    text = normalize_job_description(text)
+    text = text.replace("\n", "\n")
     text = text.replace("\r", "\n")
 
     # Split inline section headers that appear after sentence periods

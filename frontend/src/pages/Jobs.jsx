@@ -1,22 +1,136 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useLayoutEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import {
   ArrowRight, Search, MapPin, Sparkles, Check, X, ShieldCheck,
   ExternalLink, Globe, DollarSign, Building2, RefreshCw, Filter,
-  ChevronDown, Calendar, Briefcase, Award, Layers, RotateCcw,
+  ChevronDown, Calendar, Briefcase, Award, RotateCcw,
   CheckCircle2, Clock, Eye, Bookmark, Send
 } from 'lucide-react';
 import {
-  getJobs, searchLiveJobs, syncJobs, getSyncStatus,
+  getJobs, searchLiveJobs, syncJobs,
   getInteractionsSummary, recordJobView, toggleSaveJob, confirmJobApplication
 } from '../features/jobs/jobService';
-import { getResumes } from '../features/resume/resumeService';
-import { getProfile } from '../features/profile/profileService';
 import ResumeMatchModal from '../components/ResumeMatchModal';
+import { normalizeJobRecord } from '../features/jobs/jobDescription';
+
+const FILTER_TRIGGER_CLASS = 'px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 transition-all';
+
+function FilterDropdown({ id, label, value, icon: Icon, options, openDropdown, setOpenDropdown, onSelect }) {
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
+  const [placement, setPlacement] = useState(null);
+  const isOpen = openDropdown === id;
+
+  useLayoutEffect(() => {
+    if (!isOpen) return undefined;
+
+    const positionMenu = () => {
+      const trigger = triggerRef.current;
+      if (!trigger) return;
+      const rect = trigger.getBoundingClientRect();
+      const menuHeight = menuRef.current?.offsetHeight || Math.min(options.length * 36 + 16, 320);
+      const below = window.innerHeight - rect.bottom - 8;
+      const above = rect.top - 8;
+      const openAbove = below < Math.min(menuHeight, 240) && above > below;
+      const width = Math.min(Math.max(rect.width, 176), window.innerWidth - 16);
+      const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
+      const maxHeight = Math.max(120, Math.min(320, (openAbove ? above : below) - 8));
+      setPlacement({ left, width, maxHeight, openAbove, bottom: window.innerHeight - rect.top + 8, top: rect.bottom + 8 });
+    };
+
+    positionMenu();
+    window.addEventListener('resize', positionMenu);
+    window.addEventListener('scroll', positionMenu, true);
+    const closeOnOutside = event => {
+      if (!triggerRef.current?.contains(event.target) && !menuRef.current?.contains(event.target)) {
+        setOpenDropdown(null);
+      }
+    };
+    const closeOnEscape = event => {
+      if (event.key === 'Escape') setOpenDropdown(null);
+    };
+    document.addEventListener('pointerdown', closeOnOutside);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      window.removeEventListener('resize', positionMenu);
+      window.removeEventListener('scroll', positionMenu, true);
+      document.removeEventListener('pointerdown', closeOnOutside);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [isOpen, options.length, setOpenDropdown]);
+
+  const selected = value !== 'all';
+  return (
+    <div className="shrink-0">
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        onClick={() => setOpenDropdown(current => current === id ? null : id)}
+        className={`${FILTER_TRIGGER_CLASS} ${selected
+          ? 'bg-[#F3E9FF] border-[#542477] text-[#542477]'
+          : 'bg-[#FAF7FD] border-[#E4D5F3] text-[#27113D] hover:border-[#D6C2EB]'}`}
+      >
+        <Icon size={12} className={selected ? 'text-[#542477]' : 'text-[#8A7A9E]'} />
+        <span>{selected ? (options.find(option => option.id === value)?.label || value) : label}</span>
+        <ChevronDown size={12} />
+      </button>
+      {isOpen && placement && createPortal(
+        <div
+          ref={menuRef}
+          role="listbox"
+          aria-label={label}
+          className="fixed z-[1000] overflow-y-auto overscroll-contain bg-white border border-[#E4D5F3] rounded-2xl shadow-xl p-2"
+          style={{ left: placement.left, width: placement.width, maxHeight: placement.maxHeight, ...(placement.openAbove ? { bottom: placement.bottom } : { top: placement.top }) }}
+        >
+          {options.map(option => (
+            <button
+              key={option.id}
+              type="button"
+              role="option"
+              aria-selected={value === option.id}
+              onClick={() => { onSelect(option.id); setOpenDropdown(null); }}
+              className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${value === option.id ? 'bg-[#F3E9FF] text-[#542477]' : 'text-[#27113D] hover:bg-[#FAF7FD]'}`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
+
+function readCachedJobs() {
+  try {
+    const parsed = JSON.parse(sessionStorage.getItem('career_jobs_cache') || 'null');
+    return Array.isArray(parsed) ? parsed.map(normalizeJobRecord) : [];
+  } catch {
+    return [];
+  }
+}
+
+function getPostedTimestamp(job, now = 0) {
+  const raw = job?.posted_timestamp ?? job?.posting_date ?? job?.posted_at;
+  if (typeof raw === 'number' && Number.isFinite(raw)) return raw > 1e12 ? raw / 1000 : raw;
+  if (typeof raw !== 'string' || !raw.trim()) return null;
+  const text = raw.toLowerCase().trim();
+  if (/today|hour|just now/.test(text)) return now - 3600;
+  if (/yesterday|1 day/.test(text)) return now - 86400;
+  const relative = text.match(/(\d+)\s*(day|week|month)/);
+  if (relative) return now - Number(relative[1]) * (relative[2] === 'week' ? 7 : relative[2] === 'month' ? 30 : 1) * 86400;
+  const parsed = Date.parse(raw);
+  return Number.isNaN(parsed) ? null : parsed / 1000;
+}
 
 export default function Jobs() {
-  const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [cachedJobs] = useState(readCachedJobs);
+  const [jobs, setJobs] = useState(cachedJobs);
+  const [loading, setLoading] = useState(cachedJobs.length === 0);
+  const [referenceNowSec] = useState(() => Date.now() / 1000);
   const [syncing, setSyncing] = useState(false);
   const [syncNotification, setSyncNotification] = useState('');
   const [lastSyncTime, setLastSyncTime] = useState('Recently');
@@ -41,18 +155,12 @@ export default function Jobs() {
   const [searchKeywords, setSearchKeywords] = useState('');
   const [locationInput, setLocationInput] = useState('');
   const [datePostedFilter, setDatePostedFilter] = useState('any'); // 'any' | '24h' | 'week' | 'month'
-  const [companyFilter, setCompanyFilter] = useState('all');
   const [experienceFilter, setExperienceFilter] = useState('all'); // 'all' | 'internship' | 'entry' | 'associate' | 'mid-senior' | 'director'
   const [employmentFilter, setEmploymentFilter] = useState('all'); // 'all' | 'full-time' | 'part-time' | 'contract' | 'internship'
   const [arrangementFilter, setArrangementFilter] = useState('all'); // 'all' | 'remote' | 'hybrid' | 'on-site'
 
-  // Additional Filters
-  const [industryFilter, setIndustryFilter] = useState('all');
-  const [salaryFilter, setSalaryFilter] = useState('all'); // 'all' | '50k' | '80k' | '100k' | '120k' | '150k'
-  const [techStackFilter, setTechStackFilter] = useState('all');
-
   // Active Dropdown state for filter bar
-  const [openDropdown, setOpenDropdown] = useState(null); // 'date' | 'exp' | 'company' | 'type' | 'arr' | 'salary' | 'tech' | 'industry' | null
+  const [openDropdown, setOpenDropdown] = useState(null);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -66,24 +174,14 @@ export default function Jobs() {
   const userId = localStorage.getItem('career_user') || '';
 
   // Initial load with instant session cache restoration
+  // Load once on mount; searches and refreshes call loadJobsData explicitly.
   useEffect(() => {
-    try {
-      const cached = sessionStorage.getItem('career_jobs_cache');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setJobs(parsed);
-          setLoading(false);
-        }
-      }
-    } catch {
-      // ignore
-    }
     loadJobsData();
     loadInteractionsSummary();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadInteractionsSummary = async () => {
+  async function loadInteractionsSummary() {
     try {
       const summary = await getInteractionsSummary();
       if (summary) {
@@ -92,7 +190,7 @@ export default function Jobs() {
     } catch (err) {
       console.warn('Interactions summary load warning:', err);
     }
-  };
+  }
 
   const handleToggleSave = async (job, e) => {
     if (e) {
@@ -182,7 +280,7 @@ export default function Jobs() {
     }
   };
 
-  const loadJobsData = async (query = '') => {
+  async function loadJobsData(query = '') {
     try {
       // Only set loading if no jobs are currently shown
       if (!jobs || jobs.length === 0) {
@@ -197,9 +295,10 @@ export default function Jobs() {
       });
 
       if (liveRes && liveRes.jobs && liveRes.jobs.length > 0) {
-        setJobs(liveRes.jobs);
+        const normalizedJobs = liveRes.jobs.map(normalizeJobRecord);
+        setJobs(normalizedJobs);
         try {
-          sessionStorage.setItem('career_jobs_cache', JSON.stringify(liveRes.jobs));
+          sessionStorage.setItem('career_jobs_cache', JSON.stringify(normalizedJobs));
         } catch {
           // ignore
         }
@@ -211,9 +310,10 @@ export default function Jobs() {
         try {
           const catData = await getJobs();
           if (catData && catData.jobs && catData.jobs.length > 0) {
-            setJobs(catData.jobs);
+            const normalizedJobs = catData.jobs.map(normalizeJobRecord);
+            setJobs(normalizedJobs);
             try {
-              sessionStorage.setItem('career_jobs_cache', JSON.stringify(catData.jobs));
+              sessionStorage.setItem('career_jobs_cache', JSON.stringify(normalizedJobs));
             } catch {
               // ignore
             }
@@ -227,7 +327,7 @@ export default function Jobs() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   // Synchronize Real-Time Jobs via authentic provider integration
   const handleSyncRealTimeJobs = async () => {
@@ -241,7 +341,7 @@ export default function Jobs() {
       });
 
       if (report && report.jobs && report.jobs.length > 0) {
-        setJobs(report.jobs);
+        setJobs(report.jobs.map(normalizeJobRecord));
       } else {
         // Refresh visible listings
         await loadJobsData();
@@ -279,41 +379,65 @@ export default function Jobs() {
   const allJobsPool = useMemo(() => {
     const map = new Map();
     jobs.forEach(j => {
-      if (j && j.job_id) map.set(j.job_id, j);
+      if (j && j.job_id) map.set(j.job_id, normalizeJobRecord(j));
     });
     if (interactionsSummary) {
       (interactionsSummary.saved_jobs || []).forEach(j => {
-        if (j && j.job_id && !map.has(j.job_id)) map.set(j.job_id, j);
+        if (j && j.job_id && !map.has(j.job_id)) map.set(j.job_id, normalizeJobRecord(j));
       });
       (interactionsSummary.viewed_jobs || []).forEach(j => {
-        if (j && j.job_id && !map.has(j.job_id)) map.set(j.job_id, j);
+        if (j && j.job_id && !map.has(j.job_id)) map.set(j.job_id, normalizeJobRecord(j));
       });
       (interactionsSummary.applied_jobs || []).forEach(j => {
-        if (j && j.job_id && !map.has(j.job_id)) map.set(j.job_id, j);
+        if (j && j.job_id && !map.has(j.job_id)) map.set(j.job_id, normalizeJobRecord(j));
       });
     }
     return Array.from(map.values());
   }, [jobs, interactionsSummary]);
 
-  // Extract unique companies from current data for company filter
-  const availableCompanies = useMemo(() => {
-    const set = new Set();
-    allJobsPool.forEach(j => {
-      if (j.company && j.company.trim()) set.add(j.company.trim());
+  const supportedFilterOptions = useMemo(() => {
+    const hasDate = allJobsPool.some(job => getPostedTimestamp(job, referenceNowSec) !== null);
+    const experienceTypes = [
+      ['internship', 'Internship'], ['entry', 'Entry level'], ['associate', 'Associate'],
+      ['mid-senior', 'Mid-Senior level'], ['director', 'Director / Executive']
+    ];
+    const hasExperience = key => allJobsPool.some(job => {
+      const exp = (job.experience_level || '').toLowerCase();
+      const title = (job.title || '').toLowerCase();
+      if (key === 'internship') return exp.includes('intern') || title.includes('intern');
+      if (key === 'entry') return exp.includes('entry') || title.includes('junior') || title.includes('entry');
+      if (key === 'associate') return exp.includes('associate') || exp.includes('mid');
+      if (key === 'mid-senior') return exp.includes('mid') || exp.includes('senior') || title.includes('senior') || title.includes('lead');
+      return exp.includes('director') || exp.includes('head') || title.includes('director') || title.includes('vp');
     });
-    return Array.from(set).sort();
-  }, [allJobsPool]);
-
-  // Extract top skills from current data for tech stack filter
-  const availableTechStacks = useMemo(() => {
-    const counts = {};
-    allJobsPool.forEach(j => {
-      (j.required_skills || []).forEach(s => {
-        counts[s] = (counts[s] || 0) + 1;
-      });
-    });
-    return Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 16);
-  }, [allJobsPool]);
+    const employmentTypes = [
+      ['full-time', 'Full-time'], ['part-time', 'Part-time'], ['contract', 'Contract'], ['internship', 'Internship']
+    ];
+    const arrangementTypes = [['remote', 'Remote'], ['hybrid', 'Hybrid'], ['on-site', 'On-site']];
+    const normalizeArrangement = job => {
+      const arrangement = (job.work_arrangement || '').toLowerCase();
+      const location = (job.location || '').toLowerCase();
+      if (arrangement.includes('remote') || job.is_remote || location.includes('remote')) return 'remote';
+      if (arrangement.includes('hybrid') || location.includes('hybrid')) return 'hybrid';
+      if (arrangement.includes('on-site') || arrangement.includes('onsite')) return 'on-site';
+      return null;
+    };
+    return {
+      date: [
+        { id: 'any', label: 'Any time' },
+        ...(hasDate ? [
+          { id: '24h', label: 'Past 24 hours' },
+          { id: 'week', label: 'Past week' },
+          { id: 'month', label: 'Past month' }
+        ] : [])
+      ],
+      experience: [{ id: 'all', label: 'All experience levels' }, ...experienceTypes.filter(([id]) => hasExperience(id)).map(([id, label]) => ({ id, label }))],
+      employment: [{ id: 'all', label: 'All types' }, ...employmentTypes.filter(([id]) => allJobsPool.some(job => (job.employment_type || '').toLowerCase().includes(id)))
+        .map(([id, label]) => ({ id, label }))],
+      arrangement: [{ id: 'all', label: 'Any arrangement' }, ...arrangementTypes.filter(([id]) => allJobsPool.some(job => normalizeArrangement(job) === id))
+        .map(([id, label]) => ({ id, label }))]
+    };
+  }, [allJobsPool, referenceNowSec]);
 
   // Comprehensive LinkedIn-Style Multi-Filter Logic
   const filteredJobs = useMemo(() => {
@@ -350,39 +474,13 @@ export default function Jobs() {
 
       // 3. Date Posted filter
       if (datePostedFilter !== 'any') {
-        const nowSec = Date.now() / 1000;
-        let jobTs = job.posted_timestamp;
-
-        // If not precomputed timestamp, try parsing string
-        if (!jobTs && (job.posting_date || job.posted_at)) {
-          const str = (job.posting_date || job.posted_at || '').toLowerCase();
-          if (str.includes('today') || str.includes('hour') || str.includes('just now')) {
-            jobTs = nowSec - 3600;
-          } else if (str.includes('yesterday') || str.includes('1 day')) {
-            jobTs = nowSec - 86400;
-          } else {
-            const m = str.match(/(\d+)\s*day/);
-            if (m) jobTs = nowSec - (parseInt(m[1]) * 86400);
-            const mw = str.match(/(\d+)\s*week/);
-            if (mw) jobTs = nowSec - (parseInt(mw[1]) * 7 * 86400);
-            const mm = str.match(/(\d+)\s*month/);
-            if (mm) jobTs = nowSec - (parseInt(mm[1]) * 30 * 86400);
-          }
-        }
-
-        if (jobTs) {
-          const diffDays = (nowSec - jobTs) / 86400;
-          if (datePostedFilter === '24h' && diffDays > 1.2) return false;
-          if (datePostedFilter === 'week' && diffDays > 7.5) return false;
-          if (datePostedFilter === 'month' && diffDays > 31) return false;
-        }
-      }
-
-      // 4. Company filter
-      if (companyFilter !== 'all') {
-        if ((job.company || '').toLowerCase().trim() !== companyFilter.toLowerCase().trim()) {
-          return false;
-        }
+        const nowSec = referenceNowSec;
+        const jobTs = getPostedTimestamp(job, nowSec);
+        if (jobTs === null) return false;
+        const diffDays = Math.max(0, (nowSec - jobTs) / 86400);
+        if (datePostedFilter === '24h' && diffDays > 1) return false;
+        if (datePostedFilter === 'week' && diffDays > 7) return false;
+        if (datePostedFilter === 'month' && diffDays > 30) return false;
       }
 
       // 5. Experience Level filter
@@ -415,44 +513,11 @@ export default function Jobs() {
         const arr = (job.work_arrangement || '').toLowerCase();
         const loc = (job.location || '').toLowerCase();
         if (arrangementFilter === 'remote') {
-          if (arr !== 'remote' && !job.is_remote && !loc.includes('remote')) return false;
+          if (!arr.includes('remote') && !job.is_remote && !loc.includes('remote')) return false;
         } else if (arrangementFilter === 'hybrid') {
-          if (arr !== 'hybrid' && !loc.includes('hybrid')) return false;
+          if (!arr.includes('hybrid') && !loc.includes('hybrid')) return false;
         } else if (arrangementFilter === 'on-site') {
-          if (arr === 'remote' || job.is_remote || loc.includes('remote') || arr === 'hybrid') return false;
-        }
-      }
-
-      // 8. Salary Range filter (only applies when actual salary is present)
-      if (salaryFilter !== 'all') {
-        const minThresh = parseInt(salaryFilter) * 1000;
-        let jobMin = job.min_salary;
-        if (!jobMin && job.salary_range) {
-          const match = job.salary_range.match(/\$?(\d+)[kK]?/);
-          if (match) {
-            jobMin = parseInt(match[1]) * (job.salary_range.toLowerCase().includes('k') ? 1000 : 1);
-          }
-        }
-        if (!jobMin || jobMin < minThresh) {
-          return false;
-        }
-      }
-
-      // 9. Tech Stack / Skills filter
-      if (techStackFilter !== 'all') {
-        const targetSkill = techStackFilter.toLowerCase();
-        const hasSkill = (job.required_skills || []).some(s => s.toLowerCase() === targetSkill);
-        const inDesc = (job.description || '').toLowerCase().includes(targetSkill);
-        if (!hasSkill && !inDesc) {
-          return false;
-        }
-      }
-
-      // 10. Industry / Category filter
-      if (industryFilter !== 'all') {
-        const ind = (job.industry || '').toLowerCase();
-        if (!ind.includes(industryFilter.toLowerCase())) {
-          return false;
+          if (!arr.includes('on-site') && !arr.includes('onsite')) return false;
         }
       }
 
@@ -460,8 +525,7 @@ export default function Jobs() {
     });
   }, [
     allJobsPool, activeSummaryFilter, interactionsSummary, searchKeywords, locationInput,
-    datePostedFilter, companyFilter, experienceFilter, employmentFilter,
-    arrangementFilter, salaryFilter, techStackFilter, industryFilter
+    datePostedFilter, experienceFilter, employmentFilter, arrangementFilter, referenceNowSec
   ]);
 
   // Pagination calculation
@@ -478,7 +542,7 @@ export default function Jobs() {
       const labels = { viewed: 'Viewed Jobs', saved: 'Saved Jobs', applied: 'Applied Jobs' };
       list.push({
         id: 'summary',
-        label: `Category: ${labels[activeSummaryFilter]}`,
+        label: `Status: ${labels[activeSummaryFilter]}`,
         clear: () => { setActiveSummaryFilter(null); setCurrentPage(1); }
       });
     }
@@ -491,9 +555,6 @@ export default function Jobs() {
     if (datePostedFilter !== 'any') {
       const labels = { '24h': 'Past 24 hours', 'week': 'Past week', 'month': 'Past month' };
       list.push({ id: 'date', label: `Date: ${labels[datePostedFilter]}`, clear: () => setDatePostedFilter('any') });
-    }
-    if (companyFilter !== 'all') {
-      list.push({ id: 'comp', label: `Company: ${companyFilter}`, clear: () => setCompanyFilter('all') });
     }
     if (experienceFilter !== 'all') {
       const labels = {
@@ -509,20 +570,10 @@ export default function Jobs() {
       const labels = { 'remote': 'Remote', 'hybrid': 'Hybrid', 'on-site': 'On-site' };
       list.push({ id: 'arr', label: `Arrangement: ${labels[arrangementFilter]}`, clear: () => setArrangementFilter('all') });
     }
-    if (salaryFilter !== 'all') {
-      list.push({ id: 'sal', label: `Salary: $${salaryFilter}+`, clear: () => setSalaryFilter('all') });
-    }
-    if (techStackFilter !== 'all') {
-      list.push({ id: 'tech', label: `Skill: ${techStackFilter}`, clear: () => setTechStackFilter('all') });
-    }
-    if (industryFilter !== 'all') {
-      list.push({ id: 'ind', label: `Category: ${industryFilter}`, clear: () => setIndustryFilter('all') });
-    }
     return list;
   }, [
-    activeSummaryFilter, searchKeywords, locationInput, datePostedFilter, companyFilter,
-    experienceFilter, employmentFilter, arrangementFilter, salaryFilter,
-    techStackFilter, industryFilter
+    activeSummaryFilter, searchKeywords, locationInput, datePostedFilter,
+    experienceFilter, employmentFilter, arrangementFilter
   ]);
 
   const handleResetAllFilters = () => {
@@ -530,19 +581,11 @@ export default function Jobs() {
     setSearchKeywords('');
     setLocationInput('');
     setDatePostedFilter('any');
-    setCompanyFilter('all');
     setExperienceFilter('all');
     setEmploymentFilter('all');
     setArrangementFilter('all');
-    setSalaryFilter('all');
-    setTechStackFilter('all');
-    setIndustryFilter('all');
     setCurrentPage(1);
     setOpenDropdown(null);
-  };
-
-  const toggleDropdown = (name) => {
-    setOpenDropdown(prev => prev === name ? null : name);
   };
 
   const handleMatchSuccess = (jobId, matchData, selectedResume) => {
@@ -744,356 +787,51 @@ export default function Jobs() {
           </div>
         </form>
 
-        {/* Compact LinkedIn-Style Filter Pills Row */}
-        <div className="pt-3 border-t border-[#E4D5F3] flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+        {/* Compact responsive filter row. Portaled menus escape this panel's clipping context. */}
+        <div className="pt-3 border-t border-[#E4D5F3] flex flex-wrap items-center gap-2 pb-1">
           <span className="text-[11px] font-black uppercase tracking-wider text-[#8A7A9E] shrink-0 mr-1 flex items-center gap-1">
             <Filter size={11} /> Filters:
           </span>
-
-          {/* Date Posted Filter Dropdown */}
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => toggleDropdown('date')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 transition-all ${
-                datePostedFilter !== 'any'
-                  ? 'bg-[#F3E9FF] border-[#542477] text-[#542477]'
-                  : 'bg-[#FAF7FD] border-[#E4D5F3] text-[#27113D] hover:border-[#D6C2EB]'
-              }`}
-            >
-              <Calendar size={12} className={datePostedFilter !== 'any' ? 'text-[#542477]' : 'text-[#8A7A9E]'} />
-              <span>
-                {datePostedFilter === 'any' ? 'Date Posted' : (
-                  datePostedFilter === '24h' ? 'Past 24h' : (datePostedFilter === 'week' ? 'Past week' : 'Past month')
-                )}
-              </span>
-              <ChevronDown size={12} />
-            </button>
-
-            {openDropdown === 'date' && (
-              <div className="absolute left-0 mt-2 w-48 bg-white border border-[#E4D5F3] rounded-2xl shadow-xl p-2 z-30 animate-in fade-in zoom-in-95">
-                {[
-                  { id: 'any', label: 'Any time' },
-                  { id: '24h', label: 'Past 24 hours' },
-                  { id: 'week', label: 'Past week' },
-                  { id: 'month', label: 'Past month' }
-                ].map(opt => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => { setDatePostedFilter(opt.id); setOpenDropdown(null); setCurrentPage(1); }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                      datePostedFilter === opt.id ? 'bg-[#F3E9FF] text-[#542477]' : 'text-[#27113D] hover:bg-[#FAF7FD]'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Experience Level Filter Dropdown */}
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => toggleDropdown('exp')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 transition-all ${
-                experienceFilter !== 'all'
-                  ? 'bg-[#F3E9FF] border-[#542477] text-[#542477]'
-                  : 'bg-[#FAF7FD] border-[#E4D5F3] text-[#27113D] hover:border-[#D6C2EB]'
-              }`}
-            >
-              <Award size={12} className={experienceFilter !== 'all' ? 'text-[#542477]' : 'text-[#8A7A9E]'} />
-              <span>
-                {experienceFilter === 'all' ? 'Experience Level' : (
-                  experienceFilter === 'entry' ? 'Entry Level' : (
-                    experienceFilter === 'mid-senior' ? 'Mid-Senior' : experienceFilter
-                  )
-                )}
-              </span>
-              <ChevronDown size={12} />
-            </button>
-
-            {openDropdown === 'exp' && (
-              <div className="absolute left-0 mt-2 w-52 bg-white border border-[#E4D5F3] rounded-2xl shadow-xl p-2 z-30 animate-in fade-in zoom-in-95">
-                {[
-                  { id: 'all', label: 'All experience levels' },
-                  { id: 'internship', label: 'Internship' },
-                  { id: 'entry', label: 'Entry level' },
-                  { id: 'associate', label: 'Associate' },
-                  { id: 'mid-senior', label: 'Mid-Senior level' },
-                  { id: 'director', label: 'Director / Executive' }
-                ].map(opt => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => { setExperienceFilter(opt.id); setOpenDropdown(null); setCurrentPage(1); }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                      experienceFilter === opt.id ? 'bg-[#F3E9FF] text-[#542477]' : 'text-[#27113D] hover:bg-[#FAF7FD]'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Work Arrangement Filter Dropdown (Remote / Hybrid / On-site) */}
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => toggleDropdown('arr')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 transition-all ${
-                arrangementFilter !== 'all'
-                  ? 'bg-[#F3E9FF] border-[#542477] text-[#542477]'
-                  : 'bg-[#FAF7FD] border-[#E4D5F3] text-[#27113D] hover:border-[#D6C2EB]'
-              }`}
-            >
-              <Globe size={12} className={arrangementFilter !== 'all' ? 'text-[#542477]' : 'text-[#8A7A9E]'} />
-              <span>
-                {arrangementFilter === 'all' ? 'Work Arrangement' : (
-                  arrangementFilter === 'remote' ? 'Remote' : (
-                    arrangementFilter === 'hybrid' ? 'Hybrid' : 'On-site'
-                  )
-                )}
-              </span>
-              <ChevronDown size={12} />
-            </button>
-
-            {openDropdown === 'arr' && (
-              <div className="absolute left-0 mt-2 w-48 bg-white border border-[#E4D5F3] rounded-2xl shadow-xl p-2 z-30 animate-in fade-in zoom-in-95">
-                {[
-                  { id: 'all', label: 'Any arrangement' },
-                  { id: 'remote', label: 'Remote' },
-                  { id: 'hybrid', label: 'Hybrid' },
-                  { id: 'on-site', label: 'On-site' }
-                ].map(opt => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => { setArrangementFilter(opt.id); setOpenDropdown(null); setCurrentPage(1); }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                      arrangementFilter === opt.id ? 'bg-[#F3E9FF] text-[#542477]' : 'text-[#27113D] hover:bg-[#FAF7FD]'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Employment Type Filter Dropdown */}
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => toggleDropdown('type')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 transition-all ${
-                employmentFilter !== 'all'
-                  ? 'bg-[#F3E9FF] border-[#542477] text-[#542477]'
-                  : 'bg-[#FAF7FD] border-[#E4D5F3] text-[#27113D] hover:border-[#D6C2EB]'
-              }`}
-            >
-              <Briefcase size={12} className={employmentFilter !== 'all' ? 'text-[#542477]' : 'text-[#8A7A9E]'} />
-              <span>{employmentFilter === 'all' ? 'Job Type' : employmentFilter}</span>
-              <ChevronDown size={12} />
-            </button>
-
-            {openDropdown === 'type' && (
-              <div className="absolute left-0 mt-2 w-44 bg-white border border-[#E4D5F3] rounded-2xl shadow-xl p-2 z-30 animate-in fade-in zoom-in-95">
-                {[
-                  { id: 'all', label: 'All types' },
-                  { id: 'full-time', label: 'Full-time' },
-                  { id: 'contract', label: 'Contract' },
-                  { id: 'part-time', label: 'Part-time' },
-                  { id: 'internship', label: 'Internship' }
-                ].map(opt => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => { setEmploymentFilter(opt.id); setOpenDropdown(null); setCurrentPage(1); }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                      employmentFilter === opt.id ? 'bg-[#F3E9FF] text-[#542477]' : 'text-[#27113D] hover:bg-[#FAF7FD]'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Company Filter Dropdown */}
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => toggleDropdown('company')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 transition-all ${
-                companyFilter !== 'all'
-                  ? 'bg-[#F3E9FF] border-[#542477] text-[#542477]'
-                  : 'bg-[#FAF7FD] border-[#E4D5F3] text-[#27113D] hover:border-[#D6C2EB]'
-              }`}
-            >
-              <Building2 size={12} className={companyFilter !== 'all' ? 'text-[#542477]' : 'text-[#8A7A9E]'} />
-              <span className="max-w-[120px] truncate">{companyFilter === 'all' ? 'Company' : companyFilter}</span>
-              <ChevronDown size={12} />
-            </button>
-
-            {openDropdown === 'company' && (
-              <div className="absolute left-0 mt-2 w-56 max-h-64 overflow-y-auto bg-white border border-[#E4D5F3] rounded-2xl shadow-xl p-2 z-30 animate-in fade-in zoom-in-95">
-                <button
-                  type="button"
-                  onClick={() => { setCompanyFilter('all'); setOpenDropdown(null); setCurrentPage(1); }}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                    companyFilter === 'all' ? 'bg-[#F3E9FF] text-[#542477]' : 'text-[#27113D] hover:bg-[#FAF7FD]'
-                  }`}
-                >
-                  All Companies
-                </button>
-                {availableCompanies.map(c => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => { setCompanyFilter(c); setOpenDropdown(null); setCurrentPage(1); }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold truncate transition-colors ${
-                      companyFilter === c ? 'bg-[#F3E9FF] text-[#542477]' : 'text-[#27113D] hover:bg-[#FAF7FD]'
-                    }`}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Technology / Skills Filter Dropdown */}
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => toggleDropdown('tech')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 transition-all ${
-                techStackFilter !== 'all'
-                  ? 'bg-[#F3E9FF] border-[#542477] text-[#542477]'
-                  : 'bg-[#FAF7FD] border-[#E4D5F3] text-[#27113D] hover:border-[#D6C2EB]'
-              }`}
-            >
-              <Layers size={12} className={techStackFilter !== 'all' ? 'text-[#542477]' : 'text-[#8A7A9E]'} />
-              <span>{techStackFilter === 'all' ? 'Tech Stack' : techStackFilter}</span>
-              <ChevronDown size={12} />
-            </button>
-
-            {openDropdown === 'tech' && (
-              <div className="absolute left-0 mt-2 w-52 max-h-64 overflow-y-auto bg-white border border-[#E4D5F3] rounded-2xl shadow-xl p-2 z-30 animate-in fade-in zoom-in-95">
-                <button
-                  type="button"
-                  onClick={() => { setTechStackFilter('all'); setOpenDropdown(null); setCurrentPage(1); }}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                    techStackFilter === 'all' ? 'bg-[#F3E9FF] text-[#542477]' : 'text-[#27113D] hover:bg-[#FAF7FD]'
-                  }`}
-                >
-                  All Tech Stacks
-                </button>
-                {availableTechStacks.map(t => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => { setTechStackFilter(t); setOpenDropdown(null); setCurrentPage(1); }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                      techStackFilter === t ? 'bg-[#F3E9FF] text-[#542477]' : 'text-[#27113D] hover:bg-[#FAF7FD]'
-                    }`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Salary Range Filter Dropdown */}
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => toggleDropdown('salary')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 transition-all ${
-                salaryFilter !== 'all'
-                  ? 'bg-[#F3E9FF] border-[#542477] text-[#542477]'
-                  : 'bg-[#FAF7FD] border-[#E4D5F3] text-[#27113D] hover:border-[#D6C2EB]'
-              }`}
-            >
-              <DollarSign size={12} className={salaryFilter !== 'all' ? 'text-[#542477]' : 'text-[#8A7A9E]'} />
-              <span>{salaryFilter === 'all' ? 'Salary' : `$${salaryFilter}+`}</span>
-              <ChevronDown size={12} />
-            </button>
-
-            {openDropdown === 'salary' && (
-              <div className="absolute left-0 mt-2 w-48 bg-white border border-[#E4D5F3] rounded-2xl shadow-xl p-2 z-30 animate-in fade-in zoom-in-95">
-                {[
-                  { id: 'all', label: 'Any salary' },
-                  { id: '50', label: '$50k+ / year' },
-                  { id: '80', label: '$80k+ / year' },
-                  { id: '100', label: '$100k+ / year' },
-                  { id: '120', label: '$120k+ / year' },
-                  { id: '150', label: '$150k+ / year' },
-                ].map(opt => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => { setSalaryFilter(opt.id); setOpenDropdown(null); setCurrentPage(1); }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                      salaryFilter === opt.id ? 'bg-[#F3E9FF] text-[#542477]' : 'text-[#27113D] hover:bg-[#FAF7FD]'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Industry Filter Dropdown */}
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => toggleDropdown('industry')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 transition-all ${
-                industryFilter !== 'all'
-                  ? 'bg-[#F3E9FF] border-[#542477] text-[#542477]'
-                  : 'bg-[#FAF7FD] border-[#E4D5F3] text-[#27113D] hover:border-[#D6C2EB]'
-              }`}
-            >
-              <Briefcase size={12} className={industryFilter !== 'all' ? 'text-[#542477]' : 'text-[#8A7A9E]'} />
-              <span>{industryFilter === 'all' ? 'Category' : industryFilter}</span>
-              <ChevronDown size={12} />
-            </button>
-
-            {openDropdown === 'industry' && (
-              <div className="absolute left-0 mt-2 w-56 bg-white border border-[#E4D5F3] rounded-2xl shadow-xl p-2 z-30 animate-in fade-in zoom-in-95">
-                {[
-                  { id: 'all', label: 'All Categories' },
-                  { id: 'Engineering', label: 'Engineering & Software' },
-                  { id: 'Data', label: 'Data & AI' },
-                  { id: 'Cloud', label: 'Cloud & DevOps' },
-                  { id: 'Product', label: 'Product & Design' },
-                  { id: 'Security', label: 'Security & Systems' }
-                ].map(opt => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => { setIndustryFilter(opt.id); setOpenDropdown(null); setCurrentPage(1); }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                      industryFilter === opt.id ? 'bg-[#F3E9FF] text-[#542477]' : 'text-[#27113D] hover:bg-[#FAF7FD]'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Reset All Button */}
+          <FilterDropdown
+            id="date"
+            label="Date Posted"
+            value={datePostedFilter}
+            icon={Calendar}
+            options={supportedFilterOptions.date}
+            openDropdown={openDropdown}
+            setOpenDropdown={setOpenDropdown}
+            onSelect={value => { setDatePostedFilter(value); setCurrentPage(1); }}
+          />
+          <FilterDropdown
+            id="exp"
+            label="Experience Level"
+            value={experienceFilter}
+            icon={Award}
+            options={supportedFilterOptions.experience}
+            openDropdown={openDropdown}
+            setOpenDropdown={setOpenDropdown}
+            onSelect={value => { setExperienceFilter(value); setCurrentPage(1); }}
+          />
+          <FilterDropdown
+            id="arr"
+            label="Work Arrangement"
+            value={arrangementFilter}
+            icon={Globe}
+            options={supportedFilterOptions.arrangement}
+            openDropdown={openDropdown}
+            setOpenDropdown={setOpenDropdown}
+            onSelect={value => { setArrangementFilter(value); setCurrentPage(1); }}
+          />
+          <FilterDropdown
+            id="type"
+            label="Job Type"
+            value={employmentFilter}
+            icon={Briefcase}
+            options={supportedFilterOptions.employment}
+            openDropdown={openDropdown}
+            setOpenDropdown={setOpenDropdown}
+            onSelect={value => { setEmploymentFilter(value); setCurrentPage(1); }}
+          />
           {activeFilters.length > 0 && (
             <button
               type="button"
@@ -1104,7 +842,6 @@ export default function Jobs() {
             </button>
           )}
         </div>
-
         {/* Active Filter Chips Strip */}
         {activeFilters.length > 0 && (
           <div className="pt-3 mt-3 border-t border-[#E4D5F3] flex flex-wrap items-center gap-2">
@@ -1496,6 +1233,7 @@ export default function Jobs() {
 
       {/* Resume Selection & Real Matching Modal */}
       <ResumeMatchModal
+        key={matchModalJob?.job_id ?? 'closed'}
         isOpen={Boolean(matchModalJob)}
         onClose={() => setMatchModalJob(null)}
         job={matchModalJob}

@@ -1,5 +1,9 @@
 from enum import Enum
+from typing import Literal
 from pydantic import BaseModel, Field
+
+
+SkillLevel = Literal["Beginner", "Intermediate", "Advanced", "Expert"]
 
 
 class PriorityLevel(str, Enum):
@@ -76,19 +80,15 @@ class CareerManagerSkillEnvelope(BaseModel):
 class UserSkillCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100, description="Skill name")
     category: str = Field(default="Programming Languages", description="Category")
-    proficiency: float = Field(default=50.0, ge=0.0, le=100.0, description="Current proficiency %")
-    target_proficiency: float = Field(default=80.0, ge=0.0, le=100.0, description="Target proficiency %")
-    notes: str = Field(default="", max_length=500, description="Optional notes")
-    learning_goal: str = Field(default="", max_length=500, description="Optional learning goal")
+    current_level: SkillLevel
+    target_level: SkillLevel
 
 
 class UserSkillUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     category: str | None = None
-    proficiency: float | None = Field(default=None, ge=0.0, le=100.0)
-    target_proficiency: float | None = Field(default=None, ge=0.0, le=100.0)
-    notes: str | None = None
-    learning_goal: str | None = None
+    current_level: SkillLevel | None = None
+    target_level: SkillLevel | None = None
 
 
 class UserSkillItem(BaseModel):
@@ -96,18 +96,15 @@ class UserSkillItem(BaseModel):
     user_id: str
     name: str
     category: str
-    proficiency: float
-    target_proficiency: float
-    proficiency_source: str = "self-assessed"
-    notes: str = ""
-    learning_goal: str = ""
+    current_level: SkillLevel | None = None
+    target_level: SkillLevel | None = None
     created_at: str
     updated_at: str
 
 
 class UserSkillsSummary(BaseModel):
     total_skills: int
-    proficient_skills: int
+    advanced_skills: int
     skills_to_improve: int
     target_role: str
 

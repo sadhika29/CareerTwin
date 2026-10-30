@@ -12,6 +12,12 @@ export async function submitAnswer(sessionId, payload) {
   return data
 }
 
+/** Restore a user-owned interview session after navigation or refresh. */
+export async function getInterviewSession(sessionId) {
+  const { data } = await axiosClient.get(`/interview/${sessionId}/session`)
+  return data
+}
+
 /** Get final interview result / summary */
 export async function getInterviewResult(sessionId) {
   const { data } = await axiosClient.get(`/interview/${sessionId}/result`)

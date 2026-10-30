@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, field_validator
+from backend.services.job_description import normalize_job_description
 
 
 class JobCreateRequest(BaseModel):
@@ -48,6 +49,11 @@ class JobResponse(BaseModel):
 
     created_at: str | None = None
     updated_at: str | None = None
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def clean_description(cls, value: object) -> str:
+        return normalize_job_description(value)
 
 
 class JobAnalysisRequest(BaseModel):

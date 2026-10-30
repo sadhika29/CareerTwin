@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 export default function AIRecommendations({ recommendations = [] }) {
   const defaultRecs = [
-    { priority: 'HIGH PRIORITY', title: 'Improve DSA', desc: 'Your DSA performance is below the required level for your target Software Engineer role.', to: '/preparation', btnText: 'Start Practice' },
+    { priority: 'HIGH PRIORITY', title: 'Improve DSA', desc: 'Practice a skills assessment to identify your current strengths and gaps.', to: '/assessment', btnText: 'Take Assessment' },
     { priority: 'MEDIUM', title: 'Build Portfolio Project', desc: 'Add 2 real-world projects to strengthen your profile and improve resume score.', to: '/resume', btnText: 'Update Profile' },
     { priority: 'MEDIUM', title: 'Practice Technical Interviews', desc: 'Your current interview score is 40%. Practice mock interviews.', to: '/interview', btnText: 'Mock Interview' },
     { priority: 'LOW', title: 'Apply to Jobs', desc: 'You have 5 highly matching jobs available.', to: '/jobs', btnText: 'View Jobs' }

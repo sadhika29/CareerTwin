@@ -69,8 +69,8 @@ export default function Dashboard() {
     { label: 'Find Jobs', icon: BriefcaseBusiness, to: '/jobs' },
     { label: 'Practice Interview', icon: MessageSquareText, to: '/interview' },
     { label: 'Improve Skills', icon: Target, to: '/skills' },
-    { label: 'Start Preparation', icon: BookOpen, to: '/preparation' },
-    { label: 'Career Planner', icon: Map, to: '/what-if' },
+    { label: 'Take Assessment', icon: BookOpen, to: '/assessment' },
+    { label: 'Career Roadmap', icon: Map, to: '/career' },
   ];
 
   return (

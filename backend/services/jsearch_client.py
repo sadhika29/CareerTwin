@@ -6,6 +6,7 @@ import urllib.parse
 from typing import Any, Dict, List, Optional
 
 from backend.services.skill_service import SkillService
+from backend.services.job_description import normalize_job_description
 
 logger = logging.getLogger(__name__)
 
@@ -150,7 +151,8 @@ class JSearchClient:
 
     def _normalize_job(self, raw: Dict[str, Any]) -> Dict[str, Any]:
         """Convert a raw JSearch posting into CareerTwin's canonical job representation."""
-        desc = raw.get("job_description") or ""
+        source_description = raw.get("job_description") or ""
+        desc = normalize_job_description(source_description)
         highlights = raw.get("job_highlights") or {}
 
         # Extract qualifications & responsibilities from highlights if available
@@ -192,6 +194,7 @@ class JSearchClient:
             "location": loc,
             "job_url": raw.get("job_apply_link") or raw.get("job_google_link") or "",
             "description": desc,
+            "_source_description": source_description if source_description != desc else None,
             "required_skills": required_skills,
             "preferred_skills": preferred_skills,
             "experience_requirements": quals[:3] if quals else ["Relevant industry or project experience"],

@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   X, Sparkles, FileText, CheckCircle2, AlertCircle,
-  ArrowRight, RefreshCw, Check, ShieldCheck, ChevronRight
+  ArrowRight, RefreshCw, Check
 } from 'lucide-react';
 import { listResumes } from '../features/resume/resumeService';
 import { matchJob } from '../features/jobs/jobService';
+import { normalizeJobRecord } from '../features/jobs/jobDescription';
 
 export default function ResumeMatchModal({
   isOpen,
@@ -22,15 +23,7 @@ export default function ResumeMatchModal({
   const [matchResult, setMatchResult] = useState(null);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    if (isOpen && job) {
-      setMatchResult(null);
-      setError('');
-      fetchUserResumes();
-    }
-  }, [isOpen, job]);
-
-  const fetchUserResumes = async () => {
+  async function fetchUserResumes() {
     if (!userId) {
       setLoadingResumes(false);
       return;
@@ -49,7 +42,22 @@ export default function ResumeMatchModal({
     } finally {
       setLoadingResumes(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    if (isOpen && job) {
+      let cancelled = false;
+      const timer = window.setTimeout(() => {
+        if (!cancelled) fetchUserResumes();
+      }, 0);
+      return () => {
+        cancelled = true;
+        window.clearTimeout(timer);
+      };
+    }
+    // Fetch resumes when a modal is opened for a job; job changes remount this modal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, job]);
 
   if (!isOpen || !job) return null;
 
@@ -70,7 +78,7 @@ export default function ResumeMatchModal({
         title: job.title,
         company: job.company,
         location: job.location,
-        description: job.description,
+        description: normalizeJobRecord(job).description,
         required_skills: job.required_skills || [],
         job_url: job.job_url || job.application_url,
       };

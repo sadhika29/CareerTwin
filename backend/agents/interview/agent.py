@@ -37,6 +37,12 @@ class InterviewAgent:
         skills: Optional[List[str]] = None,
         difficulty: str = "medium",
         company: Optional[str] = None,
+        experience_level: str = "intermediate",
+        job_description: Optional[str] = None,
+        resume_context: Optional[str] = None,
+        research_patterns: Optional[List[Dict[str, Any]]] = None,
+        asked_questions: Optional[List[str]] = None,
+        previous_answer: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """Generate structured interview questions via LLM or deterministic fallback."""
         if self.llm_client is not None:
@@ -47,6 +53,12 @@ class InterviewAgent:
                 difficulty=difficulty,
                 skills=skills,
                 company=company,
+                experience_level=experience_level,
+                job_description=job_description,
+                resume_context=resume_context,
+                research_patterns=research_patterns,
+                asked_questions=asked_questions,
+                previous_answer=previous_answer,
             )
             try:
                 raw_response = self.llm_client.generate_json(
@@ -64,12 +76,135 @@ class InterviewAgent:
 
                 questions = parsed.get("questions", [])
                 if questions and isinstance(questions, list):
-                    return questions[:count]
+                    usable = [q for q in questions if isinstance(q, dict) and str(q.get("question", "")).strip()]
+                    if usable:
+                        asked = {str(question).strip().casefold() for question in (asked_questions or [])}
+                        usable = [q for q in usable if str(q["question"]).strip().casefold() not in asked]
+                        if usable and (round_type != "multiple_choice" or self._valid_multiple_choice(usable[0])):
+                            return self._annotate_question_sources(usable[:count], research_patterns, "AI-generated original practice question")
             except Exception:
                 pass
 
-        # Robust Fallback Question Generation based on role and skills
-        return self._generate_fallback_questions(target_role, round_type, count, skills, difficulty)
+        # Original contextual fallback keeps the interview useful without an LLM.
+        questions = self._generate_contextual_fallback_questions(
+            target_role, round_type, count, difficulty, experience_level,
+            company, job_description, resume_context, asked_questions, previous_answer,
+        )
+        return self._annotate_question_sources(questions, research_patterns, "CareerTwin fallback original practice question")
+
+    @staticmethod
+    def _annotate_question_sources(questions, research_patterns, origin):
+        refs = [
+            {"topic": p.get("topic"), "target_role": p.get("target_role"),
+             "interview_format": p.get("interview_format"), "company": p.get("company"),
+             "source_platform": p.get("source_platform"), "source_url": p.get("source_url"),
+             "source_kind": p.get("source_kind"), "published_at": p.get("published_at"),
+             "catalog_researched_at": p.get("catalog_researched_at"),
+             "catalog_matched_at": p.get("catalog_matched_at"), "confidence": p.get("confidence")}
+            for p in (research_patterns or [])
+        ]
+        for question in questions:
+            question["origin"] = origin
+            question["source_references"] = refs
+        return questions
+
+    @staticmethod
+    def _valid_multiple_choice(question):
+        options = question.get("options")
+        correct = str(question.get("correct_option", "")).strip().upper()[:1]
+        return isinstance(options, list) and len(options) >= 2 and correct in {"A", "B", "C", "D"}
+
+    @staticmethod
+    def _generate_contextual_fallback_questions(
+        target_role, round_type, count, difficulty, experience_level,
+        company=None, job_description=None, resume_context=None,
+        asked_questions=None, previous_answer=None,
+    ):
+        fmt = str(round_type).lower()
+        behavioral = fmt in {"behavioral", "hr", "hr_behavioral"}
+        project_based = fmt in {"project", "resume_based"}
+        coding = fmt == "coding"
+        company_text = f" at {company}" if company else ""
+        context = " Use the supplied job requirements and candidate background where relevant." if job_description or resume_context else " Do not assume any specific candidate project."
+        if previous_answer:
+            templates = [
+                f"Your previous answer mentioned: {previous_answer[:180]}. What measurable result or trade-off supports that choice?{context}",
+                f"Consider an edge case that could invalidate the approach in your previous answer. How would you detect and handle it?{context}",
+                f"What would you change if the constraints in your previous answer doubled in scale?{context}",
+            ]
+        elif behavioral:
+            templates = [
+                "Tell me about a time you had to deliver under a tight deadline. How did you prioritize and what was the outcome?",
+                "Describe a disagreement with a teammate about an approach. How did you resolve it?",
+                "Tell me about a mistake or failed deliverable you owned. What did you communicate and change afterward?",
+                "Give an example of learning an unfamiliar tool quickly to complete a task.",
+                "Describe how you handled feedback that changed your original plan.",
+            ]
+        elif fmt == "scenario":
+            templates = [
+                f"A {target_role}{company_text} service starts returning intermittent 500 responses after a deployment. Walk through triage, mitigation, and root-cause analysis.",
+                "A database query that worked in staging becomes slow at production scale. What evidence would you gather, and how would you improve it safely?",
+                "Two requests update the same record at nearly the same time. Explain how you would prevent lost updates and preserve consistency.",
+                "An external dependency begins timing out during a traffic spike. How would you protect the API and recover gracefully?",
+                "A background worker's memory use grows over several hours. How would you isolate the cause and limit impact?",
+            ]
+        elif fmt == "multiple_choice":
+            templates = ["Which approach best handles concurrent updates to the same API resource?", "Which design best prevents an external service outage from cascading through a backend API?", "Which data structure is appropriate for tracking the most recently used cache entries?", "Which technique is the best first step when a production SQL query becomes slow?"]
+        elif project_based:
+            templates = [
+                "Choose a project from your selected resume. What problem did it solve, what did you personally implement, and how did you verify the result?",
+                "Walk me through one architectural choice in a project you listed. What alternatives did you consider and why did you choose this one?",
+                "Describe a difficult bug or limitation in one of your listed projects. How did you isolate it and what would you change now?",
+                "If the project you listed had to serve ten times more users, what would you measure and improve first?",
+                "Which part of a project listed in your resume did you own directly? How did you coordinate interfaces with other contributors?",
+            ]
+        elif coding:
+            templates = [
+                "Given a list of integers and a target, return the indices of two values whose sum equals the target. Explain complexity and duplicate handling.",
+                "Given a string, find the length of its longest substring without repeated characters. Describe your invariant and edge cases.",
+                "Design an LRU cache with get and put operations in average O(1) time. Explain the data structures and eviction behavior.",
+                "Given a binary tree, return its level-order traversal and explain how you handle an empty tree.",
+                "Given intervals, merge all overlapping ranges. Explain sorting, complexity, and boundary cases.",
+            ]
+        else:
+            templates = [
+                f"For a {target_role}{company_text} API, how would you validate input and return useful errors without exposing internals?{context}",
+                "A SQL endpoint has become slow as its table grows. How would you inspect the query plan and choose an index?",
+                "Explain how you would diagnose a race condition that appears only under concurrent requests.",
+                "Design a reliable job-tracking API. Describe its data model, idempotency, and failure handling.",
+                "How would you test a service that depends on a database and an unreliable external API?",
+                "Compare optimistic and pessimistic concurrency control. When would you choose each?",
+            ]
+        asked = {str(q).strip().lower() for q in (asked_questions or [])}
+        candidates = [q for q in templates if q.strip().lower() not in asked]
+        if not candidates:
+            candidates = templates
+        result = []
+        for index in range(count):
+            question = candidates[index % len(candidates)]
+            options = []
+            correct_option = ""
+            explanation = ""
+            if fmt == "multiple_choice":
+                options = [
+                    "A) Use a concurrency-safe strategy appropriate to the data and consistency requirements",
+                    "B) Disable validation and allow every request to write without coordination",
+                    "C) Retry every operation indefinitely with no timeout or idempotency key",
+                    "D) Store the value only in process memory and skip durable storage",
+                ]
+                correct_option = "A"
+                explanation = "The safe choice preserves correctness while making coordination and failure behavior explicit; the exact implementation depends on the storage system and workload."
+            result.append({
+                "question_id": f"q_{uuid.uuid4().hex[:10]}",
+                "question": question,
+                "code_snippet": "" if not coding else "# Write your solution here",
+                "options": options, "correct_option": correct_option, "explanation": explanation,
+                "category": "Behavioral" if behavioral else "Project" if project_based else "Coding" if coding else "Scenario" if fmt == "scenario" else "Technical",
+                "expected_key_points": ["Clarify constraints", "Explain trade-offs and edge cases"],
+                "difficulty": difficulty,
+                "experience_level": experience_level,
+            })
+        return result
 
     def evaluate_answer(
         self,
@@ -105,6 +240,7 @@ class InterviewAgent:
                 ],
                 "ideal_answer": f"Option {corr}: {explanation or 'Standard industry benchmark'}",
                 "feedback_summary": "Spot-on answer!" if is_correct else f"Incorrect selection. Option {corr} is the expected solution.",
+                "evaluation_origin": "rule_based_multiple_choice",
             }
 
         if not candidate_answer or not candidate_answer.strip():
@@ -164,161 +300,8 @@ class InterviewAgent:
             ],
             "ideal_answer": f"For {target_role}, clearly articulate problem constraints, trade-offs, and design patterns.",
             "feedback_summary": "Good conceptual understanding; deepen your explanations with implementation details.",
+            "evaluation_origin": "deterministic_fallback",
         }
-
-    def _generate_fallback_questions(
-        self,
-        target_role: str,
-        round_type: str,
-        count: int,
-        skills: Optional[List[str]],
-        difficulty: str,
-    ) -> List[Dict[str, Any]]:
-        bank = {
-            "technical": [
-                {
-                    "question_id": f"q_{uuid.uuid4().hex[:6]}",
-                    "question": "What is the time complexity and worst-case recursion stack space of the following quickselect implementation for finding the k-th smallest element?",
-                    "code_snippet": "def quickselect(nums, k):\n    pivot = nums[len(nums) // 2]\n    lows = [x for x in nums if x < pivot]\n    highs = [x for x in nums if x > pivot]\n    pivots = [x for x in nums if x == pivot]\n    if k < len(lows):\n        return quickselect(lows, k)\n    elif k < len(lows) + len(pivots):\n        return pivots[0]\n    else:\n        return quickselect(highs, k - len(lows) - len(pivots))",
-                    "options": [
-                        "A) Average O(N) time and worst-case O(N) auxiliary space",
-                        "B) Average O(N log N) time and worst-case O(1) space",
-                        "C) Average O(N^2) time and O(N) space",
-                        "D) Worst-case O(log N) time and O(log N) space",
-                        "E) Always O(1) time and O(N) space",
-                    ],
-                    "correct_option": "A",
-                    "explanation": "Quickselect partitions the array each step, yielding average time T(N) = N + N/2 + N/4 + ... = O(N). Because list comprehensions allocate new sub-arrays, the worst-case space is O(N).",
-                    "category": "Data Structures & Algorithms",
-                    "expected_key_points": ["Average O(N) master theorem", "Worst case O(N^2) if bad pivot", "Sublist allocation space cost"],
-                    "difficulty": difficulty,
-                },
-                {
-                    "question_id": f"q_{uuid.uuid4().hex[:6]}",
-                    "question": "In a distributed system handling high write volumes, which strategy best mitigates the write-amplification penalty of secondary B-Tree indexing?",
-                    "code_snippet": "-- Relational table with heavy INSERT rates\nCREATE TABLE events (\n    id BIGSERIAL PRIMARY KEY,\n    device_id VARCHAR(64),\n    payload JSONB,\n    created_at TIMESTAMP\n);\n-- How to index created_at & device_id efficiently without killing ingest throughput?",
-                    "options": [
-                        "A) Replace B-Tree indices with Log-Structured Merge (LSM) trees or append-only write buffering",
-                        "B) Create a hash index on every queried column",
-                        "C) Disable WAL (Write-Ahead Logging) globally",
-                        "D) Convert all transactions to SERIALIZABLE isolation level",
-                        "E) Use SQLite in-memory tables without persistence",
-                    ],
-                    "correct_option": "A",
-                    "explanation": "LSM trees transform random disk writes into sequential batch writes, substantially lowering write-amplification compared to modifying B-Tree pages on disk for every insert.",
-                    "category": "Databases & Storage",
-                    "expected_key_points": ["LSM trees batch sequential I/O", "B-Tree random write cost", "Write buffering queues"],
-                    "difficulty": difficulty,
-                },
-                {
-                    "question_id": f"q_{uuid.uuid4().hex[:6]}",
-                    "question": "What is the primary bug or performance anti-pattern in the following asynchronous FastAPI endpoint?",
-                    "code_snippet": "@router.get('/data')\nasync def get_analytics():\n    # Computationally expensive CPU-bound task\n    result = sum(i * i for i in range(50_000_000))\n    return {'result': result}",
-                    "options": [
-                        "A) Heavy synchronous CPU-bound operations in an async route block the main event loop for all concurrent requests",
-                        "B) FastAPI routes cannot return JSON dictionaries",
-                        "C) The range() function is deprecated in Python 3.12+",
-                        "D) Decorator @router.get must be replaced with @app.post",
-                        "E) There is no bug; async automatically spawns background OS threads for all CPU work",
-                    ],
-                    "correct_option": "A",
-                    "explanation": "In an async def endpoint, CPU-heavy synchronous computations block Python's single asyncio event loop, freezing all other incoming requests. It should be offloaded to run_in_threadpool or a Celery background worker.",
-                    "category": "Concurrency & Web Architecture",
-                    "expected_key_points": ["Blocking the event loop", "Use run_in_threadpool or multiprocessing", "Async I/O vs CPU bound"],
-                    "difficulty": difficulty,
-                },
-                {
-                    "question_id": f"q_{uuid.uuid4().hex[:6]}",
-                    "question": "How does React 18+ handle automatic batching for state updates initiated inside asynchronous callbacks or setTimeout?",
-                    "code_snippet": "function handleClick() {\n  setTimeout(() => {\n    setCount(c => c + 1);\n    setFlag(f => !f);\n    // How many re-renders occur here in React 18?\n  }, 1000);\n}",
-                    "options": [
-                        "A) Exactly 1 re-render because React 18 batches state updates even inside timeouts, promises, and native events",
-                        "B) Exactly 2 separate re-renders because setTimeout escapes React's batching mechanism",
-                        "C) React throws an Uncaught Synchronous Batch Error",
-                        "D) Zero re-renders because updates inside setTimeout are completely ignored",
-                        "E) Infinite re-renders unless flushSync is invoked",
-                    ],
-                    "correct_option": "A",
-                    "explanation": "Prior to React 18, state updates inside promises or timeouts triggered separate re-renders. React 18 introduced Automatic Batching across all events, timeouts, and promises, resulting in only 1 render.",
-                    "category": "Frontend Architecture & React",
-                    "expected_key_points": ["React 18 automatic batching", "Single render pass", "flushSync override if needed"],
-                    "difficulty": difficulty,
-                },
-                {
-                    "question_id": f"q_{uuid.uuid4().hex[:6]}",
-                    "question": "Which algorithm is best suited for implementing rate limiting across multiple independent server instances with low latency and bounded memory?",
-                    "code_snippet": "// Distributed Redis Rate Limiter\n// Goal: Allow 100 requests per minute per IP across a cluster of 10 microservice pods\n// Need: Minimal race conditions, zero synchronization drift",
-                    "options": [
-                        "A) Sliding Window Counter using Redis sorted sets (ZSET) or token bucket Lua scripts",
-                        "B) Linear regression extrapolation",
-                        "C) Storing an unbounded in-memory array of timestamps in each pod's local RAM",
-                        "D) SHA-256 cryptographic proof-of-work",
-                        "E) Polling an external MySQL table every 10 milliseconds",
-                    ],
-                    "correct_option": "A",
-                    "explanation": "Redis ZSETs or atomic Token Bucket Lua scripts allow accurate sliding window tracking with minimal memory and sub-millisecond evaluation across distributed application instances.",
-                    "category": "Distributed Systems",
-                    "expected_key_points": ["Atomic Redis Lua execution", "Sliding window precision", "Elimination of boundary spikes"],
-                    "difficulty": difficulty,
-                },
-            ],
-            "behavioral": [
-                {
-                    "question_id": f"q_{uuid.uuid4().hex[:6]}",
-                    "question": "When facing a high-severity production outage where root cause is initially uncertain, what is the most effective STAR-aligned incident response protocol?",
-                    "code_snippet": "",
-                    "options": [
-                        "A) Immediately rollback the last deployment to restore service, establish an incident commander, and communicate transparent status updates before deep-dive RCA",
-                        "B) Start rewriting the codebase from scratch on the main branch",
-                        "C) Silence monitoring alerts to reduce noise while debugging",
-                        "D) Blame the junior engineer who pushed the last commit in public channels",
-                        "E) Wait until the next business day to investigate",
-                    ],
-                    "correct_option": "A",
-                    "explanation": "In production incidents, prioritizing mitigation (rollback/failover), designating an incident commander, and transparent stakeholder communication take precedence before conducting a blameless post-mortem.",
-                    "category": "Incident Response & Leadership",
-                    "expected_key_points": ["Mitigate before debugging", "Designate Incident Commander", "Blameless post-mortem"],
-                    "difficulty": difficulty,
-                },
-                {
-                    "question_id": f"q_{uuid.uuid4().hex[:6]}",
-                    "question": "A senior team member insists on adopting an unproven new library that could delay a critical release. How do you constructively handle this technical disagreement?",
-                    "code_snippet": "",
-                    "options": [
-                        "A) Propose a time-boxed spike / benchmark against project requirements and trade-offs, then align on data-driven criteria with stakeholders",
-                        "B) Refuse to speak to them until they concede",
-                        "C) Escalate immediately to the CEO without discussing it first",
-                        "D) Silently sabotage their pull request",
-                        "E) Accept the unproven library without any investigation",
-                    ],
-                    "correct_option": "A",
-                    "explanation": "Data-driven evaluation via a time-boxed prototype or benchmark allows objective evaluation of risk, performance, and maintenance overhead without personal conflict.",
-                    "category": "Collaboration & Conflict Resolution",
-                    "expected_key_points": ["Objective criteria and spikes", "Aligning on project deadlines and risks", "Disagree and commit culture"],
-                    "difficulty": difficulty,
-                },
-            ],
-        }
-        selected = bank.get(round_type.lower(), bank["technical"])
-        while len(selected) < count:
-            selected.append({
-                "question_id": f"q_{uuid.uuid4().hex[:6]}",
-                "question": f"In {target_role} production environments, what is the best practice for managing secrets and API keys securely across environments?",
-                "code_snippet": "",
-                "options": [
-                    "A) Use centralized secret managers (e.g. AWS Secrets Manager, HashiCorp Vault) injected at runtime via environment variables",
-                    "B) Hardcode secrets directly inside Git source code files",
-                    "C) Email plain text keys to teammates whenever needed",
-                    "D) Store all keys in a public Google Drive spreadsheet",
-                    "E) Encode keys in base64 inside frontend client bundles",
-                ],
-                "correct_option": "A",
-                "explanation": "Hardcoded or client-exposed secrets pose extreme security vulnerabilities. Industry standard mandates centralized secret vaults with role-based IAM and automated rotation.",
-                "category": "Security & Architecture",
-                "expected_key_points": ["Secret managers / Vault", "IAM least privilege", "Runtime environment injection"],
-                "difficulty": difficulty,
-            })
-        return selected[:count]
 
     def to_career_manager_envelope(self, score: float, session_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Format interview evaluation response for Career Manager contract."""

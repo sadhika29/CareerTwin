@@ -45,8 +45,8 @@ export default function WhatIfCard() {
       </div>
 
       <div className="mt-auto">
-        <Link to="/what-if" className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors">
-          Simulate Improvement <ArrowRight size={16} />
+        <Link to="/career" className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors">
+          Explore Career Roadmap <ArrowRight size={16} />
         </Link>
       </div>
     </div>

@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from backend.database.firestore import FirestoreDatabase
 from backend.models.job import Job
+from backend.services.job_description import normalize_job_description
 from backend.services.job_parser import parse_job_description
 
 
@@ -33,6 +34,9 @@ class JobService:
 
         if not description or not description.strip():
             raise ValueError("Job description cannot be empty.")
+
+        source_description = description
+        description = normalize_job_description(description)
 
         job_id = str(uuid4())
         now = datetime.now(timezone.utc)
@@ -66,6 +70,7 @@ class JobService:
                 "location": job.location,
                 "job_url": job.job_url,
                 "description": job.description,
+                **({"source_description": source_description} if source_description != job.description else {}),
                 "required_skills": job.required_skills,
                 "preferred_skills": job.preferred_skills,
                 "experience_requirements": job.experience_requirements,
@@ -149,7 +154,7 @@ class JobService:
             company=document.get("company", ""),
             location=document.get("location", ""),
             job_url=document.get("job_url", ""),
-            description=document.get("description", ""),
+            description=normalize_job_description(document.get("description", "")),
             required_skills=document.get(
                 "required_skills",
                 [],
@@ -203,7 +208,7 @@ class JobService:
                     company=document.get("company", ""),
                     location=document.get("location", ""),
                     job_url=document.get("job_url", ""),
-                    description=document.get("description", ""),
+                    description=normalize_job_description(document.get("description", "")),
                     required_skills=document.get("required_skills", []),
                     preferred_skills=document.get("preferred_skills", []),
                     experience_requirements=document.get(
@@ -366,7 +371,7 @@ class JobService:
             if job_fallback_data and isinstance(job_fallback_data, dict):
                 req_skills = job_fallback_data.get("required_skills") or []
                 pref_skills = job_fallback_data.get("preferred_skills") or []
-                desc = job_fallback_data.get("description", "")
+                desc = normalize_job_description(job_fallback_data.get("description", ""))
                 if not req_skills and desc:
                     from backend.services.skill_service import SkillService
                     extracted = SkillService.extract_skills(f"{job_fallback_data.get('title', '')}\n{desc}")

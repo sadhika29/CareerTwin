@@ -11,7 +11,6 @@ from typing import Generator, List, Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SPEECHIFY_KEY = "sk_3y7bv3xyzfybavkm916gpz0cdy5xyxagmz5mcss37pk"
 DEFAULT_VOICE_ID = "dominic_32"
 DEFAULT_MODEL = "simba-3.2"
 
@@ -33,7 +32,8 @@ class SpeechifyService:
         default_voice_id: Optional[str] = None,
         default_model: Optional[str] = None,
     ):
-        self.token = token or os.getenv("SPEECHIFY_API_KEY") or DEFAULT_SPEECHIFY_KEY
+        # Provider credentials belong in the environment, never in source control.
+        self.token = token or os.getenv("SPEECHIFY_API_KEY")
         self.default_voice_id = default_voice_id or os.getenv("SPEECHIFY_VOICE_ID") or DEFAULT_VOICE_ID
         self.default_model = default_model or os.getenv("SPEECHIFY_MODEL") or DEFAULT_MODEL
         self._client = None

@@ -8,14 +8,10 @@ import JobDetails from '../pages/JobDetails'
 import SkillGaps from '../pages/SkillGaps'
 import Skills from '../pages/Skills'
 import DigitalTwin from '../pages/DigitalTwin'
-import Preparation from '../pages/Preparation'
 import Assessment from '../pages/Assessment'
-import Performance from '../pages/Performance'
 import Interview from '../pages/Interview'
-import WhatIfPlanner from '../pages/WhatIfPlanner'
 import Settings from '../pages/Settings'
 import Login from '../pages/Login'
-import Applications from '../pages/Applications'
 import Signup from '../pages/Signup'
 import ForgotPassword from '../pages/ForgotPassword'
 import Home from '../pages/Home'
@@ -46,22 +42,22 @@ function ProtectedRoutes() {
         <Route path="/career-planning" element={<DigitalTwin />} />
         <Route path="/digital-twin" element={<DigitalTwin />} />
         <Route path="/roadmap" element={<DigitalTwin />} />
-        <Route path="/what-if" element={<WhatIfPlanner />} />
+        <Route path="/what-if" element={<Navigate to="/career" replace />} />
 
         {/* Skills Management & Practice */}
         <Route path="/skills" element={<Skills />} />
         <Route path="/skill-gaps" element={<SkillGaps />} />
         <Route path="/skill-gap-analysis" element={<SkillGaps />} />
 
-        {/* Preparation, Assessment & DSA */}
-        <Route path="/preparation" element={<Preparation />} />
+        {/* Assessment & DSA */}
         <Route path="/assessment" element={<Assessment />} />
         <Route path="/skills-assessment" element={<Assessment />} />
         <Route path="/dsa-practice" element={<Assessment />} />
-        <Route path="/performance" element={<Performance />} />
+        <Route path="/performance" element={<Navigate to="/assessment" replace />} />
 
         {/* Interview Preparation */}
         <Route path="/interview" element={<Interview />} />
+        <Route path="/interview/room/:sessionId" element={<Interview />} />
         <Route path="/interview-prep" element={<Interview />} />
         <Route path="/interview-preparation" element={<Interview />} />
 

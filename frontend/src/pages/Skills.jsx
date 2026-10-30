@@ -14,6 +14,7 @@ import {
   GFG_BASE_URL, W3SCHOOLS_BASE_URL,
   DSA_PROBLEMS, APTITUDE_TOPICS, PROGRAMMING_LANGUAGES
 } from '../features/skills/learningResourcesData';
+import { getSkillLevel, SKILL_LEVELS, SKILL_LEVEL_RANK } from '../features/skills/proficiency';
 
 const SKILL_CATEGORIES = [
   'Programming Languages',
@@ -31,7 +32,7 @@ export default function Skills() {
   const [skills, setSkills] = useState([]);
   const [summary, setSummary] = useState({
     total_skills: 0,
-    proficient_skills: 0,
+    advanced_skills: 0,
     skills_to_improve: 0,
     target_role: 'Software Engineer',
   });
@@ -42,7 +43,7 @@ export default function Skills() {
   // Table filters & sorting
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [sortBy, setSortBy] = useState('updated'); // 'updated' | 'prof_desc' | 'prof_asc' | 'name'
+  const [sortBy, setSortBy] = useState('updated'); // 'updated' | 'level_desc' | 'level_asc' | 'name'
 
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -54,10 +55,8 @@ export default function Skills() {
   // Skill Form state
   const [formName, setFormName] = useState('');
   const [formCategory, setFormCategory] = useState('Programming Languages');
-  const [formProficiency, setFormProficiency] = useState(60);
-  const [formTargetProficiency, setFormTargetProficiency] = useState(85);
-  const [formNotes, setFormNotes] = useState('');
-  const [formLearningGoal, setFormLearningGoal] = useState('');
+  const [formCurrentLevel, setFormCurrentLevel] = useState('');
+  const [formTargetLevel, setFormTargetLevel] = useState('');
   const [formError, setFormError] = useState('');
   const [formSubmitting, setFormSubmitting] = useState(false);
 
@@ -120,10 +119,8 @@ export default function Skills() {
   const openAddModal = () => {
     setFormName('');
     setFormCategory('Programming Languages');
-    setFormProficiency(60);
-    setFormTargetProficiency(85);
-    setFormNotes('');
-    setFormLearningGoal('');
+    setFormCurrentLevel('');
+    setFormTargetLevel('');
     setFormError('');
     setIsAddModalOpen(true);
   };
@@ -132,10 +129,8 @@ export default function Skills() {
     setEditingSkill(skill);
     setFormName(skill.name);
     setFormCategory(skill.category);
-    setFormProficiency(skill.proficiency);
-    setFormTargetProficiency(skill.target_proficiency);
-    setFormNotes(skill.notes || '');
-    setFormLearningGoal(skill.learning_goal || '');
+    setFormCurrentLevel(getSkillLevel(skill, 'current_level'));
+    setFormTargetLevel(getSkillLevel(skill, 'target_level'));
     setFormError('');
   };
 
@@ -144,6 +139,10 @@ export default function Skills() {
     const cleanName = formName.trim();
     if (!cleanName) {
       setFormError('Please enter a skill name.');
+      return;
+    }
+    if (!SKILL_LEVELS.includes(formCurrentLevel) || !SKILL_LEVELS.includes(formTargetLevel)) {
+      setFormError('Please select both current and target skill levels.');
       return;
     }
 
@@ -156,10 +155,8 @@ export default function Skills() {
         const updated = await updateUserSkill(editingSkill.id, {
           name: cleanName,
           category: formCategory,
-          proficiency: Number(formProficiency),
-          target_proficiency: Number(formTargetProficiency),
-          notes: formNotes.trim(),
-          learning_goal: formLearningGoal.trim(),
+          current_level: formCurrentLevel,
+          target_level: formTargetLevel,
         });
 
         setSkills((prev) =>
@@ -172,10 +169,8 @@ export default function Skills() {
         const created = await createUserSkill({
           name: cleanName,
           category: formCategory,
-          proficiency: Number(formProficiency),
-          target_proficiency: Number(formTargetProficiency),
-          notes: formNotes.trim(),
-          learning_goal: formLearningGoal.trim(),
+          current_level: formCurrentLevel,
+          target_level: formTargetLevel,
         });
 
         setSkills((prev) => [created, ...prev]);
@@ -323,14 +318,15 @@ export default function Skills() {
           const q = searchQuery.toLowerCase();
           const matchesName = s.name.toLowerCase().includes(q);
           const matchesCategory = s.category.toLowerCase().includes(q);
-          const matchesNotes = (s.notes || '').toLowerCase().includes(q);
-          if (!matchesName && !matchesCategory && !matchesNotes) return false;
+          if (!matchesName && !matchesCategory) return false;
         }
         return true;
       })
       .sort((a, b) => {
-        if (sortBy === 'prof_desc') return b.proficiency - a.proficiency;
-        if (sortBy === 'prof_asc') return a.proficiency - b.proficiency;
+        const aLevel = SKILL_LEVEL_RANK[getSkillLevel(a, 'current_level')] ?? -1;
+        const bLevel = SKILL_LEVEL_RANK[getSkillLevel(b, 'current_level')] ?? -1;
+        if (sortBy === 'level_desc') return bLevel - aLevel;
+        if (sortBy === 'level_asc') return aLevel - bLevel;
         if (sortBy === 'name') return a.name.localeCompare(b.name);
         // Default: updated
         return new Date(b.updated_at || 0) - new Date(a.updated_at || 0);
@@ -408,7 +404,7 @@ export default function Skills() {
             Your Skills
           </h1>
           <p className="text-xs md:text-sm text-[#8A7A9E] mt-1 font-medium">
-            Add your skills, track your proficiency, and improve them for your target roles.
+            Add your skills, track your current level, and set goals for your target roles.
           </p>
         </div>
         <button
@@ -445,7 +441,7 @@ export default function Skills() {
           </span>
         </div>
 
-        {/* Card 2: Proficient Skills (>= 70%) */}
+        {/* Card 2: Skills at Advanced or Expert level */}
         <div className="bg-white border border-[#E4D5F3] rounded-2xl p-5 shadow-[0_2px_12px_rgba(84,36,119,0.03)] flex items-center justify-between">
           <div className="flex items-center gap-3.5">
             <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -453,19 +449,19 @@ export default function Skills() {
             </div>
             <div>
               <div className="text-[11px] font-bold text-[#8A7A9E] uppercase tracking-wider">
-                Proficient Skills
+                Advanced Skills
               </div>
               <div className="text-2xl font-heading font-black text-[#27113D] leading-tight mt-0.5">
-                {summary.proficient_skills}
+                {summary.advanced_skills}
               </div>
             </div>
           </div>
           <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-            ≥ 70%
+            Advanced or Expert
           </span>
         </div>
 
-        {/* Card 3: Skills to Improve (< target_proficiency) */}
+        {/* Card 3: Skills below their selected target level */}
         <div className="bg-white border border-[#E4D5F3] rounded-2xl p-5 shadow-[0_2px_12px_rgba(84,36,119,0.03)] flex items-center justify-between">
           <div className="flex items-center gap-3.5">
             <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
@@ -553,8 +549,8 @@ export default function Skills() {
               className="px-3 py-2 rounded-xl border border-[#E4D5F3] bg-[#FAF7FD] text-xs font-semibold text-[#27113D] focus:outline-none focus:border-[#542477] cursor-pointer"
             >
               <option value="updated">Recently Updated</option>
-              <option value="prof_desc">Proficiency (High to Low)</option>
-              <option value="prof_asc">Proficiency (Low to High)</option>
+              <option value="level_desc">Skill Level (High to Low)</option>
+              <option value="level_asc">Skill Level (Low to High)</option>
               <option value="name">Skill Name (A–Z)</option>
             </select>
 
@@ -615,7 +611,7 @@ export default function Skills() {
             </h3>
             <p className="text-xs text-[#8A7A9E] max-w-sm mx-auto mt-1">
               {skills.length === 0
-                ? 'Add your programming languages, frameworks, and technical abilities to start tracking proficiency.'
+                ? 'Add your programming languages, frameworks, and technical abilities to start tracking skill levels.'
                 : 'Try adjusting your search keywords or category filters.'}
             </p>
             {skills.length === 0 && (
@@ -635,7 +631,7 @@ export default function Skills() {
                 <tr className="bg-[#FAF7FD] border-b border-[#E4D5F3] text-[#8A7A9E] uppercase font-bold text-[10px] tracking-wider">
                   <th className="py-3 px-4">Skill Name</th>
                   <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4 min-w-[170px]">Proficiency</th>
+                  <th className="py-3 px-4 min-w-[150px]">Current Skill Level</th>
                   <th className="py-3 px-4">Target Level</th>
                   <th className="py-3 px-4">Last Updated</th>
                   <th className="py-3 px-4 text-right">Actions</th>
@@ -643,8 +639,11 @@ export default function Skills() {
               </thead>
               <tbody className="divide-y divide-[#F3E9FF]">
                 {filteredSkills.map((s) => {
-                  const isProficient = s.proficiency >= 70;
-                  const isTargetMet = s.proficiency >= s.target_proficiency;
+                  const currentLevel = getSkillLevel(s, 'current_level');
+                  const targetLevel = getSkillLevel(s, 'target_level');
+                  const currentRank = SKILL_LEVEL_RANK[currentLevel];
+                  const targetRank = SKILL_LEVEL_RANK[targetLevel];
+                  const isTargetMet = currentRank !== undefined && targetRank !== undefined && currentRank >= targetRank;
 
                   return (
                     <tr
@@ -661,11 +660,6 @@ export default function Skills() {
                             </span>
                           ) : null}
                         </div>
-                        {s.learning_goal && (
-                          <div className="text-[10px] text-[#8A7A9E] mt-0.5 truncate max-w-xs">
-                            🎯 {s.learning_goal}
-                          </div>
-                        )}
                       </td>
 
                       {/* Category */}
@@ -675,27 +669,21 @@ export default function Skills() {
                         </span>
                       </td>
 
-                      {/* Proficiency Bar */}
+                      {/* Current Skill Level */}
                       <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex-1 h-2 bg-[#F3E9FF] rounded-full overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all duration-500 ${
-                                isProficient ? 'bg-emerald-500' : 'bg-[#542477]'
-                              }`}
-                              style={{ width: `${Math.min(100, Math.max(0, s.proficiency))}%` }}
-                            />
-                          </div>
-                          <span className="font-bold text-[#27113D] text-xs min-w-[36px] text-right">
-                            {Math.round(s.proficiency)}%
-                          </span>
-                        </div>
+                        <span className={`px-2.5 py-1 rounded-full font-semibold text-[11px] inline-block ${
+                          currentLevel === 'Expert' || currentLevel === 'Advanced'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-[#F3E9FF] text-[#542477] border border-[#E4D5F3]'
+                        }`}>
+                          {currentLevel || 'Not set'}
+                        </span>
                       </td>
 
                       {/* Target Level */}
                       <td className="py-3.5 px-4">
                         <span className="font-semibold text-[#69567E]">
-                          {Math.round(s.target_proficiency)}%
+                          {targetLevel || 'Not set'}
                         </span>
                       </td>
 
@@ -1310,77 +1298,39 @@ export default function Skills() {
                 </select>
               </div>
 
-              {/* Sliders: Proficiency & Target */}
+              {/* Skill Levels */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-bold text-[#27113D]">
-                      Current Proficiency
-                    </label>
-                    <span className="text-xs font-bold text-[#542477]">
-                      {formProficiency}%
-                    </span>
-                  </div>
-                  <input
-                    id="slider-form-proficiency"
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={formProficiency}
-                    onChange={(e) => setFormProficiency(Number(e.target.value))}
-                    className="w-full accent-[#542477] cursor-pointer"
-                  />
+                  <label htmlFor="select-form-current-level" className="block text-xs font-bold text-[#27113D] mb-1">
+                    Current Skill Level
+                  </label>
+                  <select
+                    id="select-form-current-level"
+                    value={formCurrentLevel}
+                    onChange={(e) => setFormCurrentLevel(e.target.value)}
+                    required
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#E4D5F3] bg-white text-xs font-medium text-[#27113D] focus:outline-none focus:border-[#542477] cursor-pointer"
+                  >
+                    <option value="" disabled>Select current level</option>
+                    {SKILL_LEVELS.map((level) => <option key={level} value={level}>{level}</option>)}
+                  </select>
                 </div>
 
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-bold text-[#27113D]">
-                      Target Proficiency
-                    </label>
-                    <span className="text-xs font-bold text-[#542477]">
-                      {formTargetProficiency}%
-                    </span>
-                  </div>
-                  <input
-                    id="slider-form-target-proficiency"
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={formTargetProficiency}
-                    onChange={(e) => setFormTargetProficiency(Number(e.target.value))}
-                    className="w-full accent-[#542477] cursor-pointer"
-                  />
+                  <label htmlFor="select-form-target-level" className="block text-xs font-bold text-[#27113D] mb-1">
+                    Target Skill Level
+                  </label>
+                  <select
+                    id="select-form-target-level"
+                    value={formTargetLevel}
+                    onChange={(e) => setFormTargetLevel(e.target.value)}
+                    required
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#E4D5F3] bg-white text-xs font-medium text-[#27113D] focus:outline-none focus:border-[#542477] cursor-pointer"
+                  >
+                    <option value="" disabled>Select target level</option>
+                    {SKILL_LEVELS.map((level) => <option key={level} value={level}>{level}</option>)}
+                  </select>
                 </div>
-              </div>
-
-              {/* Learning Goal */}
-              <div>
-                <label className="block text-xs font-bold text-[#27113D] mb-1">
-                  Learning Goal (Optional)
-                </label>
-                <input
-                  id="input-form-learning-goal"
-                  type="text"
-                  value={formLearningGoal}
-                  onChange={(e) => setFormLearningGoal(e.target.value)}
-                  placeholder="e.g. Master async programming and build 2 microservices"
-                  className="w-full px-3.5 py-2 rounded-xl border border-[#E4D5F3] text-xs font-medium text-[#27113D] focus:outline-none focus:border-[#542477]"
-                />
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="block text-xs font-bold text-[#27113D] mb-1">
-                  Notes / Revision Plan (Optional)
-                </label>
-                <textarea
-                  id="textarea-form-notes"
-                  rows={2}
-                  value={formNotes}
-                  onChange={(e) => setFormNotes(e.target.value)}
-                  placeholder="Personal notes, key resources, or project references..."
-                  className="w-full px-3.5 py-2 rounded-xl border border-[#E4D5F3] text-xs font-medium text-[#27113D] focus:outline-none focus:border-[#542477] resize-none"
-                />
               </div>
 
               {/* Actions */}

@@ -25,6 +25,7 @@ from backend.services.himalayas_client import HimalayasClient
 from backend.services.jsearch_client import JSearchClient
 from backend.services.serpapi_client import SerpApiClient
 from backend.services.skill_service import SkillService
+from backend.services.job_description import normalize_job_description
 
 logger = logging.getLogger(__name__)
 
@@ -160,7 +161,8 @@ class JobCatalogService:
         elif max_sal:
             salary_range = f"Up to ${int(max_sal):,} {currency}/{period}"
 
-        desc = raw.get("description") or raw.get("excerpt") or ""
+        source_description = raw.get("_source_description") or raw.get("description") or raw.get("excerpt") or ""
+        desc = normalize_job_description(raw.get("description") or source_description)
         skills = SkillService.extract_skills(f"{title}\n{desc}")
         if not skills and isinstance(raw.get("categories"), list):
             skills = [c for c in raw.get("categories") if isinstance(c, str)]
@@ -187,6 +189,7 @@ class JobCatalogService:
             "experience_level": detect_experience_level(title, desc, raw.get("seniority")),
             "industry": detect_industry(title, desc, cat_hint),
             "description": desc,
+            "_source_description": source_description if source_description != desc else None,
             "required_skills": skills[:6],
             "preferred_skills": skills[6:12] if len(skills) > 6 else [],
             "salary_range": salary_range,
@@ -210,7 +213,8 @@ class JobCatalogService:
 
         title = raw.get("job_title") or raw.get("title") or "Software Engineer"
         company = raw.get("employer_name") or raw.get("company") or "Technology Employer"
-        desc = raw.get("job_description") or raw.get("description") or ""
+        source_description = raw.get("_source_description") or raw.get("job_description") or raw.get("description") or ""
+        desc = normalize_job_description(raw.get("job_description") or raw.get("description") or source_description)
 
         # Location
         loc = raw.get("job_location") or raw.get("location")
@@ -270,6 +274,7 @@ class JobCatalogService:
             "experience_level": detect_experience_level(title, desc),
             "industry": detect_industry(title, desc),
             "description": desc,
+            "_source_description": source_description if source_description != desc else None,
             "required_skills": skills[:6],
             "preferred_skills": skills[6:12] if len(skills) > 6 else [],
             "salary_range": salary_str if salary_str and "competitive" not in salary_str.lower() else None,
@@ -290,7 +295,8 @@ class JobCatalogService:
         title = raw.get("title") or "Software Engineer"
         company = raw.get("company_name") or raw.get("company") or "Technology Company"
         loc = raw.get("location") or "Remote"
-        desc = raw.get("description") or ""
+        source_description = raw.get("_source_description") or raw.get("description") or ""
+        desc = normalize_job_description(raw.get("description") or source_description)
 
         raw_id = raw.get("job_id") or f"{title}_{company}_{loc}"
         clean_hash = hashlib.md5(raw_id.encode("utf-8")).hexdigest()[:16]
@@ -350,6 +356,7 @@ class JobCatalogService:
             "experience_level": detect_experience_level(title, desc),
             "industry": detect_industry(title, desc),
             "description": desc,
+            "_source_description": source_description if source_description != desc else None,
             "required_skills": skills[:6],
             "preferred_skills": skills[6:12] if len(skills) > 6 else [],
             "salary_range": salary_str,
@@ -381,7 +388,11 @@ class JobCatalogService:
                     jid = j.get("job_id")
                     if jid:
                         ref = self.database.db.collection("jobs").document(jid)
-                        batch.set(ref, {**j, "updated_at": now_dt, "created_at": now_dt}, merge=True)
+                        persisted_job = {key: value for key, value in j.items() if key != "_source_description"}
+                        if j.get("_source_description"):
+                            # Keep provider source markup intact alongside the normalized description.
+                            persisted_job["source_description"] = j["_source_description"]
+                        batch.set(ref, {**persisted_job, "updated_at": now_dt, "created_at": now_dt}, merge=True)
                         batch_count += 1
                         if batch_count >= 400:
                             batch.commit()
@@ -397,10 +408,14 @@ class JobCatalogService:
                     jid = j.get("job_id")
                     if jid:
                         try:
-                            self.database.create("jobs", jid, {**j, "updated_at": now_dt, "created_at": now_dt})
+                            persisted_job = {key: value for key, value in j.items() if key != "_source_description"}
+                            if j.get("_source_description"):
+                                # Keep provider source markup intact alongside the normalized description.
+                                persisted_job["source_description"] = j["_source_description"]
+                            self.database.create("jobs", jid, {**persisted_job, "updated_at": now_dt, "created_at": now_dt})
                         except Exception:
                             try:
-                                self.database.update("jobs", jid, {**j, "updated_at": now_dt})
+                                self.database.update("jobs", jid, {**persisted_job, "updated_at": now_dt})
                             except Exception:
                                 pass
         except Exception as exc:
@@ -501,13 +516,19 @@ class JobCatalogService:
             "status": "success" if deduped_jobs else "partial_success",
         }
 
+        # Persist a copy containing originals; hide internal source markup from API results.
+        persistence_jobs = [dict(job) for job in deduped_jobs]
+
         # Offload Firestore batch writes to a daemon background thread
         # Client does NOT wait for 20+ seconds of remote DB operations!
         threading.Thread(
             target=self._persist_jobs_batch,
-            args=(deduped_jobs, now, now_iso, sync_meta),
+            args=(persistence_jobs, now, now_iso, sync_meta),
             daemon=True,
         ).start()
+
+        for job in deduped_jobs:
+            job.pop("_source_description", None)
 
         report = {
             "status": sync_meta["status"],

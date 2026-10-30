@@ -39,3 +39,29 @@ def test_resume_agent_envelope():
     assert envelope["agent"] == "resume"
     assert envelope["status"] == "success"
     assert envelope["data"]["resume_score"] == 88.0
+
+
+def test_job_missing_keywords_are_verified_against_resume_and_job_description():
+    mock_llm = MagicMock()
+    mock_llm.generate_json.return_value = json.dumps({
+        "resume_score": 80.0,
+        "ats_score": 90.0,
+        "resume_skills": ["Python"],
+        "missing_keyword_details": [{
+            "keyword": "Fabricated Cloud Platform",
+            "relevance": "LLM-only suggestion",
+            "status": "absent",
+            "suggested_placement": "Skills",
+        }],
+    })
+    agent = ResumeAgent(llm_client=mock_llm)
+
+    analysis = agent.analyze(
+        resume_text="EXPERIENCE\nBackend engineer built APIs with Python.\nEDUCATION\nBS Computer Science.\nSKILLS\nPython",
+        target_role="Backend Engineer",
+        job_description="Required skills: Kubernetes, Terraform, Docker",
+    )
+
+    assert "Fabricated Cloud Platform" not in analysis.missing_keywords
+    assert "Kubernetes" in analysis.missing_keywords
+    assert set(analysis.missing_keywords).issubset({"Kubernetes", "Terraform", "Docker"})

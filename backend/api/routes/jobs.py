@@ -13,6 +13,14 @@ from backend.schemas.job import (
     JobResponse,
 )
 from backend.services.job_service import JobService
+from backend.services.job_description import normalize_job_description
+
+
+def _public_provider_job(job: dict) -> dict:
+    """Return provider job data without internal source snapshots or HTML markup."""
+    result = {key: value for key, value in job.items() if key != "_source_description"}
+    result["description"] = normalize_job_description(result.get("description", ""))
+    return result
 
 
 async def get_authenticated_user_id(
@@ -255,10 +263,10 @@ async def analyze_job(
         agent = JobAgent()
 
         result = agent.analyze(
-            description=document.get(
+            description=normalize_job_description(document.get(
                 "description",
                 "",
-            ),
+            )),
             job_id=job_id,
             target_role=request.target_role,
         )
@@ -490,7 +498,7 @@ async def analyze_job_ai_fit(
 
     job_title = payload.get("title")
     company = payload.get("company")
-    description = payload.get("description")
+    description = normalize_job_description(payload.get("description"))
     required_skills = payload.get("required_skills")
     candidate_skills = list(payload.get("candidate_skills") or [])
     resume_id = payload.get("resume_id")
@@ -504,7 +512,7 @@ async def analyze_job_ai_fit(
             if job_doc:
                 job_title = job_title or job_doc.get("title")
                 company = company or job_doc.get("company")
-                description = description or job_doc.get("description")
+                description = description or normalize_job_description(job_doc.get("description"))
                 required_skills = required_skills or job_doc.get("required_skills")
         except Exception:
             pass
@@ -879,7 +887,7 @@ async def search_himalayas_remote_jobs(
     try:
         from backend.services.himalayas_client import HimalayasClient
         client = HimalayasClient()
-        jobs = client.search_jobs(query=query, limit=limit, offset=offset)
+        jobs = [_public_provider_job(job) for job in client.search_jobs(query=query, limit=limit, offset=offset)]
         return {"query": query, "count": len(jobs), "jobs": jobs, "provider": "Himalayas", "source": "himalayas"}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Himalayas search failed: {exc}")
@@ -894,7 +902,7 @@ async def browse_himalayas_remote_jobs(
     try:
         from backend.services.himalayas_client import HimalayasClient
         client = HimalayasClient()
-        jobs = client.browse_jobs(limit=limit, offset=offset)
+        jobs = [_public_provider_job(job) for job in client.browse_jobs(limit=limit, offset=offset)]
         return {"count": len(jobs), "jobs": jobs, "provider": "Himalayas", "source": "himalayas"}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Himalayas browse failed: {exc}")
@@ -910,7 +918,7 @@ async def search_serpapi_google_jobs(
     try:
         from backend.services.serpapi_client import SerpApiClient
         client = SerpApiClient()
-        jobs = client.search_jobs(query=query, location=location, start=start)
+        jobs = [_public_provider_job(job) for job in client.search_jobs(query=query, location=location, start=start)]
         return {
             "query": query,
             "location": location,

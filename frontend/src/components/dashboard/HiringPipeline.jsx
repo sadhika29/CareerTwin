@@ -44,7 +44,7 @@ export default function HiringPipeline() {
           <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
           <span className="text-sm font-semibold text-amber-800">Current bottleneck: Coding Rounds</span>
         </div>
-        <Link to="/preparation" className="text-xs font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 px-4 py-2 rounded-md transition-colors">
+        <Link to="/assessment" className="text-xs font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 px-4 py-2 rounded-md transition-colors">
           Improve This Stage →
         </Link>
       </div>
