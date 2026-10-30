@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CareerTwin — Firebase DB Manager</title>
+  <meta name="description" content="Admin database manager for CareerTwin — audit Firestore collections, verify storage, inspect documents, and fix data issues." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-primary:    #0a0b0f;
+      --bg-secondary:  #111318;
+      --bg-card:       #161922;
+      --bg-card-hover: #1d2130;
+      --border:        rgba(255,255,255,0.07);
+      --border-bright: rgba(255,255,255,0.14);
+      --accent:        #6366f1;
+      --accent-light:  #818cf8;
+      --accent-glow:   rgba(99, 102, 241, 0.25);
+      --green:         #10b981;
+      --green-glow:    rgba(16, 185, 129, 0.2);
+      --yellow:        #f59e0b;
+      --yellow-glow:   rgba(245, 158, 11, 0.2);
+      --red:           #ef4444;
+      --red-glow:      rgba(239, 68, 68, 0.2);
+      --blue:          #3b82f6;
+      --purple:        #a855f7;
+      --text-primary:   #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted:     #475569;
+      --radius:    12px;
+      --radius-sm: 8px;
+      --shadow-lg: 0 25px 50px rgba(0,0,0,0.5);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(99,102,241,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99,102,241,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none; z-index: 0;
+    }
+    body::after {
+      content: '';
+      position: fixed; top: -40%; left: -20%;
+      width: 80%; height: 80%;
+      background: radial-gradient(ellipse, rgba(99,102,241,0.08) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+    .app {
+      position: relative; z-index: 1;
+      max-width: 1400px; margin: 0 auto;
+      padding: 0 24px 60px;
+    }
+    .header {
+      padding: 28px 0 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border); margin-bottom: 32px;
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .logo {
+      width: 42px; height: 42px;
+      background: linear-gradient(135deg, var(--accent), var(--purple));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; box-shadow: 0 0 20px var(--accent-glow);
+    }
+    .header-title h1 {
+      font-size: 1.35rem; font-weight: 700;
+      background: linear-gradient(135deg, #f1f5f9, var(--accent-light));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .header-title p { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+    .header-actions { display: flex; gap: 10px; align-items: center; }
+    .config-panel {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px 24px; margin-bottom: 28px;
+      display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap;
+    }
+    .config-field { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 200px; }
+    .config-field label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+    .config-field input {
+      background: var(--bg-secondary); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      color: var(--text-primary); font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem; transition: border-color 0.2s; outline: none;
+    }
+    .config-field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: var(--radius-sm);
+      font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      border: none; transition: all 0.2s; white-space: nowrap;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: linear-gradient(135deg, var(--accent), #4f46e5); color: #fff; box-shadow: 0 4px 14px var(--accent-glow); }
+    .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 24px var(--accent-glow); }
+    .btn-secondary { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border); }
+    .btn-secondary:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-light); }
+    .btn-danger { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+    .btn-danger:hover:not(:disabled) { background: rgba(239,68,68,0.25); }
+    .btn-success { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+    .btn-success:hover:not(:disabled) { background: rgba(16,185,129,0.25); }
+    .btn-sm { padding: 6px 14px; font-size: 0.78rem; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .summary-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+      position: relative; overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .summary-card:hover { border-color: var(--border-bright); transform: translateY(-2px); }
+    .summary-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .summary-card.total::before    { background: linear-gradient(90deg, var(--accent), var(--purple)); }
+    .summary-card.healthy::before  { background: var(--green); }
+    .summary-card.warning::before  { background: var(--yellow); }
+    .summary-card.error::before    { background: var(--red); }
+    .summary-card .icon { font-size: 1.6rem; margin-bottom: 10px; }
+    .summary-card .value { font-size: 2.2rem; font-weight: 800; font-family: 'JetBrains Mono', monospace; line-height: 1; }
+    .summary-card.total   .value { color: var(--accent-light); }
+    .summary-card.healthy .value { color: var(--green); }
+    .summary-card.warning .value { color: var(--yellow); }
+    .summary-card.error   .value { color: var(--red); }
+    .summary-card .label { font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; }
+    .health-banner {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 22px; border-radius: var(--radius); margin-bottom: 28px;
+      font-weight: 600; font-size: 0.9rem; border: 1px solid;
+      animation: slideIn 0.4s ease;
+    }
+    .health-banner.healthy { background: var(--green-glow); border-color: rgba(16,185,129,0.3); color: var(--green); }
+    .health-banner.warning { background: var(--yellow-glow); border-color: rgba(245,158,11,0.3); color: var(--yellow); }
+    .health-banner.critical { background: var(--red-glow); border-color: rgba(239,68,68,0.3); color: var(--red); }
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 2px 8px; border-radius: 20px;
+      font-size: 0.7rem; font-weight: 600; font-family: 'JetBrains Mono', monospace;
+    }
+    .badge-healthy { background: var(--green-glow); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+    .badge-warning { background: var(--yellow-glow); color: var(--yellow); border: 1px solid rgba(245,158,11,0.3); }
+    .badge-error   { background: var(--red-glow); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+    .badge-empty   { background: rgba(148,163,184,0.1); color: var(--text-muted); border: 1px solid rgba(148,163,184,0.2); }
+    .badge-info    { background: rgba(59,130,246,0.15); color: var(--blue); border: 1px solid rgba(59,130,246,0.3); }
+    .collections-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .collection-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s; cursor: pointer;
+    }
+    .collection-card:hover { border-color: var(--border-bright); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+    .collection-card.healthy { border-left: 3px solid var(--green); }
+    .collection-card.warning { border-left: 3px solid var(--yellow); }
+    .collection-card.error   { border-left: 3px solid var(--red); }
+    .collection-card.empty   { border-left: 3px solid var(--text-muted); }
+    .collection-header { padding: 16px 18px 12px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .collection-name { font-size: 0.95rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text-primary); }
+    .collection-desc { font-size: 0.75rem; color: var(--text-muted); margin-top: 3px; }
+    .collection-body { padding: 0 18px 16px; }
+    .collection-stats { display: flex; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
+    .stat-pill { display: flex; align-items: center; gap: 5px; font-size: 0.75rem; color: var(--text-secondary); }
+    .stat-pill .dot { width: 7px; height: 7px; border-radius: 50%; }
+    .stat-pill .dot.green { background: var(--green); }
+    .stat-pill .dot.yellow { background: var(--yellow); }
+    .stat-pill .dot.red { background: var(--red); }
+    .stat-pill .dot.blue { background: var(--blue); }
+    .field-bars { display: flex; flex-direction: column; gap: 5px; }
+    .field-bar-row { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; }
+    .field-bar-label { width: 130px; flex-shrink: 0; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .field-bar-track { flex: 1; height: 5px; background: rgba(255,255,255,0.07); border-radius: 3px; overflow: hidden; }
+    .field-bar-fill { height: 100%; border-radius: 3px; transition: width 0.8s ease; }
+    .field-bar-pct { width: 32px; text-align: right; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); font-size: 0.68rem; }
+    .issues-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .issue-item { display: flex; align-items: flex-start; gap: 7px; font-size: 0.73rem; color: var(--yellow); padding: 6px 10px; background: var(--yellow-glow); border-radius: 6px; border: 1px solid rgba(245,158,11,0.2); }
+    .issue-item.critical { color: var(--red); background: var(--red-glow); border-color: rgba(239,68,68,0.2); }
+    .issues-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 28px; }
+    .issues-panel-header { padding: 16px 22px; background: rgba(239,68,68,0.07); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 0.9rem; color: var(--red); }
+    .issues-table { width: 100%; border-collapse: collapse; }
+    .issues-table th { padding: 10px 20px; text-align: left; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border); }
+    .issues-table td { padding: 10px 20px; font-size: 0.82rem; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+    .issues-table tr:last-child td { border-bottom: none; }
+    .issues-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .issues-table .coll-tag { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; background: rgba(99,102,241,0.15); color: var(--accent-light); padding: 2px 8px; border-radius: 4px; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal { background: var(--bg-card); border: 1px solid var(--border-bright); border-radius: 16px; width: 100%; max-width: 800px; max-height: 85vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow-lg); transform: scale(0.95); transition: transform 0.2s; }
+    .modal-overlay.open .modal { transform: scale(1); }
+    .modal-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .modal-header h2 { font-size: 1.1rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    .modal-body { overflow-y: auto; padding: 20px 24px; flex: 1; }
+    .modal-body::-webkit-scrollbar { width: 6px; }
+    .modal-body::-webkit-scrollbar-track { background: transparent; }
+    .modal-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .json-block { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-secondary); overflow: auto; white-space: pre; line-height: 1.6; }
+    .json-block .key    { color: var(--accent-light); }
+    .json-block .string { color: var(--green); }
+    .json-block .number { color: var(--yellow); }
+    .json-block .bool   { color: var(--purple); }
+    .json-block .null   { color: var(--text-muted); }
+    .verify-panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px 24px; margin-bottom: 28px; }
+    .verify-title { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .verify-form { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+    .verify-result { margin-top: 14px; padding: 14px 18px; border-radius: var(--radius-sm); font-size: 0.82rem; font-family: 'JetBrains Mono', monospace; display: none; animation: slideIn 0.3s ease; }
+    .verify-result.ok   { background: var(--green-glow); border: 1px solid rgba(16,185,129,0.3); color: var(--green); display: block; }
+    .verify-result.fail { background: var(--red-glow); border: 1px solid rgba(239,68,68,0.3); color: var(--red); display: block; }
+    .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.2); border-top-color: var(--accent-light); border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+    @keyframes spin    { to { transform: rotate(360deg); } }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 16px; }
+    .empty-state h3 { font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 8px; }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--bg-card); border: 1px solid var(--border-bright); border-radius: var(--radius-sm); padding: 12px 18px; font-size: 0.82rem; color: var(--text-primary); box-shadow: var(--shadow-lg); z-index: 9999; display: none; animation: slideIn 0.3s ease; }
+    .toast.show { display: flex; align-items: center; gap: 10px; }
+    .tabs { display: flex; gap: 4px; background: var(--bg-secondary); border-radius: var(--radius-sm); padding: 4px; margin-bottom: 22px; }
+    .tab { flex: 1; padding: 8px 16px; border-radius: 6px; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: none; background: transparent; color: var(--text-muted); transition: all 0.2s; font-family: 'Inter', sans-serif; }
+    .tab.active { background: var(--bg-card); color: var(--text-primary); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .rules-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+    .rule-badge { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text-secondary); }
+    .rule-badge.has-rule { border-color: rgba(16,185,129,0.3); color: var(--green); }
+    .rule-badge.no-rule  { border-color: rgba(239,68,68,0.3);  color: var(--red); }
+    @media (max-width: 640px) {
+      .header { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .config-panel { flex-direction: column; }
+      .collections-grid { grid-template-columns: 1fr; }
+      .tabs { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">🛡️</div>
+      <div class="header-title">
+        <h1>CareerTwin DB Manager</h1>
+        <p>Firebase Firestore Audit &amp; Inspector</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary btn-sm" onclick="loadRulesStatus()">📋 Rules Check</button>
+      <button class="btn btn-primary" id="btn-audit" onclick="runAudit()">
+        <span id="audit-spinner" style="display:none;" class="spinner"></span>
+        🔍 Run Full Audit
+      </button>
+    </div>
+  </header>
+
+  <div class="config-panel">
+    <div class="config-field" style="flex:2;min-width:280px;">
+      <label>API Base URL</label>
+      <input id="api-url" type="text" value="http://localhost:8000" />
+    </div>
+    <div class="config-field">
+      <label>Admin Secret</label>
+      <input id="admin-secret" type="password" value="" placeholder="Enter configured ADMIN_SECRET" />
+    </div>
+    <div class="config-field" style="flex:0;min-width:120px;">
+      <label>Sample Limit</label>
+      <input id="sample-limit" type="number" value="10" min="1" max="50" />
+    </div>
+    <div class="config-field" style="flex:0;min-width:200px;">
+      <label>Filter by User ID (optional)</label>
+      <input id="filter-user" type="text" placeholder="uid_abc123..." />
+    </div>
+  </div>
+
+  <div class="verify-panel">
+    <div class="verify-title">✍️ Write Verification — Test Firestore Write + Read</div>
+    <div class="verify-form">
+      <div class="config-field"><label>Collection</label><input id="verify-collection" type="text" value="profiles" /></div>
+      <div class="config-field"><label>Test Doc ID</label><input id="verify-docid" type="text" value="admin-test-doc" /></div>
+      <button class="btn btn-success" onclick="runWriteVerify()">
+        <span id="write-spinner" style="display:none;" class="spinner"></span> ✅ Test Write
+      </button>
+      <button class="btn btn-danger" onclick="cleanupTestDoc()">🗑️ Cleanup</button>
+    </div>
+    <div class="verify-result" id="verify-result"></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('audit',this)">📊 Audit Overview</button>
+    <button class="tab" onclick="switchTab('issues',this)">⚠️ Issues Log</button>
+    <button class="tab" onclick="switchTab('inspect',this)">🔎 Collection Inspector</button>
+    <button class="tab" onclick="switchTab('rules',this)">🔒 Security Rules</button>
+  </div>
+
+  <div class="tab-panel active" id="tab-audit">
+    <div id="health-banner-wrapper"></div>
+    <div id="summary-grid" class="summary-grid" style="display:none;">
+      <div class="summary-card total"><div class="icon">🗃️</div><div class="value" id="sum-total">—</div><div class="label">Collections Monitored</div></div>
+      <div class="summary-card healthy"><div class="icon">✅</div><div class="value" id="sum-healthy">—</div><div class="label">Healthy</div></div>
+      <div class="summary-card warning"><div class="icon">⚠️</div><div class="value" id="sum-warnings">—</div><div class="label">Warnings</div></div>
+      <div class="summary-card error"><div class="icon">🔴</div><div class="value" id="sum-errors">—</div><div class="label">Empty / Errors</div></div>
+      <div class="summary-card total"><div class="icon">📄</div><div class="value" id="sum-docs">—</div><div class="label">Docs Sampled</div></div>
+    </div>
+    <div id="collections-grid" class="collections-grid"></div>
+    <div id="empty-audit" class="empty-state">
+      <div class="icon">🛡️</div>
+      <h3>Run an audit to inspect your database</h3>
+      <p>Click "Run Full Audit" to check all Firestore collections for data integrity issues.</p>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="tab-issues">
+    <div id="issues-panel-wrapper">
+      <div class="empty-state"><div class="icon">✨</div><h3>No issues yet</h3><p>Run a full audit first.</p></div>
+    </div>
+  </div>
+
+  <div class="tab-panel" id="tab-inspect">
+    <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:20px;">
+      <div class="config-field">
+        <label>Collection Name</label>
+        <input id="inspect-collection" type="text" placeholder="e.g. profiles, resumes" list="collection-list" />
+        <datalist id="collection-list">
+          <option value="profiles"><option value="resumes"><option value="applications">
+          <option value="interviews"><option value="assessments"><option value="jobs">
+          <option value="analyses"><option value="resume_chunks"><option value="digital_twin_snapshots">
+          <option value="career_plans"><option value="job_interactions"><option value="user_skills">
+          <option value="learning_progress">
+        </datalist>
+      </div>
+      <div class="config-field"><label>Filter User ID</label><input id="inspect-user" type="text" placeholder="uid_abc123..." /></div>
+      <div class="config-field" style="min-width:100px;flex:0;"><label>Limit</label><input id="inspect-limit" type="number" value="20" min="1" max="100" /></div>
+      <button class="btn btn-primary" onclick="inspectCollection()">
+        <span id="inspect-spinner" style="display:none;" class="spinner"></span> 🔎 Inspect
+      </button>
+    </div>
+    <div id="inspect-results"></div>
+  </div>
+
+  <div class="tab-panel" id="tab-rules">
+    <div id="rules-content">
+      <div class="empty-state"><div class="icon">🔒</div><h3>Click "Rules Check" to load status</h3><p>Checks which collections have Firestore security rules.</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="detail-modal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-title">Collection Details</h2>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal()">✕ Close</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function getApiBase() { return document.getElementById('api-url').value.replace(/\/$/, ''); }
+function getAdminHeaders() {
+  return { 'Content-Type': 'application/json', 'X-Admin-Secret': document.getElementById('admin-secret').value };
+}
+function showToast(msg, type = 'info') {
+  const t = document.getElementById('toast');
+  const icons = { info:'ℹ️', ok:'✅', error:'❌', warning:'⚠️' };
+  t.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+  t.className = 'toast show';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.className = 'toast', 3500);
+}
+function statusBadge(status) {
+  const map = { healthy:['badge-healthy','✅ Healthy'], warning:['badge-warning','⚠️ Warning'], error:['badge-error','🔴 Error'], empty:['badge-empty','○ Empty'] };
+  const [cls, label] = map[status] || ['badge-info', status];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+function coverageColor(pct) { return pct >= 80 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444'; }
+function syntaxHighlight(obj) {
+  const json = JSON.stringify(obj, null, 2);
+  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
+    let cls = 'number';
+    if (/^"/.test(match)) cls = /:$/.test(match) ? 'key' : 'string';
+    else if (/true|false/.test(match)) cls = 'bool';
+    else if (/null/.test(match)) cls = 'null';
+    return `<span class="${cls}">${match}</span>`;
+  });
+}
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById(`tab-${name}`).classList.add('active');
+}
+function openModal(title, content) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = content;
+  document.getElementById('detail-modal').classList.add('open');
+}
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('detail-modal'))
+    document.getElementById('detail-modal').classList.remove('open');
+}
+
+let lastAuditData = null;
+
+async function runAudit() {
+  const btn = document.getElementById('btn-audit');
+  const spinner = document.getElementById('audit-spinner');
+  btn.disabled = true; spinner.style.display = 'inline-block';
+  const limit = document.getElementById('sample-limit').value || 10;
+  try {
+    const res = await fetch(`${getApiBase()}/admin/db/audit?limit_per_collection=${limit}`, { headers: getAdminHeaders() });
+    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.detail || `HTTP ${res.status}`); }
+    const data = await res.json();
+    lastAuditData = data;
+    renderAudit(data);
+    showToast('Audit complete!', 'ok');
+  } catch(e) {
+    showToast(`Audit failed: ${e.message}`, 'error');
+    document.getElementById('empty-audit').innerHTML = `<div class="icon">❌</div><h3>Audit Failed</h3><p>${e.message}</p><p style="margin-top:12px;color:var(--text-muted);">Make sure backend is running and Admin Secret is correct.</p>`;
+  } finally { btn.disabled = false; spinner.style.display = 'none'; }
+}
+
+function renderAudit(data) {
+  const bannerEl = document.getElementById('health-banner-wrapper');
+  const health = data.overall_health;
+  const icons = { healthy:'✅', warning:'⚠️', critical:'🔴' };
+  const msgs  = { healthy:'All systems healthy — database operating correctly.', warning:'Some collections have warnings. Review field coverage issues.', critical:'Critical issues — some collections are empty or have major data gaps.' };
+  bannerEl.innerHTML = `<div class="health-banner ${health}"><span style="font-size:1.3rem;">${icons[health]}</span><span>${msgs[health]}</span><span class="badge badge-info" style="margin-left:auto;">Checked ${new Date().toLocaleTimeString()}</span></div>`;
+  const s = data.summary;
+  document.getElementById('sum-total').textContent    = s.total_collections;
+  document.getElementById('sum-healthy').textContent  = s.healthy;
+  document.getElementById('sum-warnings').textContent = s.warnings;
+  document.getElementById('sum-errors').textContent   = s.errors_or_empty;
+  document.getElementById('sum-docs').textContent     = s.total_documents_sampled;
+  document.getElementById('summary-grid').style.display = '';
+  const grid = document.getElementById('collections-grid');
+  document.getElementById('empty-audit').style.display = 'none';
+  grid.innerHTML = '';
+  for (const [name, col] of Object.entries(data.collections)) grid.innerHTML += buildCollectionCard(name, col);
+  renderIssues(data.issues);
+}
+
+function buildCollectionCard(name, col) {
+  const reqFields = Object.entries(col.field_coverage || {}).filter(([,i]) => i.required).slice(0, 5);
+  const barsHtml = reqFields.map(([field, info]) => `
+    <div class="field-bar-row">
+      <div class="field-bar-label" title="${field}">${field}</div>
+      <div class="field-bar-track"><div class="field-bar-fill" style="width:${info.coverage_pct}%;background:${coverageColor(info.coverage_pct)};"></div></div>
+      <div class="field-bar-pct">${info.coverage_pct}%</div>
+    </div>`).join('');
+  const issuesHtml = (col.issues||[]).slice(0,2).map(i => `<div class="issue-item">${col.status==='error'?'🔴':'⚠️'} ${i}</div>`).join('');
+  const statusClass = col.status === 'error' ? 'error' : col.status;
+  return `<div class="collection-card ${statusClass}" onclick="showCollectionDetail('${name}')">
+    <div class="collection-header">
+      <div><div class="collection-name">${name}</div><div class="collection-desc">${col.description||''}</div></div>
+      ${statusBadge(col.status)}
+    </div>
+    <div class="collection-body">
+      <div class="collection-stats">
+        <span class="stat-pill"><span class="dot blue"></span>${col.count} docs</span>
+        ${col.extra_fields_detected?.length ? `<span class="stat-pill"><span class="dot yellow"></span>${col.extra_fields_detected.length} extra fields</span>` : ''}
+      </div>
+      ${barsHtml ? `<div class="field-bars">${barsHtml}</div>` : ''}
+      ${issuesHtml ? `<div class="issues-list">${issuesHtml}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderIssues(issues) {
+  const wrapper = document.getElementById('issues-panel-wrapper');
+  if (!issues || issues.length === 0) {
+    wrapper.innerHTML = `<div class="empty-state"><div class="icon">✅</div><h3>No issues found</h3><p>All collections are healthy.</p></div>`;
+    return;
+  }
+  wrapper.innerHTML = `<div class="issues-panel">
+    <div class="issues-panel-header">🔴 ${issues.length} Issues Detected</div>
+    <table class="issues-table">
+      <thead><tr><th>#</th><th>Collection</th><th>Issue</th><th>Action</th></tr></thead>
+      <tbody>${issues.map((issue,i) => `
+        <tr>
+          <td style="color:var(--text-muted);font-family:monospace;">${i+1}</td>
+          <td><span class="coll-tag">${issue.collection}</span></td>
+          <td>${issue.issue}</td>
+          <td><button class="btn btn-secondary btn-sm" onclick="quickInspect('${issue.collection}')">🔎 Inspect</button></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function showCollectionDetail(name) {
+  if (!lastAuditData) return;
+  const col = lastAuditData.collections[name];
+  if (!col) return;
+  const samplesHtml = (col.samples||[]).map(doc =>
+    `<div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+      <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:6px;font-family:monospace;">ID: ${doc.id||doc.document_id||doc.resume_id||doc.session_id||'—'}</div>
+      <div class="json-block" style="max-height:200px;overflow:auto;">${syntaxHighlight(doc)}</div>
+    </div>`).join('');
+  const coverageHtml = Object.entries(col.field_coverage||{}).map(([field, info]) =>
+    `<div class="field-bar-row" style="margin-bottom:6px;">
+      <div class="field-bar-label" style="width:160px;" title="${field}">${field}${info.required?' <span style="color:var(--red)">*</span>':''}</div>
+      <div class="field-bar-track"><div class="field-bar-fill" style="width:${info.coverage_pct}%;background:${coverageColor(info.coverage_pct)};"></div></div>
+      <div class="field-bar-pct">${info.coverage_pct}%</div>
+    </div>`).join('');
+  openModal(`📦 ${name}`, `
+    <div style="display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap;">${statusBadge(col.status)}<span class="badge badge-info">${col.count} docs</span><span class="badge badge-info">ID: ${col.id_strategy}</span></div>
+    <h4 style="font-size:0.8rem;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.08em;margin-bottom:10px;">Required Field Coverage <span style="color:var(--text-muted);font-weight:400">(* = required)</span></h4>
+    <div class="field-bars" style="margin-bottom:20px;">${coverageHtml||'<p style="color:var(--text-muted);font-size:0.8rem;">No coverage data.</p>'}</div>
+    ${col.issues?.length ? `<h4 style="font-size:0.8rem;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.08em;margin-bottom:10px;">Issues</h4><div class="issues-list" style="margin-bottom:20px;">${col.issues.map(i=>`<div class="issue-item">⚠️ ${i}</div>`).join('')}</div>`:''}
+    ${col.extra_fields_detected?.length ? `<h4 style="font-size:0.8rem;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.08em;margin-bottom:8px;">Extra Fields Detected</h4><div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px;">${col.extra_fields_detected.map(f=>`<span class="badge badge-warning" style="font-family:monospace;">${f}</span>`).join('')}</div>`:''}
+    <h4 style="font-size:0.8rem;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.08em;margin-bottom:10px;">Sample Documents (${col.samples?.length||0})</h4>
+    ${samplesHtml||'<p style="color:var(--text-muted);font-size:0.8rem;">No documents.</p>'}
+  `);
+}
+
+function quickInspect(collection) {
+  document.getElementById('inspect-collection').value = collection;
+  switchTab('inspect', document.querySelectorAll('.tab')[2]);
+  inspectCollection();
+}
+
+async function inspectCollection() {
+  const collection = document.getElementById('inspect-collection').value.trim();
+  const user = document.getElementById('inspect-user').value.trim();
+  const limit = document.getElementById('inspect-limit').value || 20;
+  const spinner = document.getElementById('inspect-spinner');
+  if (!collection) { showToast('Enter a collection name', 'warning'); return; }
+  spinner.style.display = 'inline-block';
+  let url = `${getApiBase()}/admin/db/collection/${collection}?limit=${limit}`;
+  if (user) url += `&user_id=${encodeURIComponent(user)}`;
+  try {
+    const res = await fetch(url, { headers: getAdminHeaders() });
+    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.detail || `HTTP ${res.status}`); }
+    const data = await res.json();
+    renderInspectResults(data);
+    showToast(`Loaded ${data.total_returned} docs from '${collection}'`, 'ok');
+  } catch(e) {
+    document.getElementById('inspect-results').innerHTML = `<div class="health-banner critical">❌ ${e.message}</div>`;
+    showToast(`Inspect failed: ${e.message}`, 'error');
+  } finally { spinner.style.display = 'none'; }
+}
+
+function renderInspectResults(data) {
+  const el = document.getElementById('inspect-results');
+  const docs = data.documents || [];
+  const schema = data.schema || {};
+  const reqFields = schema.required_fields || [];
+  el.innerHTML = `
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+      <span style="font-size:0.9rem;font-weight:700;font-family:monospace;color:var(--accent-light);">${data.collection}</span>
+      <span class="badge badge-info">${data.total_returned} documents</span>
+      ${data.filter_applied ? `<span class="badge badge-warning">filtered by user</span>` : ''}
+      <span style="font-size:0.75rem;color:var(--text-muted);">${data.description||''}</span>
+    </div>
+    <div style="margin-bottom:14px;">
+      <span style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;">Required: </span>
+      ${reqFields.map(f=>`<span class="badge badge-error" style="margin-right:4px;font-family:monospace;">${f}</span>`).join('')}
+    </div>
+    ${docs.length === 0
+      ? `<div class="empty-state"><div class="icon">📭</div><h3>No documents found</h3><p>Collection appears empty.</p></div>`
+      : docs.map((doc, i) => {
+          const missing = reqFields.filter(f => !(f in doc) || doc[f] === null || doc[f] === '');
+          return `<div style="background:var(--bg-card);border:1px solid ${missing.length?'rgba(245,158,11,0.3)':'var(--border)'};border-radius:var(--radius-sm);margin-bottom:10px;overflow:hidden;">
+            <div style="padding:10px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.02);">
+              <span style="font-size:0.75rem;color:var(--text-muted);font-family:monospace;">${i+1}. ${doc.id||doc.document_id||doc.resume_id||doc.session_id||'doc'}</span>
+              ${missing.length ? `<span class="badge badge-warning">missing: ${missing.join(', ')}</span>` : '<span class="badge badge-healthy">complete</span>'}
+            </div>
+            <div style="padding:10px 16px;max-height:220px;overflow:auto;"><div class="json-block">${syntaxHighlight(doc)}</div></div>
+          </div>`;
+        }).join('')}`;
+}
+
+async function runWriteVerify() {
+  const collection = document.getElementById('verify-collection').value.trim();
+  const docId = document.getElementById('verify-docid').value.trim();
+  const spinner = document.getElementById('write-spinner');
+  const resultEl = document.getElementById('verify-result');
+  if (!collection) { showToast('Enter a collection name', 'warning'); return; }
+  spinner.style.display = 'inline-block';
+  resultEl.className = 'verify-result';
+  try {
+    const res = await fetch(`${getApiBase()}/admin/db/verify-write`, {
+      method: 'POST', headers: getAdminHeaders(),
+      body: JSON.stringify({ collection, document_id: docId, data: { _test: true, written_by: 'db-manager', timestamp: new Date().toISOString() } }),
+    });
+    const data = await res.json();
+    if (data.write_ok && data.readback_ok) {
+      resultEl.className = 'verify-result ok';
+      resultEl.textContent = `✅ SUCCESS — Write & read verified for '${collection}/${docId}'. Firestore is working correctly after publish!`;
+      showToast('Write test passed!', 'ok');
+    } else {
+      resultEl.className = 'verify-result fail';
+      resultEl.textContent = `❌ FAILED — ${data.message || data.error}`;
+      showToast('Write test failed!', 'error');
+    }
+  } catch(e) {
+    resultEl.className = 'verify-result fail';
+    resultEl.textContent = `❌ Error: ${e.message}`;
+    showToast('Write test failed!', 'error');
+  } finally { spinner.style.display = 'none'; }
+}
+
+async function cleanupTestDoc() {
+  const collection = document.getElementById('verify-collection').value.trim();
+  const docId = document.getElementById('verify-docid').value.trim();
+  if (!collection || !docId) return;
+  try {
+    await fetch(`${getApiBase()}/admin/db/verify-write/${collection}/${docId}`, { method: 'DELETE', headers: getAdminHeaders() });
+    document.getElementById('verify-result').className = 'verify-result';
+    showToast(`Deleted test doc '${docId}'`, 'ok');
+  } catch(e) { showToast(`Cleanup failed: ${e.message}`, 'error'); }
+}
+
+async function loadRulesStatus() {
+  switchTab('rules', document.querySelectorAll('.tab')[3]);
+  try {
+    const res = await fetch(`${getApiBase()}/admin/db/rules-status`, { headers: getAdminHeaders() });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const allCollections = new Set([...data.collections_monitored, ...data.collections_with_firestore_rules]);
+    const badges = Array.from(allCollections).sort().map(c => {
+      const hasRule = data.collections_with_firestore_rules.includes(c);
+      const isMonitored = data.collections_monitored.includes(c);
+      return `<div class="rule-badge ${hasRule?'has-rule':'no-rule'}">${hasRule?'🔒':'⚠️'}<span style="font-family:monospace;">${c}</span>${!isMonitored?'<span style="font-size:0.65rem;color:var(--text-muted);">(extra)</span>':''}</div>`;
+    }).join('');
+    document.getElementById('rules-content').innerHTML = `
+      <div class="health-banner ${data.status==='ok'?'healthy':'warning'}" style="margin-bottom:20px;">
+        ${data.status==='ok'?'✅':'⚠️'} ${data.message}
+      </div>
+      ${data.missing_rules?.length ? `<div style="background:var(--red-glow);border:1px solid rgba(239,68,68,0.3);border-radius:var(--radius-sm);padding:14px 18px;margin-bottom:20px;"><div style="font-weight:700;color:var(--red);margin-bottom:8px;">🔴 Collections Without Security Rules</div><div style="display:flex;flex-wrap:wrap;gap:6px;">${data.missing_rules.map(c=>`<span class="badge badge-error" style="font-family:monospace;">${c}</span>`).join('')}</div><div style="font-size:0.78rem;color:var(--text-muted);margin-top:8px;">Add rules for these in <code>firestore.rules</code>.</div></div>`:''}
+      <div style="font-size:0.9rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:12px;">🔒 All Collections — Rule Coverage</div>
+      <div class="rules-grid">${badges}</div>`;
+    showToast('Rules status loaded', 'ok');
+  } catch(e) {
+    document.getElementById('rules-content').innerHTML = `<div class="health-banner critical">❌ ${e.message}</div>`;
+    showToast(`Rules check failed: ${e.message}`, 'error');
+  }
+}
+</script>
+</body>
+</html>

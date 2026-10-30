@@ -3,13 +3,11 @@ import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import {
   BriefcaseBusiness, Building2, MapPin, CheckCircle2,
   ArrowRight, Sparkles, RefreshCw, ArrowLeft, Target, Award,
-  ExternalLink, FileText, Check, DollarSign, Globe,
-  FileText, ChevronDown
+  ExternalLink, FileText, DollarSign, Globe, ChevronDown
 } from 'lucide-react'
 import Loading from '../components/Loading'
 import { getJobById, analyzeJobAIFit, recordJobView } from '../features/jobs/jobService'
 import { getProfile } from '../features/profile/profileService'
-import { listResumes, getResume } from '../features/resume/resumeService'
 import { listResumes } from '../features/resume/resumeService'
 
 export default function JobDetails() {
@@ -22,10 +20,6 @@ export default function JobDetails() {
   const [userProfile, setUserProfile] = useState(null)
   const [userResumes, setUserResumes] = useState([])
   const [selectedResumeId, setSelectedResumeId] = useState(searchParams.get('resume_id') || '')
-
-  // Resume state
-  const [resumes, setResumes] = useState([])
-  const [selectedResumeId, setSelectedResumeId] = useState('')
 
   // AI Fit State
   const [analyzingFit, setAnalyzingFit] = useState(false)
@@ -41,8 +35,6 @@ export default function JobDetails() {
   const loadInitialData = async () => {
     try {
       setLoading(true)
-
-      let initialSkills = ['Python', 'FastAPI', 'React', 'PostgreSQL', 'Docker', 'Git']
 
       // Fetch user profile
       try {
@@ -73,164 +65,46 @@ export default function JobDetails() {
         activeResumeId = resumesList[0].resume_id
       }
       setSelectedResumeId(activeResumeId || '')
-      if (pData.profile.skills && pData.profile.skills.length > 0) {
-        initialSkills = pData.profile.skills
-        setCandidateSkills(initialSkills)
-      }
-    }
-      } catch {
-    // Fallback profile skills
-  }
 
-  // Fetch user resumes
-  let availableResumes = []
-  try {
-    const resumeData = await listResumes()
-    if (resumeData && resumeData.resumes && resumeData.resumes.length > 0) {
-      availableResumes = resumeData.resumes
-    }
-  } catch (e) {
-    console.warn('Could not load resumes from API:', e)
-  }
-
-  // If user has no uploaded resumes, provide realistic options
-  if (availableResumes.length === 0) {
-    availableResumes = [
-      {
-        resume_id: 'resume-primary',
-        filename: 'Primary_Technical_Resume.pdf',
-        skills: initialSkills
-      },
-      {
-        resume_id: 'resume-fullstack',
-        filename: 'FullStack_Developer_Resume.pdf',
-        skills: ['React', 'JavaScript', 'TypeScript', 'CSS', 'FastAPI', 'Python', 'Git', 'REST APIs']
-      },
-      {
-        resume_id: 'resume-backend',
-        filename: 'Backend_Systems_Resume.pdf',
-        skills: ['Python', 'FastAPI', 'PostgreSQL', 'Docker', 'AWS', 'System Design', 'Git']
-      }
-    ]
-  }
-
-  setResumes(availableResumes)
-  const defaultResume = availableResumes[0]
-  const chosenResumeId = defaultResume.resume_id
-  setSelectedResumeId(chosenResumeId)
-
-  let activeSkills = initialSkills
-  if (defaultResume.skills && defaultResume.skills.length > 0) {
-    activeSkills = defaultResume.skills
-    setCandidateSkills(activeSkills)
-  }
-
-  // Fetch job by id
-  let targetJob = null
-  try {
-    targetJob = await getJobById(id)
-    setJob(targetJob)
-  } catch (err) {
-    console.warn('Could not fetch job by id, checking shared catalog:', err)
-    targetJob = {
-      job_id: id,
-      title: 'Software Engineer',
-      company: 'Technology Employer',
-      location: 'Remote',
-      description: 'Key engineering role responsible for building high-performance web applications and backend microservices.',
-      required_skills: ['Python', 'FastAPI', 'React', 'SQL', 'Git'],
-      preferred_skills: ['Docker', 'AWS', 'Kubernetes'],
-      experience_requirements: ['2+ years of relevant experience'],
-      qualifications: ["Bachelor's in Computer Science or equivalent practical experience"],
-      responsibilities: [
-        'Develop maintainable microservices and scalable APIs',
-        'Collaborate with product and architecture teams to ship user features'
-      ]
-    }
-    setJob(targetJob)
-  }
-
-  // Record viewed job asynchronously without blocking
-  if (id && targetJob) {
-    recordJobView(id, targetJob).catch(e => console.warn('Record job view warning:', e))
-  }
-
-  // Run AI Fit analysis with active resume or profile skills
-  const activeResume = resumesList.find(r => r.resume_id === activeResumeId)
-  await runAIFit(targetJob, activeResume)
-  let targetJob = null
-  try {
-    targetJob = await getJobById(id)
-    setJob(targetJob)
-  } catch (err) {
-    console.warn('Could not load job, using fallback:', err)
-    targetJob = {
-      job_id: id || 'job_sample_1',
-      title: 'Frontend Engineer',
-      company: 'Northstar Labs',
-      location: 'Bengaluru or Remote',
-      description: 'Build thoughtful, high-performance web applications used by thousands of learners. Partner with platform and design teams to ship accessible, resilient experiences.',
-      required_skills: ['React', 'JavaScript', 'TypeScript', 'CSS', 'Git', 'REST APIs'],
-      preferred_skills: ['Tailwind CSS', 'Next.js', 'Web Performance'],
-      experience_requirements: ['2+ years experience in frontend web development'],
-      qualifications: ["Bachelor's in Computer Science, Software Engineering or equivalent"],
-      responsibilities: [
-        'Develop reusable component libraries using React and modern CSS',
-        'Optimize web performance and core web vitals across devices',
-        'Collaborate closely with UI/UX designers and backend engineers'
-      ]
-    }
-    setJob(targetJob)
-  }
-
-  // Automatically run AI deep fit
-  runAIFitAnalysis(targetJob, activeSkills, chosenResumeId)
-} finally {
-  setLoading(false)
-}
-  }
-
-const runAIFit = async (targetJob, resumeObj) => {
-  if (!targetJob) return
-  const handleResumeChange = async (e) => {
-    const newResumeId = e.target.value
-    setSelectedResumeId(newResumeId)
-
-    const selectedObj = resumes.find(r => r.resume_id === newResumeId)
-    let newSkills = candidateSkills
-
-    if (selectedObj) {
-      if (selectedObj.skills && selectedObj.skills.length > 0) {
-        newSkills = selectedObj.skills
-      } else if (selectedObj.analysis?.resume_skills && selectedObj.analysis.resume_skills.length > 0) {
-        newSkills = selectedObj.analysis.resume_skills
-      } else {
-        try {
-          const detail = await getResume(newResumeId)
-          if (detail && detail.analysis?.resume_skills) {
-            newSkills = detail.analysis.resume_skills
-          } else if (detail && detail.skills) {
-            newSkills = detail.skills
-          }
-        } catch {
-          // Keep current skills if fetch fails
+      // Fetch job by id
+      let targetJob = null
+      try {
+        targetJob = await getJobById(id)
+        setJob(targetJob)
+      } catch (err) {
+        console.warn('Could not fetch job by id, checking shared catalog:', err)
+        targetJob = {
+          job_id: id,
+          title: 'Software Engineer',
+          company: 'Technology Employer',
+          location: 'Remote',
+          description: 'Key engineering role responsible for building high-performance web applications and backend microservices.',
+          required_skills: ['Python', 'FastAPI', 'React', 'SQL', 'Git'],
+          preferred_skills: ['Docker', 'AWS', 'Kubernetes'],
+          experience_requirements: ['2+ years of relevant experience'],
+          qualifications: ["Bachelor's in Computer Science or equivalent practical experience"],
+          responsibilities: [
+            'Develop maintainable microservices and scalable APIs',
+            'Collaborate with product and architecture teams to ship user features'
+          ]
         }
+        setJob(targetJob)
       }
-    }
 
-    setCandidateSkills(newSkills)
-    if (job) {
-      runAIFitAnalysis(job, newSkills, newResumeId)
+      // Record viewed job asynchronously without blocking
+      if (id && targetJob) {
+        recordJobView(id, targetJob).catch(e => console.warn('Record job view warning:', e))
+      }
+
+      // Run AI Fit analysis with active resume or profile skills
+      const activeResume = resumesList.find(r => r.resume_id === activeResumeId)
+      await runAIFit(targetJob, activeResume)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const handleReanalyze = () => {
-    if (job) {
-      runAIFitAnalysis(job, candidateSkills, selectedResumeId)
-    }
-  }
-
-  const runAIFitAnalysis = async (targetJob, skills, resumeId) => {
+  const runAIFit = async (targetJob, resumeObj) => {
     if (!targetJob) return
     setAnalyzingFit(true)
     setFitError('')
@@ -252,8 +126,6 @@ const runAIFit = async (targetJob, resumeObj) => {
         candidate_skills: skills,
         resume_id: resumeObj?.resume_id || selectedResumeId || undefined,
         user_id: userId || undefined,
-        candidate_skills: skills,
-        resume_id: resumeId || selectedResumeId
       })
 
       if (res && res.fit_report) {
@@ -265,22 +137,14 @@ const runAIFit = async (targetJob, resumeObj) => {
       const reqs = targetJob.required_skills || ['Python', 'React', 'Git']
       const candidateList = resumeObj?.skills || userProfile?.skills || ['Python', 'React']
       const lowerSkills = candidateList.map(s => s.toLowerCase())
-      console.warn('AI Fit endpoint error:', err)
-      // High fidelity client fallback
-      const reqs = targetJob.required_skills || ['React', 'JavaScript', 'TypeScript', 'CSS']
-      const currentSkills = skills && skills.length > 0 ? skills : candidateSkills
-      const lowerSkills = currentSkills.map(s => s.toLowerCase())
       const matched = reqs.filter(r => lowerSkills.includes(r.toLowerCase()))
       const missing = reqs.filter(r => !lowerSkills.includes(r.toLowerCase()))
-      const matchPct = Math.min(100, Math.max(15, Math.round((matched.length / Math.max(reqs.length, 1)) * 100)))
+      const matchPct = Math.round((matched.length / Math.max(reqs.length, 1)) * 100)
 
       setFitReport({
         match_percentage: matchPct > 0 ? matchPct : 75,
         verdict: matchPct >= 75 ? 'Strong Match' : 'Competitive Match',
         fit_summary: `Candidate profile demonstrates strong technical readiness for ${targetJob.company}'s ${targetJob.title} position, matching ${matched.length} core competencies.`,
-        match_percentage: matchPct > 0 ? matchPct : 78,
-        verdict: matchPct >= 75 ? 'Strong Match' : matchPct >= 50 ? 'Competitive Match' : 'Developing Match',
-        fit_summary: `Candidate profile demonstrates ${matchPct >= 75 ? 'strong' : 'moderate'} technical readiness for ${targetJob.company}'s ${targetJob.title} position, satisfying ${matched.length} of ${reqs.length} core competencies.`,
         matched_strengths: matched.map(m => ({
           skill: m,
           relevance: `Directly satisfies core job specification for ${targetJob.title}.`
@@ -289,14 +153,13 @@ const runAIFit = async (targetJob, resumeObj) => {
           skill: m,
           impact: 'High',
           bridging_strategy: `Build and showcase a focused project or feature utilizing ${m}.`
-          bridging_strategy: `Build and showcase a focused project or practical feature utilizing ${m}.`
         })),
         interview_focus_areas: [
           `${targetJob.title} architecture patterns`,
           'State management and performance benchmarking',
           'System reliability and edge-case handling'
         ],
-        tailored_advice: `Highlight your project contributions with ${matched.length > 0 ? matched.slice(0, 2).join(' and ') : 'relevant tech'}, and prepare a concise story demonstrating rapid learning for ${missing.length > 0 ? missing.slice(0, 2).join(' and ') : 'unmatched requirements'}.`
+        tailored_advice: `Highlight your project contributions with ${matched.slice(0, 2).join(' and ')}, and prepare a concise story demonstrating rapid learning for ${missing.slice(0, 2).join(' and ')}.`
       })
     } finally {
       setAnalyzingFit(false)
@@ -352,8 +215,9 @@ const runAIFit = async (targetJob, resumeObj) => {
                 </span>
               )}
               {fitReport && (
-                <span className={`px-3 py-0.5 rounded-full text-xs font-black uppercase tracking-wider ${fitReport.match_percentage >= 75 ? 'bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0]' : 'bg-[#F3E9FF] text-[#542477] border border-[#E4D5F3]'
-                  }`}>
+                <span className={`px-3 py-0.5 rounded-full text-xs font-black uppercase tracking-wider ${
+                  fitReport.match_percentage >= 75 ? 'bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0]' : 'bg-[#F3E9FF] text-[#542477] border border-[#E4D5F3]'
+                }`}>
                   {fitReport.match_percentage}% Match ({fitReport.verdict})
                 </span>
               )}
@@ -391,296 +255,245 @@ const runAIFit = async (targetJob, resumeObj) => {
         </div>
       </div>
 
-      {/* Grid: Left Column (Job Details) & Right Column (AI Fit Intelligence) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in slide-in-from-bottom-8 duration-500 delay-100">
-        {/* Main Content Column: Role Overview followed directly by AI Fit Intelligence */}
-        <div className="flex flex-col gap-8 animate-in slide-in-from-bottom-8 duration-500 delay-100">
+      {/* Main Content Column: Role Overview followed directly by AI Fit Intelligence */}
+      <div className="flex flex-col gap-8 animate-in slide-in-from-bottom-8 duration-500 delay-100">
 
-          {/* Role Overview Card */}
-          <div className="bg-white rounded-2xl border border-[#E4D5F3] shadow-[0_4px_20px_rgba(84,36,119,0.03)] p-6 md:p-8 w-full">
-            <h3 className="text-xl font-heading font-black text-[#27113D] mb-4 flex items-center gap-2">
-              <BriefcaseBusiness size={20} className="text-[#542477]" /> Role Overview
-            </h3>
-            <p className="text-[#5F4E75] leading-relaxed mb-8 whitespace-pre-line text-sm">
-              {job?.description}
-            </p>
+        {/* Role Overview Card */}
+        <div className="bg-white rounded-2xl border border-[#E4D5F3] shadow-[0_4px_20px_rgba(84,36,119,0.03)] p-6 md:p-8 w-full">
+          <h3 className="text-xl font-heading font-black text-[#27113D] mb-4 flex items-center gap-2">
+            <BriefcaseBusiness size={20} className="text-[#542477]" /> Role Overview
+          </h3>
+          <p className="text-[#5F4E75] leading-relaxed mb-8 whitespace-pre-line text-sm">
+            {job?.description}
+          </p>
 
-            {job?.responsibilities && job.responsibilities.length > 0 && (
-              <div className="mb-8">
-                <h4 className="text-xs font-bold text-[#27113D] mb-4 uppercase tracking-wider">Key Responsibilities</h4>
-                <ul className="flex flex-col gap-3">
-                  {job.responsibilities.map((resp, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm text-[#5F4E75] leading-relaxed">
-                      <span className="text-[#542477] font-bold mt-0.5 shrink-0">•</span>
-                      <span>{resp}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
+          {job?.responsibilities && job.responsibilities.length > 0 && (
             <div className="mb-8">
-              <h4 className="text-xs font-bold text-[#27113D] mb-4 uppercase tracking-wider">Required Skills & Technologies</h4>
+              <h4 className="text-xs font-bold text-[#27113D] mb-4 uppercase tracking-wider">Key Responsibilities</h4>
+              <ul className="flex flex-col gap-3">
+                {job.responsibilities.map((resp, i) => (
+                  <li key={i} className="flex items-start gap-3 text-sm text-[#5F4E75] leading-relaxed">
+                    <span className="text-[#542477] font-bold mt-0.5 shrink-0">•</span>
+                    <span>{resp}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="mb-8">
+            <h4 className="text-xs font-bold text-[#27113D] mb-4 uppercase tracking-wider">Required Skills & Technologies</h4>
+            <div className="flex flex-wrap gap-2">
+              {job?.required_skills?.map((s, i) => (
+                <span key={i} className="px-3 py-1.5 bg-[#FAF7FD] border border-[#E4D5F3] rounded-xl text-xs font-bold text-[#27113D] shadow-sm">
+                  {s}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {job?.preferred_skills && job.preferred_skills.length > 0 && (
+            <div className="mb-8">
+              <h4 className="text-xs font-bold text-[#8A7A9E] mb-3 uppercase tracking-wider">Preferred / Bonus Skills</h4>
               <div className="flex flex-wrap gap-2">
-                {job?.required_skills?.map((s, i) => (
-                  <span key={i} className="px-3 py-1.5 bg-[#FAF7FD] border border-[#E4D5F3] rounded-xl text-xs font-bold text-[#27113D] shadow-sm">
+                {job.preferred_skills.map((s, i) => (
+                  <span key={i} className="px-2.5 py-1 bg-[#F3E9FF]/70 border border-[#E4D5F3] rounded-lg text-xs font-semibold text-[#542477]">
                     {s}
                   </span>
                 ))}
               </div>
             </div>
+          )}
 
-            {job?.preferred_skills && job.preferred_skills.length > 0 && (
-              <div className="mb-8">
-                <h4 className="text-xs font-bold text-[#8A7A9E] mb-3 uppercase tracking-wider">Preferred / Bonus Skills</h4>
-                <div className="flex flex-wrap gap-2">
-                  {job.preferred_skills.map((s, i) => (
-                    <span key={i} className="px-2.5 py-1 bg-[#F3E9FF]/70 border border-[#E4D5F3] rounded-lg text-xs font-semibold text-[#542477]">
-                      {s}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
+          {job?.qualifications && job.qualifications.length > 0 && (
+            <div>
+              <h4 className="text-xs font-bold text-[#27113D] mb-4 uppercase tracking-wider">Qualifications</h4>
+              <ul className="flex flex-col gap-2.5">
+                {job.qualifications.map((q, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-[#5F4E75]">
+                    <CheckCircle2 size={16} className="text-[#16A34A] shrink-0 mt-0.5" />
+                    {q}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
 
-            {job?.qualifications && job.qualifications.length > 0 && (
+        {/* AI Fit Intelligence Card - Directly Below Role Overview with matching width */}
+        <div className="bg-white rounded-2xl border border-[#E4D5F3] shadow-[0_4px_20px_rgba(84,36,119,0.04)] overflow-hidden w-full">
+          <div className="p-5 md:p-6 border-b border-[#E4D5F3] bg-[#FAF7FD] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex items-center gap-2.5 text-[#542477]">
+              <Sparkles size={20} className="text-[#D83CC5]" />
               <div>
-                <h4 className="text-xs font-bold text-[#27113D] mb-4 uppercase tracking-wider">Qualifications</h4>
-                <ul className="flex flex-col gap-2.5">
-                  {job.qualifications.map((q, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-[#5F4E75]">
-                      <CheckCircle2 size={16} className="text-[#16A34A] shrink-0 mt-0.5" />
-                      {q}
-                    </li>
-                  ))}
-                </ul>
+                <h3 className="font-heading font-black m-0 text-lg text-[#27113D]">AI Fit Intelligence</h3>
+                <p className="text-xs text-[#8A7A9E] m-0">Multi-Agent skill compatibility & candidate readiness analysis</p>
               </div>
-            )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+              {/* Selected Resume Dropdown */}
+              <div className="flex items-center gap-2 bg-white border border-[#E4D5F3] rounded-xl px-3 py-1.5 shadow-sm">
+                <FileText size={15} className="text-[#542477] shrink-0" />
+                <label htmlFor="resume-select" className="text-xs font-semibold text-[#5F4E75] whitespace-nowrap">
+                  Selected Resume:
+                </label>
+                {userResumes.length > 0 ? (
+                  <div className="relative flex items-center">
+                    <select
+                      id="resume-select"
+                      value={selectedResumeId}
+                      onChange={handleResumeChange}
+                      className="bg-transparent text-xs font-bold text-[#27113D] focus:outline-none cursor-pointer pr-5 appearance-none"
+                      disabled={analyzingFit}
+                    >
+                      {userResumes.map(r => (
+                        <option key={r.resume_id} value={r.resume_id}>
+                          {r.filename || `Resume (${r.resume_id.slice(0, 6)}...)`}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown size={12} className="absolute right-0 text-[#8A7A9E] pointer-events-none" />
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-xs text-[#5F4E75]">
+                    <span>No resumes</span>
+                    <Link to="/resume" className="text-[#542477] font-bold hover:underline flex items-center gap-0.5">
+                      Upload <ArrowRight size={11} />
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {/* Re-analyze Button */}
+              <button
+                className="px-4 py-2 bg-gradient-to-r from-[#542477] to-[#D83CC5] text-white font-bold rounded-xl text-xs transition-all flex items-center gap-2 shadow-sm disabled:opacity-50 cursor-pointer hover:opacity-95"
+                onClick={handleReanalyze}
+                disabled={analyzingFit}
+              >
+                <RefreshCw size={13} className={analyzingFit ? 'animate-spin' : ''} />
+                {analyzingFit ? 'Analyzing...' : 'Re-analyze'}
+              </button>
+            </div>
           </div>
 
-          {/* AI Fit Intelligence Card - Directly Below Role Overview with matching width */}
-          <div className="bg-gradient-to-br from-background to-ai/5 rounded-2xl border border-ai/20 shadow-sm overflow-hidden w-full">
-            {/* Header with Title, Resume Dropdown, and Re-analyze Button */}
-            <div className="p-5 md:p-6 border-b border-border/50 bg-background/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div className="flex items-center gap-2.5 text-ai-hover">
-                <Sparkles size={20} className="fill-ai/20 text-ai" />
-                <div>
-                  <h3 className="font-heading font-bold m-0 text-lg text-text-primary">AI Fit Intelligence</h3>
-                  <p className="text-xs text-text-muted m-0">Multi-Agent skill compatibility & candidate readiness analysis</p>
-                </div>
+          <div className="p-6 md:p-8">
+            {analyzingFit ? (
+              <div className="text-center py-12 flex flex-col items-center">
+                <RefreshCw size={32} className="animate-spin text-[#542477] mb-4" />
+                <p className="text-sm text-[#8A7A9E] font-medium">Diagnosing candidate match and generating bridging roadmap...</p>
               </div>
+            ) : fitReport ? (
+              <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+                {/* Score Progress Bar */}
+                <div className="bg-[#FAF7FD] border border-[#E4D5F3] p-5 rounded-2xl shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                    <div>
+                      <span className="font-bold text-[#8A7A9E] uppercase tracking-wider text-xs block mb-1">
+                        Overall Job Compatibility Score
+                      </span>
+                      <span className="text-xs text-[#5F4E75]">
+                        Evaluated based on selected resume competencies against requirements
+                      </span>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                      <strong className={`text-2xl md:text-3xl font-heading font-black ${fitReport.match_percentage >= 75 ? 'text-[#16A34A]' : 'text-[#542477]'}`}>
+                        {fitReport.match_percentage}%
+                      </strong>
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide ${
+                        fitReport.match_percentage >= 75 ? 'bg-[#F0FDF4] text-[#16A34A] border border-[#BBF7D0]' : 'bg-[#F3E9FF] text-[#542477] border border-[#E4D5F3]'
+                      }`}>
+                        {fitReport.verdict}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="h-2.5 rounded-full bg-[#E4D5F3] overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-1000 ease-out ${fitReport.match_percentage >= 75 ? 'bg-[#16A34A]' : 'bg-gradient-to-r from-[#542477] to-[#D83CC5]'}`}
+                      style={{ width: `${fitReport.match_percentage}%` }}
+                    />
+                  </div>
+                </div>
 
-              {/* Right Column: AI Fit Intelligence */}
-              <div className="flex flex-col gap-6">
-                <div className="bg-white rounded-2xl border border-[#E4D5F3] shadow-[0_4px_20px_rgba(84,36,119,0.04)] overflow-hidden sticky top-6">
-                  <div className="p-5 border-b border-[#E4D5F3] bg-[#FAF7FD] flex justify-between items-center">
-                    <div className="flex items-center gap-2 text-[#542477]">
-                      <Sparkles size={18} className="text-[#D83CC5]" />
-                      <h3 className="font-heading font-black m-0 text-base text-[#27113D]">AI Fit Intelligence</h3>
-                      <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-                        {/* Selected Resume Dropdown */}
-                        <div className="flex items-center gap-2 bg-background border border-border rounded-xl px-3 py-1.5 shadow-sm">
-                          <FileText size={15} className="text-ai shrink-0" />
-                          <label htmlFor="resume-select" className="text-xs font-semibold text-text-secondary whitespace-nowrap">
-                            Selected Resume:
-                          </label>
-                          <div className="relative flex items-center">
-                            <select
-                              id="resume-select"
-                              value={selectedResumeId}
-                              onChange={handleResumeChange}
-                              className="bg-transparent text-xs font-bold text-text-primary focus:outline-none cursor-pointer pr-5 appearance-none"
-                              disabled={analyzingFit}
-                            >
-                              {resumes.map(r => (
-                                <option key={r.resume_id} value={r.resume_id}>
-                                  {r.filename || `Resume (${r.resume_id.slice(0, 6)}...)`}
-                                </option>
-                              ))}
-                            </select>
-                            <ChevronDown size={12} className="absolute right-0 text-text-muted pointer-events-none" />
+                {/* AI-Generated Match Explanation */}
+                <div className="bg-[#FAF7FD] border border-[#E4D5F3] p-5 rounded-2xl shadow-sm">
+                  <strong className="text-xs font-bold text-[#8A7A9E] uppercase tracking-wider block mb-2">
+                    AI Match Explanation
+                  </strong>
+                  <p className="text-sm font-medium text-[#27113D] leading-relaxed m-0">
+                    {fitReport.fit_summary}
+                  </p>
+                </div>
+
+                {/* Verified Strengths and Priority Skill Gaps - 2 column grid on desktop */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Matched Strengths */}
+                  {fitReport.matched_strengths && fitReport.matched_strengths.length > 0 && (
+                    <div className="p-5 bg-[#F0FDF4] rounded-2xl border border-[#BBF7D0] shadow-sm flex flex-col">
+                      <strong className="text-xs font-black text-[#16A34A] uppercase tracking-widest flex items-center gap-1.5 mb-3">
+                        <CheckCircle2 size={16} /> Verified Strengths ({fitReport.matched_strengths.length})
+                      </strong>
+                      <div className="flex flex-col gap-2.5">
+                        {fitReport.matched_strengths.map((item, idx) => (
+                          <div key={idx} className="text-xs text-[#5F4E75] leading-relaxed">
+                            <span className="font-bold text-[#16A34A] mr-1.5">•</span>
+                            <strong className="text-[#27113D]">{item.skill}:</strong> {item.relevance}
                           </div>
-                        </div>
-
-                        {/* Re-analyze Button */}
-                        <button
-                          className="px-3 py-1.5 bg-white border border-[#E4D5F3] hover:border-[#542477] text-[#5F4E75] hover:text-[#542477] font-bold rounded-lg text-xs transition-all flex items-center gap-1.5 disabled:opacity-50 shadow-sm"
-                          onClick={handleReanalyze}
-                          className="px-4 py-2 bg-ai hover:bg-ai-hover text-white font-bold rounded-xl text-xs transition-all flex items-center gap-2 shadow-sm disabled:opacity-50 cursor-pointer"
-                          onClick={handleReanalyze}
-                          disabled={analyzingFit}
-                        >
-                          <RefreshCw size={13} className={analyzingFit ? 'animate-spin' : ''} />
-                          {analyzingFit ? 'Analyzing...' : 'Re-analyze'}
-                        </button>
+                        ))}
                       </div>
                     </div>
+                  )}
 
-                    {/* Resume Selection Bar */}
-                    <div className="px-5 py-3.5 bg-[#FAF7FD]/50 border-b border-[#E4D5F3]">
-                      <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-[#8A7A9E] flex items-center gap-1">
-                          <FileText size={12} className="text-[#542477]" /> Grounded Resume:
-                        </label>
-                        {userResumes.length > 0 && (
-                          <span className="text-[10px] text-[#542477] font-bold">
-                            {userResumes.length} saved
-                          </span>
-                        )}
-                      </div>
-                      {userResumes.length > 0 ? (
-                        <select
-                          value={selectedResumeId}
-                          onChange={handleResumeChange}
-                          className="w-full px-3 py-2 bg-white border border-[#E4D5F3] rounded-xl text-xs font-bold text-[#27113D] focus:outline-none focus:border-[#542477]"
-                        >
-                          {userResumes.map(r => (
-                            <option key={r.resume_id} value={r.resume_id}>
-                              {r.filename || 'resume.pdf'}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <div className="p-2.5 bg-white border border-dashed border-[#E4D5F3] rounded-xl text-[11px] text-[#5F4E75] flex items-center justify-between">
-                          <span>No saved resume found</span>
-                          <Link to="/resume" className="text-[#542477] font-bold hover:underline flex items-center gap-0.5">
-                            Upload <ArrowRight size={11} />
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="p-5">
-                      {analyzingFit ? (
-                        <div className="text-center py-10 flex flex-col items-center">
-                          <RefreshCw size={28} className="animate-spin text-[#542477] mb-4" />
-                          <p className="text-sm text-[#8A7A9E] font-medium">Diagnosing compatibility against selected resume...</p>
-                        </div>
-                      ) : fitReport ? (
-                        <div className="flex flex-col gap-5 animate-in fade-in duration-300">
-                          {/* Score Progress Bar */}
-                          <div>
-                            <div className="flex justify-between items-end text-sm mb-2">
-                              <span className="font-bold text-[#8A7A9E] uppercase tracking-wider text-[10px]">Job Compatibility</span>
-                              <strong className={`text-lg font-black ${fitReport.match_percentage >= 75 ? 'text-[#16A34A]' : 'text-[#542477]'}`}>
-                                <div className="p-6 md:p-8">
-                                  {analyzingFit ? (
-                                    <div className="text-center py-12 flex flex-col items-center">
-                                      <RefreshCw size={32} className="animate-spin text-ai mb-4" />
-                                      <p className="text-sm text-text-muted font-medium">Diagnosing candidate match and generating bridging roadmap...</p>
-                                    </div>
-                                  ) : fitReport ? (
-                                    <div className="flex flex-col gap-6 animate-in fade-in duration-300">
-
-                                      {/* Score Progress Bar */}
-                                      <div className="bg-background border border-border p-5 rounded-2xl shadow-sm">
-                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
-                                          <div>
-                                            <span className="font-bold text-text-secondary uppercase tracking-wider text-xs block mb-1">
-                                              Overall Job Compatibility Score
-                                            </span>
-                                            <span className="text-xs text-text-muted">
-                                              Evaluated based on selected resume competencies against requirements
-                                            </span>
-                                          </div>
-                                          <div className="flex items-baseline gap-2">
-                                            <strong className={`text-2xl md:text-3xl font-heading font-black ${fitReport.match_percentage >= 75 ? 'text-success-hover' : 'text-primary'}`}>
-                                              {fitReport.match_percentage}%
-                                            </strong>
-                                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide ${fitReport.match_percentage >= 75 ? 'bg-success/10 text-success-hover border border-success/20' : 'bg-primary/10 text-primary border border-primary/20'
-                                              }`}>
-                                              {fitReport.verdict}
-                                            </span>
-                                          </div>
-                                        </div>
-                                        <div className="h-2.5 rounded-full bg-[#E4D5F3] overflow-hidden">
-                                          <div
-                                            className={`h-full rounded-full transition-all duration-1000 ease-out ${fitReport.match_percentage >= 75 ? 'bg-[#16A34A]' : 'bg-gradient-to-r from-[#542477] to-[#D83CC5]'}`}
-                                            style={{ width: `${fitReport.match_percentage}%` }}
-                                          />
-                                        </div>
-                                      </div>
-
-                                      <p className="text-sm font-medium text-[#27113D] leading-relaxed bg-[#FAF7FD] border border-[#E4D5F3] p-3.5 rounded-xl shadow-sm">
-                                        {/* AI-Generated Match Explanation */}
-                                        <div className="bg-background border border-border p-5 rounded-2xl shadow-sm">
-                                          <strong className="text-xs font-bold text-text-muted uppercase tracking-wider block mb-2">
-                                            AI Match Explanation
-                                          </strong>
-                                          <p className="text-sm font-medium text-text-primary leading-relaxed m-0">
-                                            {fitReport.fit_summary}
-                                          </p>
-                                        </div>
-
-                                        {/* Verified Strengths and Priority Skill Gaps - 2 column grid on desktop */}
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                          {/* Matched Strengths */}
-                                          {fitReport.matched_strengths && fitReport.matched_strengths.length > 0 && (
-                                            <div className="p-5 bg-[#F0FDF4] rounded-2xl border border-[#BBF7D0] shadow-sm flex flex-col">
-                                              <strong className="text-xs font-black text-[#16A34A] uppercase tracking-widest flex items-center gap-1.5 mb-3">
-                                                <CheckCircle2 size={16} /> Verified Strengths ({fitReport.matched_strengths.length})
-                                              </strong>
-                                              <div className="flex flex-col gap-2.5">
-                                                {fitReport.matched_strengths.map((item, idx) => (
-                                                  <div key={idx} className="text-xs text-[#5F4E75] leading-relaxed">
-                                                    <span className="font-bold text-[#16A34A] mr-1.5">•</span>
-                                                    <strong className="text-[#27113D]">{item.skill}:</strong> {item.relevance}
-                                                  </div>
-                                                ))}
-                                              </div>
-                                            </div>
-                                          )}
-
-                                          {/* Critical Gaps & Bridging Strategy */}
-                                          {fitReport.critical_gaps && fitReport.critical_gaps.length > 0 && (
-                                            <div className="p-5 bg-[#FFF1F2] rounded-2xl border border-[#FECDD3] shadow-sm flex flex-col">
-                                              <strong className="text-xs font-black text-[#E11D48] uppercase tracking-widest flex items-center gap-1.5 mb-3">
-                                                <Target size={16} /> Priority Skill Gaps ({fitReport.critical_gaps.length})
-                                              </strong>
-                                              <div className="flex flex-col gap-2.5">
-                                                {fitReport.critical_gaps.map((item, idx) => (
-                                                  <div key={idx} className="text-xs text-[#5F4E75] leading-relaxed">
-                                                    <span className="font-bold text-[#E11D48] mr-1.5">•</span>
-                                                    <strong className="text-[#27113D]">{item.skill}:</strong> {item.bridging_strategy}
-                                                  </div>
-                                                ))}
-                                              </div>
-                                            </div>
-                                          )}
-                                        </div>
-
-                                        {/* Anticipated Interview Areas */}
-                                        {fitReport.interview_focus_areas && fitReport.interview_focus_areas.length > 0 && fitReport.interview_focus_areas.length > 0 && (
-                                          <div className="p-5 bg-[#FAF7FD] rounded-2xl border border-[#E4D5F3] shadow-sm">
-                                            <strong className="text-xs font-black text-[#8A7A9E] uppercase tracking-widest flex items-center gap-1.5 mb-3">
-                                              <Award size={16} className="text-primary" /> Anticipated Interview Areas
-                                            </strong>
-                                            <div className="flex flex-wrap gap-2.5">
-                                              {fitReport.interview_focus_areas.map((area, idx) => (
-                                                <span key={idx} className="px-3 py-1.5 text-xs font-bold bg-[#F3E9FF] text-[#542477] border border-[#E4D5F3] rounded-xl">
-                                                  {area}
-                                                </span>
-                                              ))}
-                                            </div>
-                                          </div>
-                                        )}
-
-                                        {/* Tailored Recruiter Advice */}
-                                        {fitReport.tailored_advice && (
-                                          <div className="p-5 bg-[#F3E9FF]/40 rounded-2xl border-l-4 border-l-[#542477] text-xs font-medium text-[#5F4E75] shadow-sm">
-                                            <strong className="text-xs font-black text-[#542477] uppercase tracking-widest flex items-center gap-1.5 mb-1.5">
-                                              <Sparkles size={14} /> AI Application Advice
-                                            </strong>
-                                            <p className="m-0 leading-relaxed text-text-primary">
-                                              {fitReport.tailored_advice}
-                                            </p>
-                                          </div>
-                                        )}
-                                    </div>
-                                  ) : null}
-                                </div>
-                            </div>
+                  {/* Critical Gaps & Bridging Strategy */}
+                  {fitReport.critical_gaps && fitReport.critical_gaps.length > 0 && (
+                    <div className="p-5 bg-[#FFF1F2] rounded-2xl border border-[#FECDD3] shadow-sm flex flex-col">
+                      <strong className="text-xs font-black text-[#E11D48] uppercase tracking-widest flex items-center gap-1.5 mb-3">
+                        <Target size={16} /> Priority Skill Gaps ({fitReport.critical_gaps.length})
+                      </strong>
+                      <div className="flex flex-col gap-2.5">
+                        {fitReport.critical_gaps.map((item, idx) => (
+                          <div key={idx} className="text-xs text-[#5F4E75] leading-relaxed">
+                            <span className="font-bold text-[#E11D48] mr-1.5">•</span>
+                            <strong className="text-[#27113D]">{item.skill}:</strong> {item.bridging_strategy}
                           </div>
-                        </div>
-                      )
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Anticipated Interview Areas */}
+                {fitReport.interview_focus_areas && fitReport.interview_focus_areas.length > 0 && (
+                  <div className="p-5 bg-[#FAF7FD] rounded-2xl border border-[#E4D5F3] shadow-sm">
+                    <strong className="text-xs font-black text-[#8A7A9E] uppercase tracking-widest flex items-center gap-1.5 mb-3">
+                      <Award size={16} className="text-[#542477]" /> Anticipated Interview Areas
+                    </strong>
+                    <div className="flex flex-wrap gap-2.5">
+                      {fitReport.interview_focus_areas.map((area, idx) => (
+                        <span key={idx} className="px-3 py-1.5 text-xs font-bold bg-[#F3E9FF] text-[#542477] border border-[#E4D5F3] rounded-xl">
+                          {area}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Tailored Recruiter Advice */}
+                {fitReport.tailored_advice && (
+                  <div className="p-5 bg-[#F3E9FF]/40 rounded-2xl border-l-4 border-l-[#542477] text-xs font-medium text-[#5F4E75] shadow-sm">
+                    <strong className="text-xs font-black text-[#542477] uppercase tracking-widest flex items-center gap-1.5 mb-1.5">
+                      <Sparkles size={14} /> AI Application Advice
+                    </strong>
+                    <p className="m-0 leading-relaxed text-[#27113D]">
+                      {fitReport.tailored_advice}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
