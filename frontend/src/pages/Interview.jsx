@@ -12,6 +12,7 @@ import {
   getInterviewHistory, getInterviewSession, getInterviewVoices, fetchSpeechifyAudio 
 } from '../features/interview/interviewService';
 import { getResumes } from '../features/resume/resumeService';
+import { waitForAuthReady } from '../api/axiosClient';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Progress } from '../components/ui/Progress';
 import { auth } from '../firebase';
