@@ -21,34 +21,45 @@ def initialize_firebase():
     if firebase_admin._apps:
         return firebase_admin.get_app()
 
-    credentials_path = os.getenv("FIREBASE_CREDENTIALS_PATH", "firebase-service-account.json")
+    cred = None
+    cred_json_str = os.getenv("FIREBASE_CREDENTIALS_JSON")
+    if cred_json_str and cred_json_str.strip():
+        import json as _json
+        try:
+            cred_dict = _json.loads(cred_json_str.strip())
+            cred = credentials.Certificate(cred_dict)
+            logger.info("Initialized Firebase credentials from FIREBASE_CREDENTIALS_JSON environment variable.")
+        except Exception as e:
+            logger.warning("Failed to parse FIREBASE_CREDENTIALS_JSON: %s", e)
+
+    if cred is None:
+        credentials_path = os.getenv("FIREBASE_CREDENTIALS_PATH", "firebase-service-account.json")
+        if not credentials_path:
+            raise ValueError("FIREBASE_CREDENTIALS_PATH is not configured.")
+
+        if not os.path.isabs(credentials_path):
+            candidates = [
+                Path.cwd() / credentials_path,
+                Path(__file__).resolve().parents[2] / credentials_path,
+                Path(__file__).resolve().parents[1] / credentials_path,
+                Path("/etc/secrets") / Path(credentials_path).name,
+            ]
+            for candidate in candidates:
+                if candidate.exists():
+                    credentials_path = str(candidate)
+                    break
+
+        if not os.path.exists(credentials_path):
+            raise FileNotFoundError(
+                f"Firebase credentials file not found: {credentials_path}"
+            )
+
+        cred = credentials.Certificate(credentials_path)
+
     storage_bucket = os.getenv("FIREBASE_STORAGE_BUCKET")
-
-    if not credentials_path:
-        raise ValueError(
-            "FIREBASE_CREDENTIALS_PATH is not configured."
-        )
-
-    if not os.path.isabs(credentials_path):
-        for candidate in [
-            Path.cwd() / credentials_path,
-            Path(__file__).resolve().parents[2] / credentials_path,
-            Path(__file__).resolve().parents[1] / credentials_path,
-        ]:
-            if candidate.exists():
-                credentials_path = str(candidate)
-                break
-
-    if not os.path.exists(credentials_path):
-        raise FileNotFoundError(
-            f"Firebase credentials file not found: {credentials_path}"
-        )
-
     if not storage_bucket:
         project_id = os.getenv("FIREBASE_PROJECT_ID", "carrr-c4bc0")
         storage_bucket = f"{project_id}.firebasestorage.app"
-
-    cred = credentials.Certificate(credentials_path)
 
     return firebase_admin.initialize_app(
         cred,
