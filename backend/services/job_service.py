@@ -4,6 +4,7 @@ from uuid import uuid4
 from backend.database.firestore import FirestoreDatabase
 from backend.models.job import Job
 from backend.services.job_parser import parse_job_description
+from backend.utils.text_sanitizer import normalize_job_description
 
 
 class JobService:
@@ -31,6 +32,7 @@ class JobService:
         if not user_id or not user_id.strip():
             raise ValueError("user_id cannot be empty.")
 
+        description = normalize_job_description(description)
         if not description or not description.strip():
             raise ValueError("Job description cannot be empty.")
 
@@ -555,4 +557,4 @@ class JobService:
                 },
                 "eligibility": eligibility_result,
             },
-        }
+        }

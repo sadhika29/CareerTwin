@@ -1,12 +1,12 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, FileText, Search, Target, BookOpen, MessageSquareText } from 'lucide-react';
+import { ArrowRight, FileText, Search, Target, MessageSquareText, ClipboardCheck } from 'lucide-react';
 
 export default function QuickActions() {
   const actions = [
     { to: '/resume', label: 'Optimize Resume', desc: 'Improve ATS score', icon: FileText, color: 'text-blue-500', bg: 'bg-blue-50' },
     { to: '/jobs', label: 'Find Jobs', desc: 'Matching opportunities', icon: Search, color: 'text-emerald-500', bg: 'bg-emerald-50' },
     { to: '/skills', label: 'Analyze Skills', desc: 'Identify skill gaps', icon: Target, color: 'text-purple-500', bg: 'bg-purple-50' },
-    { to: '/preparation', label: 'Start Preparation', desc: 'Daily practice tasks', icon: BookOpen, color: 'text-amber-500', bg: 'bg-amber-50' },
+    { to: '/assessment', label: 'Skills Assessment', desc: 'Verify competencies', icon: ClipboardCheck, color: 'text-amber-500', bg: 'bg-amber-50' },
     { to: '/interview', label: 'Take Mock Interview', desc: 'Practice with AI', icon: MessageSquareText, color: 'text-rose-500', bg: 'bg-rose-50' },
   ];
 

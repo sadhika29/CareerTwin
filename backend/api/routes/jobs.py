@@ -13,6 +13,7 @@ from backend.schemas.job import (
     JobResponse,
 )
 from backend.services.job_service import JobService
+from backend.utils.text_sanitizer import normalize_job_description, normalize_job_dict
 
 
 async def get_authenticated_user_id(
@@ -305,7 +306,7 @@ async def list_jobs(
                 company=job.company,
                 location=job.location,
                 job_url=job.job_url,
-                description=job.description,
+                description=normalize_job_description(job.description),
                 required_skills=job.required_skills,
                 preferred_skills=job.preferred_skills,
                 experience_requirements=job.experience_requirements,
@@ -353,7 +354,7 @@ async def get_job_by_id(job_id: str):
                 company=doc.get("company", "Tech Company"),
                 location=doc.get("location", "Remote"),
                 job_url=doc.get("job_url", "") or doc.get("application_url", ""),
-                description=doc.get("description", ""),
+                description=normalize_job_description(doc.get("description", "")),
                 required_skills=doc.get("required_skills", []),
                 preferred_skills=doc.get("preferred_skills", []),
                 experience_requirements=doc.get("experience_requirements", []),
@@ -388,7 +389,7 @@ async def get_job_by_id(job_id: str):
                 company=live_details.get("company", "Company"),
                 location=live_details.get("location", "Remote"),
                 job_url=live_details.get("job_url", ""),
-                description=live_details.get("description", ""),
+                description=normalize_job_description(live_details.get("description", "")),
                 required_skills=live_details.get("required_skills", []),
                 preferred_skills=live_details.get("preferred_skills", []),
                 experience_requirements=live_details.get("experience_requirements", []),
@@ -491,6 +492,7 @@ async def analyze_job_ai_fit(
     job_title = payload.get("title")
     company = payload.get("company")
     description = payload.get("description")
+    description = normalize_job_description(payload.get("description"))
     required_skills = payload.get("required_skills")
     candidate_skills = list(payload.get("candidate_skills") or [])
     resume_id = payload.get("resume_id")
@@ -699,6 +701,7 @@ async def match_job(
                 "company": request.company,
                 "location": request.location,
                 "description": request.description or "",
+                "description": normalize_job_description(request.description or ""),
                 "required_skills": request.required_skills,
                 "job_url": request.job_url or "",
             }
@@ -840,6 +843,7 @@ async def search_live_jobs(
             force_refresh=force_refresh,
         )
         jobs = sync_result.get("jobs", [])
+        jobs = [normalize_job_dict(j) for j in sync_result.get("jobs", [])]
 
         if is_remote:
             jobs = [
@@ -952,4 +956,4 @@ async def get_company_salary(
         data = client.get_company_salary(company=company, job_title=job_title)
         return data or {"status": "unavailable", "message": "Company compensation not reported."}
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Company salary query failed: {exc}")
+        raise HTTPException(status_code=500, detail=f"Company salary query failed: {exc}")

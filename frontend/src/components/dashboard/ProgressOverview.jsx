@@ -2,12 +2,12 @@ import { useState } from 'react';
 
 export default function ProgressOverview({ scores }) {
   const [activeTab, setActiveTab] = useState('All');
-  const tabs = ['All', 'Resume', 'Skills', 'Preparation', 'Assessments'];
+  const tabs = ['All', 'Resume', 'Skills', 'Assessments'];
 
   const progressData = [
     { label: 'Resume Optimization', value: scores.resume, category: 'Resume' },
-    { label: 'DSA Preparation', value: scores.dsa, category: 'Preparation' },
-    { label: 'Aptitude', value: scores.aptitude, category: 'Preparation' },
+    { label: 'DSA Practice', value: scores.dsa, category: 'Skills' },
+    { label: 'Aptitude Practice', value: scores.aptitude, category: 'Skills' },
     { label: 'Mock Interviews', value: scores.interview, category: 'Assessments' },
     { label: 'Technical Skills', value: scores.technical, category: 'Skills' },
   ];
@@ -34,16 +34,16 @@ export default function ProgressOverview({ scores }) {
         ))}
       </div>
 
-      <div className="flex flex-col gap-5">
-        {filtered.map(item => (
-          <div key={item.label}>
-            <div className="flex justify-between items-center mb-1.5">
-              <span className="text-sm font-semibold text-slate-700">{item.label}</span>
-              <span className="text-sm font-bold text-slate-800">{item.value}%</span>
+      <div className="space-y-4">
+        {filtered.map((item, i) => (
+          <div key={i} className="flex flex-col gap-2">
+            <div className="flex justify-between items-center text-sm font-medium">
+              <span className="text-slate-700">{item.label}</span>
+              <span className="text-slate-500 font-bold">{item.value}%</span>
             </div>
-            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+            <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
               <div 
-                className="h-full bg-gradient-to-r from-[#5B4AEF] to-[#8B5CF6] rounded-full transition-all duration-1000"
+                className="bg-[#5B4AEF] h-2 rounded-full transition-all duration-500"
                 style={{ width: `${item.value}%` }}
               />
             </div>

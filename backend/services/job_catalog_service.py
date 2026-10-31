@@ -25,6 +25,7 @@ from backend.services.himalayas_client import HimalayasClient
 from backend.services.jsearch_client import JSearchClient
 from backend.services.serpapi_client import SerpApiClient
 from backend.services.skill_service import SkillService
+from backend.utils.text_sanitizer import normalize_job_description, normalize_job_dict
 
 logger = logging.getLogger(__name__)
 
@@ -160,7 +161,7 @@ class JobCatalogService:
         elif max_sal:
             salary_range = f"Up to ${int(max_sal):,} {currency}/{period}"
 
-        desc = raw.get("description") or raw.get("excerpt") or ""
+        desc = normalize_job_description(raw.get("description") or raw.get("excerpt") or "")
         skills = SkillService.extract_skills(f"{title}\n{desc}")
         if not skills and isinstance(raw.get("categories"), list):
             skills = [c for c in raw.get("categories") if isinstance(c, str)]
@@ -210,7 +211,7 @@ class JobCatalogService:
 
         title = raw.get("job_title") or raw.get("title") or "Software Engineer"
         company = raw.get("employer_name") or raw.get("company") or "Technology Employer"
-        desc = raw.get("job_description") or raw.get("description") or ""
+        desc = normalize_job_description(raw.get("job_description") or raw.get("description") or "")
 
         # Location
         loc = raw.get("job_location") or raw.get("location")
@@ -290,7 +291,7 @@ class JobCatalogService:
         title = raw.get("title") or "Software Engineer"
         company = raw.get("company_name") or raw.get("company") or "Technology Company"
         loc = raw.get("location") or "Remote"
-        desc = raw.get("description") or ""
+        desc = normalize_job_description(raw.get("description") or "")
 
         raw_id = raw.get("job_id") or f"{title}_{company}_{loc}"
         clean_hash = hashlib.md5(raw_id.encode("utf-8")).hexdigest()[:16]

@@ -1,11 +1,33 @@
 from enum import Enum
-from pydantic import BaseModel, Field
+from typing import Any
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class PriorityLevel(str, Enum):
     HIGH = "HIGH"
     MEDIUM = "MEDIUM"
     LOW = "LOW"
+
+
+class SkillLevel(str, Enum):
+    BEGINNER = "Beginner"
+    INTERMEDIATE = "Intermediate"
+    ADVANCED = "Advanced"
+    EXPERT = "Expert"
+
+
+SUPPORTED_SKILL_LEVELS = {"Beginner", "Intermediate", "Advanced", "Expert"}
+
+
+def validate_level_string(v: Any) -> str | None:
+    if v is None:
+        return None
+    val_str = str(v).strip().capitalize()
+    if val_str not in SUPPORTED_SKILL_LEVELS:
+        raise ValueError(
+            f"Invalid skill level: '{v}'. Must be one of: Beginner, Intermediate, Advanced, Expert."
+        )
+    return val_str
 
 
 class SkillItem(BaseModel):
@@ -76,19 +98,37 @@ class CareerManagerSkillEnvelope(BaseModel):
 class UserSkillCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100, description="Skill name")
     category: str = Field(default="Programming Languages", description="Category")
-    proficiency: float = Field(default=50.0, ge=0.0, le=100.0, description="Current proficiency %")
-    target_proficiency: float = Field(default=80.0, ge=0.0, le=100.0, description="Target proficiency %")
+    current_level: str | None = Field(default=None, description="Current skill level (Beginner, Intermediate, Advanced, Expert)")
+    target_level: str | None = Field(default=None, description="Target skill level (Beginner, Intermediate, Advanced, Expert)")
+    currentLevel: str | None = Field(default=None, description="Alias for current_level")
+    targetLevel: str | None = Field(default=None, description="Alias for target_level")
+    proficiency: float | None = Field(default=None, ge=0.0, le=100.0, description="Legacy proficiency %")
+    target_proficiency: float | None = Field(default=None, ge=0.0, le=100.0, description="Legacy target proficiency %")
     notes: str = Field(default="", max_length=500, description="Optional notes")
     learning_goal: str = Field(default="", max_length=500, description="Optional learning goal")
+
+    @field_validator("current_level", "target_level", "currentLevel", "targetLevel")
+    @classmethod
+    def check_level(cls, v: Any) -> str | None:
+        return validate_level_string(v)
 
 
 class UserSkillUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     category: str | None = None
+    current_level: str | None = None
+    target_level: str | None = None
+    currentLevel: str | None = None
+    targetLevel: str | None = None
     proficiency: float | None = Field(default=None, ge=0.0, le=100.0)
     target_proficiency: float | None = Field(default=None, ge=0.0, le=100.0)
     notes: str | None = None
     learning_goal: str | None = None
+
+    @field_validator("current_level", "target_level", "currentLevel", "targetLevel")
+    @classmethod
+    def check_level(cls, v: Any) -> str | None:
+        return validate_level_string(v)
 
 
 class UserSkillItem(BaseModel):
@@ -96,13 +136,25 @@ class UserSkillItem(BaseModel):
     user_id: str
     name: str
     category: str
-    proficiency: float
-    target_proficiency: float
+    current_level: str = "Intermediate"
+    target_level: str = "Advanced"
+    currentLevel: str | None = None
+    targetLevel: str | None = None
+    proficiency: float = 50.0
+    target_proficiency: float = 80.0
     proficiency_source: str = "self-assessed"
     notes: str = ""
     learning_goal: str = ""
     created_at: str
     updated_at: str
+
+    @model_validator(mode="after")
+    def sync_aliases(self) -> "UserSkillItem":
+        if not self.currentLevel:
+            self.currentLevel = self.current_level
+        if not self.targetLevel:
+            self.targetLevel = self.target_level
+        return self
 
 
 class UserSkillsSummary(BaseModel):
@@ -141,7 +193,7 @@ class LearningProgressUpdateRequest(BaseModel):
     category: str = Field(..., min_length=1)
     topic: str = Field(default="")
     title: str = Field(default="")
-    status: str = Field(default="Not Started")  # Not Started, In Progress, Solved, Completed, Revision
+    status: str = Field(default="Not Started")
     notes: str = Field(default="")
 
 
@@ -149,4 +201,3 @@ class LearningProgressResponse(BaseModel):
     progress: list[LearningProgressItem]
     progress_map: dict[str, LearningProgressItem]
     counts: dict[str, int]
-

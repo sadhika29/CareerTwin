@@ -136,6 +136,11 @@ expectedFeatures.forEach(feat => {
   assert(appRoutesContent.includes(`path="${feat.route}"`), `AppRoutes.jsx handles route '${feat.route}'`);
 });
 
+assert(
+  appRoutesContent.includes('path="/applications" element={<Applications />}'),
+  'AppRoutes.jsx renders the Application Tracker at /applications'
+);
+
 // Check alias routes in AppRoutes.jsx
 const expectedAliases = [
   '/resume-analysis',

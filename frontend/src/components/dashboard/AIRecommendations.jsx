@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 export default function AIRecommendations({ recommendations = [] }) {
   const defaultRecs = [
-    { priority: 'HIGH PRIORITY', title: 'Improve DSA', desc: 'Your DSA performance is below the required level for your target Software Engineer role.', to: '/preparation', btnText: 'Start Practice' },
+    { priority: 'HIGH PRIORITY', title: 'Improve DSA', desc: 'Your DSA performance is below the required level for your target Software Engineer role.', to: '/skills', btnText: 'Start Practice' },
     { priority: 'MEDIUM', title: 'Build Portfolio Project', desc: 'Add 2 real-world projects to strengthen your profile and improve resume score.', to: '/resume', btnText: 'Update Profile' },
     { priority: 'MEDIUM', title: 'Practice Technical Interviews', desc: 'Your current interview score is 40%. Practice mock interviews.', to: '/interview', btnText: 'Mock Interview' },
     { priority: 'LOW', title: 'Apply to Jobs', desc: 'You have 5 highly matching jobs available.', to: '/jobs', btnText: 'View Jobs' }
@@ -31,10 +31,14 @@ export default function AIRecommendations({ recommendations = [] }) {
             }`}>
               {rec.priority}
             </span>
-            <h3 className="font-bold text-slate-800 mb-2">{rec.title}</h3>
-            <p className="text-sm text-slate-600 mb-4 line-clamp-2">{rec.desc}</p>
-            <Link to={rec.to} className="text-sm font-semibold text-[#5B4AEF] flex items-center gap-1.5 group-hover:gap-2 transition-all">
-              {rec.btnText} <ArrowRight size={14} />
+            <h3 className="font-semibold text-slate-800 mb-1">{rec.title}</h3>
+            <p className="text-xs text-slate-500 mb-4">{rec.desc}</p>
+            <Link 
+              to={rec.to}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-[#5B4AEF] group-hover:underline"
+            >
+              <span>{rec.btnText}</span>
+              <ArrowRight size={14} />
             </Link>
           </div>
         ))}

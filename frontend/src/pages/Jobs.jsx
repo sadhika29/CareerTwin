@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight, Search, MapPin, Sparkles, Check, X, ShieldCheck,
@@ -13,6 +13,7 @@ import {
 import { getResumes } from '../features/resume/resumeService';
 import { getProfile } from '../features/profile/profileService';
 import ResumeMatchModal from '../components/ResumeMatchModal';
+import { normalizeJobDescription, normalizeJobObject } from '../utils/jobUtils';
 
 export default function Jobs() {
   const [jobs, setJobs] = useState([]);
@@ -37,22 +38,37 @@ export default function Jobs() {
   const [applicationConfirmJob, setApplicationConfirmJob] = useState(null);
   const [submittingApplication, setSubmittingApplication] = useState(false);
 
-  // Primary & LinkedIn-Style Filters State
+  // Primary & LinkedIn-Style Filters State (4 kept: Date, Experience, Arrangement, Type)
   const [searchKeywords, setSearchKeywords] = useState('');
   const [locationInput, setLocationInput] = useState('');
   const [datePostedFilter, setDatePostedFilter] = useState('any'); // 'any' | '24h' | 'week' | 'month'
-  const [companyFilter, setCompanyFilter] = useState('all');
   const [experienceFilter, setExperienceFilter] = useState('all'); // 'all' | 'internship' | 'entry' | 'associate' | 'mid-senior' | 'director'
   const [employmentFilter, setEmploymentFilter] = useState('all'); // 'all' | 'full-time' | 'part-time' | 'contract' | 'internship'
   const [arrangementFilter, setArrangementFilter] = useState('all'); // 'all' | 'remote' | 'hybrid' | 'on-site'
 
-  // Additional Filters
-  const [industryFilter, setIndustryFilter] = useState('all');
-  const [salaryFilter, setSalaryFilter] = useState('all'); // 'all' | '50k' | '80k' | '100k' | '120k' | '150k'
-  const [techStackFilter, setTechStackFilter] = useState('all');
-
   // Active Dropdown state for filter bar
-  const [openDropdown, setOpenDropdown] = useState(null); // 'date' | 'exp' | 'company' | 'type' | 'arr' | 'salary' | 'tech' | 'industry' | null
+  const [openDropdown, setOpenDropdown] = useState(null); // 'date' | 'exp' | 'arr' | 'type' | null
+  const filterBarRef = useRef(null);
+
+  // Close open dropdown when clicking outside or pressing Escape
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (filterBarRef.current && !filterBarRef.current.contains(event.target)) {
+        setOpenDropdown(null);
+      }
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setOpenDropdown(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -72,7 +88,7 @@ export default function Jobs() {
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setJobs(parsed);
+          setJobs(parsed.map(normalizeJobObject));
           setLoading(false);
         }
       }
@@ -197,9 +213,10 @@ export default function Jobs() {
       });
 
       if (liveRes && liveRes.jobs && liveRes.jobs.length > 0) {
-        setJobs(liveRes.jobs);
+        const cleaned = liveRes.jobs.map(normalizeJobObject);
+        setJobs(cleaned);
         try {
-          sessionStorage.setItem('career_jobs_cache', JSON.stringify(liveRes.jobs));
+          sessionStorage.setItem('career_jobs_cache', JSON.stringify(cleaned));
         } catch {
           // ignore
         }
@@ -211,9 +228,10 @@ export default function Jobs() {
         try {
           const catData = await getJobs();
           if (catData && catData.jobs && catData.jobs.length > 0) {
-            setJobs(catData.jobs);
+            const cleaned = catData.jobs.map(normalizeJobObject);
+            setJobs(cleaned);
             try {
-              sessionStorage.setItem('career_jobs_cache', JSON.stringify(catData.jobs));
+              sessionStorage.setItem('career_jobs_cache', JSON.stringify(cleaned));
             } catch {
               // ignore
             }
@@ -241,7 +259,7 @@ export default function Jobs() {
       });
 
       if (report && report.jobs && report.jobs.length > 0) {
-        setJobs(report.jobs);
+        setJobs(report.jobs.map(normalizeJobObject));
       } else {
         // Refresh visible listings
         await loadJobsData();
@@ -295,27 +313,7 @@ export default function Jobs() {
     return Array.from(map.values());
   }, [jobs, interactionsSummary]);
 
-  // Extract unique companies from current data for company filter
-  const availableCompanies = useMemo(() => {
-    const set = new Set();
-    allJobsPool.forEach(j => {
-      if (j.company && j.company.trim()) set.add(j.company.trim());
-    });
-    return Array.from(set).sort();
-  }, [allJobsPool]);
-
-  // Extract top skills from current data for tech stack filter
-  const availableTechStacks = useMemo(() => {
-    const counts = {};
-    allJobsPool.forEach(j => {
-      (j.required_skills || []).forEach(s => {
-        counts[s] = (counts[s] || 0) + 1;
-      });
-    });
-    return Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 16);
-  }, [allJobsPool]);
-
-  // Comprehensive LinkedIn-Style Multi-Filter Logic
+  // Comprehensive Multi-Filter Logic (Keywords, Location, Date Posted, Experience, Arrangement, Job Type)
   const filteredJobs = useMemo(() => {
     return allJobsPool.filter(job => {
       // 0. Interactive Summary Card Filter: Viewed, Saved, Applied
@@ -326,7 +324,8 @@ export default function Jobs() {
       } else if (activeSummaryFilter === 'applied') {
         if (!interactionsSummary?.applied_job_ids?.includes(job.job_id)) return false;
       }
-      // 1. Keywords filter (Title, Company, Description, Required Skills)
+
+      // 1. Keywords filter (Title, Company, Description, Required Skills, Keywords)
       if (searchKeywords.trim()) {
         const query = searchKeywords.toLowerCase().trim();
         const inTitle = (job.title || '').toLowerCase().includes(query);
@@ -353,20 +352,27 @@ export default function Jobs() {
         const nowSec = Date.now() / 1000;
         let jobTs = job.posted_timestamp;
 
-        // If not precomputed timestamp, try parsing string
-        if (!jobTs && (job.posting_date || job.posted_at)) {
-          const str = (job.posting_date || job.posted_at || '').toLowerCase();
-          if (str.includes('today') || str.includes('hour') || str.includes('just now')) {
+        // If not precomputed timestamp, try parsing string or ISO date
+        if (!jobTs && (job.posting_date || job.posted_at || job.created_at)) {
+          const raw = job.posting_date || job.posted_at || job.created_at || '';
+          const str = String(raw).toLowerCase();
+          if (str.includes('today') || str.includes('hour') || str.includes('just now') || str.includes('minute')) {
             jobTs = nowSec - 3600;
           } else if (str.includes('yesterday') || str.includes('1 day')) {
             jobTs = nowSec - 86400;
           } else {
-            const m = str.match(/(\d+)\s*day/);
-            if (m) jobTs = nowSec - (parseInt(m[1]) * 86400);
-            const mw = str.match(/(\d+)\s*week/);
+            const md = str.match(/(\d+)\s*d/);
+            if (md) jobTs = nowSec - (parseInt(md[1]) * 86400);
+            const mw = str.match(/(\d+)\s*w/);
             if (mw) jobTs = nowSec - (parseInt(mw[1]) * 7 * 86400);
-            const mm = str.match(/(\d+)\s*month/);
+            const mm = str.match(/(\d+)\s*m/);
             if (mm) jobTs = nowSec - (parseInt(mm[1]) * 30 * 86400);
+            if (!jobTs) {
+              const parsedDate = Date.parse(raw);
+              if (!isNaN(parsedDate)) {
+                jobTs = parsedDate / 1000;
+              }
+            }
           }
         }
 
@@ -378,80 +384,52 @@ export default function Jobs() {
         }
       }
 
-      // 4. Company filter
-      if (companyFilter !== 'all') {
-        if ((job.company || '').toLowerCase().trim() !== companyFilter.toLowerCase().trim()) {
-          return false;
-        }
-      }
-
-      // 5. Experience Level filter
+      // 4. Experience Level filter
       if (experienceFilter !== 'all') {
         const exp = (job.experience_level || '').toLowerCase();
         const title = (job.title || '').toLowerCase();
+        const reqs = (job.experience_requirements || []).join(' ').toLowerCase();
+        const desc = (job.description || '').toLowerCase();
+        const combined = `${exp} ${title} ${reqs} ${desc}`;
+
         if (experienceFilter === 'internship') {
-          if (!exp.includes('intern') && !title.includes('intern')) return false;
+          if (!combined.includes('intern')) return false;
         } else if (experienceFilter === 'entry') {
-          if (!exp.includes('entry') && !title.includes('junior') && !title.includes('entry')) return false;
+          if (!combined.includes('entry') && !combined.includes('junior') && !combined.includes('graduate') && !combined.includes('trainee') && !combined.includes('0-') && !combined.includes('1 year')) return false;
         } else if (experienceFilter === 'associate') {
-          if (!exp.includes('associate') && !exp.includes('mid')) return false;
+          if (!combined.includes('associate') && !combined.includes('mid') && !combined.includes('2+') && !combined.includes('3+')) return false;
         } else if (experienceFilter === 'mid-senior') {
-          if (!exp.includes('mid') && !exp.includes('senior') && !title.includes('senior') && !title.includes('lead')) return false;
+          if (!combined.includes('senior') && !combined.includes('lead') && !combined.includes('principal') && !combined.includes('5+')) return false;
         } else if (experienceFilter === 'director') {
-          if (!exp.includes('director') && !exp.includes('head') && !title.includes('director') && !title.includes('vp')) return false;
+          if (!combined.includes('director') && !combined.includes('head') && !combined.includes('vp') && !combined.includes('executive')) return false;
         }
       }
 
-      // 6. Employment Type filter
-      if (employmentFilter !== 'all') {
-        const emp = (job.employment_type || '').toLowerCase();
-        if (!emp.includes(employmentFilter.toLowerCase())) {
-          return false;
-        }
-      }
-
-      // 7. Work Arrangement filter (Remote, Hybrid, On-site)
+      // 5. Work Arrangement filter (Remote, Hybrid, On-site)
       if (arrangementFilter !== 'all') {
         const arr = (job.work_arrangement || '').toLowerCase();
         const loc = (job.location || '').toLowerCase();
+        const title = (job.title || '').toLowerCase();
+        const desc = (job.description || '').toLowerCase();
+        const isRemote = job.is_remote || arr === 'remote' || loc.includes('remote') || title.includes('remote') || desc.includes('remote');
+        const isHybrid = arr === 'hybrid' || loc.includes('hybrid') || title.includes('hybrid') || desc.includes('hybrid');
+
         if (arrangementFilter === 'remote') {
-          if (arr !== 'remote' && !job.is_remote && !loc.includes('remote')) return false;
+          if (!isRemote) return false;
         } else if (arrangementFilter === 'hybrid') {
-          if (arr !== 'hybrid' && !loc.includes('hybrid')) return false;
+          if (!isHybrid) return false;
         } else if (arrangementFilter === 'on-site') {
-          if (arr === 'remote' || job.is_remote || loc.includes('remote') || arr === 'hybrid') return false;
+          if (isRemote || isHybrid) return false;
         }
       }
 
-      // 8. Salary Range filter (only applies when actual salary is present)
-      if (salaryFilter !== 'all') {
-        const minThresh = parseInt(salaryFilter) * 1000;
-        let jobMin = job.min_salary;
-        if (!jobMin && job.salary_range) {
-          const match = job.salary_range.match(/\$?(\d+)[kK]?/);
-          if (match) {
-            jobMin = parseInt(match[1]) * (job.salary_range.toLowerCase().includes('k') ? 1000 : 1);
-          }
-        }
-        if (!jobMin || jobMin < minThresh) {
-          return false;
-        }
-      }
-
-      // 9. Tech Stack / Skills filter
-      if (techStackFilter !== 'all') {
-        const targetSkill = techStackFilter.toLowerCase();
-        const hasSkill = (job.required_skills || []).some(s => s.toLowerCase() === targetSkill);
-        const inDesc = (job.description || '').toLowerCase().includes(targetSkill);
-        if (!hasSkill && !inDesc) {
-          return false;
-        }
-      }
-
-      // 10. Industry / Category filter
-      if (industryFilter !== 'all') {
-        const ind = (job.industry || '').toLowerCase();
-        if (!ind.includes(industryFilter.toLowerCase())) {
+      // 6. Job Type / Employment Type filter
+      if (employmentFilter !== 'all') {
+        const emp = (job.employment_type || '').toLowerCase();
+        const title = (job.title || '').toLowerCase();
+        const desc = (job.description || '').toLowerCase();
+        const target = employmentFilter.toLowerCase();
+        if (!emp.includes(target) && !title.includes(target) && !desc.includes(target)) {
           return false;
         }
       }
@@ -460,8 +438,7 @@ export default function Jobs() {
     });
   }, [
     allJobsPool, activeSummaryFilter, interactionsSummary, searchKeywords, locationInput,
-    datePostedFilter, companyFilter, experienceFilter, employmentFilter,
-    arrangementFilter, salaryFilter, techStackFilter, industryFilter
+    datePostedFilter, experienceFilter, employmentFilter, arrangementFilter
   ]);
 
   // Pagination calculation
@@ -492,9 +469,6 @@ export default function Jobs() {
       const labels = { '24h': 'Past 24 hours', 'week': 'Past week', 'month': 'Past month' };
       list.push({ id: 'date', label: `Date: ${labels[datePostedFilter]}`, clear: () => setDatePostedFilter('any') });
     }
-    if (companyFilter !== 'all') {
-      list.push({ id: 'comp', label: `Company: ${companyFilter}`, clear: () => setCompanyFilter('all') });
-    }
     if (experienceFilter !== 'all') {
       const labels = {
         'internship': 'Internship', 'entry': 'Entry level',
@@ -502,27 +476,23 @@ export default function Jobs() {
       };
       list.push({ id: 'exp', label: `Experience: ${labels[experienceFilter]}`, clear: () => setExperienceFilter('all') });
     }
-    if (employmentFilter !== 'all') {
-      list.push({ id: 'emp', label: `Type: ${employmentFilter}`, clear: () => setEmploymentFilter('all') });
-    }
     if (arrangementFilter !== 'all') {
       const labels = { 'remote': 'Remote', 'hybrid': 'Hybrid', 'on-site': 'On-site' };
       list.push({ id: 'arr', label: `Arrangement: ${labels[arrangementFilter]}`, clear: () => setArrangementFilter('all') });
     }
-    if (salaryFilter !== 'all') {
-      list.push({ id: 'sal', label: `Salary: $${salaryFilter}+`, clear: () => setSalaryFilter('all') });
-    }
-    if (techStackFilter !== 'all') {
-      list.push({ id: 'tech', label: `Skill: ${techStackFilter}`, clear: () => setTechStackFilter('all') });
-    }
-    if (industryFilter !== 'all') {
-      list.push({ id: 'ind', label: `Category: ${industryFilter}`, clear: () => setIndustryFilter('all') });
+    if (employmentFilter !== 'all') {
+      const labels = {
+        'full-time': 'Full-time',
+        'part-time': 'Part-time',
+        'contract': 'Contract',
+        'internship': 'Internship'
+      };
+      list.push({ id: 'emp', label: `Job Type: ${labels[employmentFilter] || employmentFilter}`, clear: () => setEmploymentFilter('all') });
     }
     return list;
   }, [
-    activeSummaryFilter, searchKeywords, locationInput, datePostedFilter, companyFilter,
-    experienceFilter, employmentFilter, arrangementFilter, salaryFilter,
-    techStackFilter, industryFilter
+    activeSummaryFilter, searchKeywords, locationInput, datePostedFilter,
+    experienceFilter, arrangementFilter, employmentFilter
   ]);
 
   const handleResetAllFilters = () => {
@@ -530,13 +500,9 @@ export default function Jobs() {
     setSearchKeywords('');
     setLocationInput('');
     setDatePostedFilter('any');
-    setCompanyFilter('all');
     setExperienceFilter('all');
-    setEmploymentFilter('all');
     setArrangementFilter('all');
-    setSalaryFilter('all');
-    setTechStackFilter('all');
-    setIndustryFilter('all');
+    setEmploymentFilter('all');
     setCurrentPage(1);
     setOpenDropdown(null);
   };
@@ -744,18 +710,19 @@ export default function Jobs() {
           </div>
         </form>
 
-        {/* Compact LinkedIn-Style Filter Pills Row */}
-        <div className="pt-3 border-t border-[#E4D5F3] flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          <span className="text-[11px] font-black uppercase tracking-wider text-[#8A7A9E] shrink-0 mr-1 flex items-center gap-1">
-            <Filter size={11} /> Filters:
+        {/* Compact LinkedIn-Style Filter Bar: 4 Kept Filters (Date, Experience, Arrangement, Job Type) */}
+        <div ref={filterBarRef} className="pt-3.5 border-t border-[#E4D5F3] flex flex-wrap items-center gap-2.5 relative">
+          <span className="text-[11px] font-black uppercase tracking-wider text-[#8A7A9E] shrink-0 mr-1 flex items-center gap-1.5">
+            <Filter size={12} className="text-[#542477]" /> Filters:
           </span>
 
-          {/* Date Posted Filter Dropdown */}
-          <div className="relative shrink-0">
+          {/* 1. Date Posted Filter Dropdown */}
+          <div className="relative">
             <button
               type="button"
               onClick={() => toggleDropdown('date')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 transition-all ${
+              aria-expanded={openDropdown === 'date'}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 transition-all shadow-sm ${
                 datePostedFilter !== 'any'
                   ? 'bg-[#F3E9FF] border-[#542477] text-[#542477]'
                   : 'bg-[#FAF7FD] border-[#E4D5F3] text-[#27113D] hover:border-[#D6C2EB]'
@@ -767,11 +734,11 @@ export default function Jobs() {
                   datePostedFilter === '24h' ? 'Past 24h' : (datePostedFilter === 'week' ? 'Past week' : 'Past month')
                 )}
               </span>
-              <ChevronDown size={12} />
+              <ChevronDown size={12} className={`transition-transform duration-200 ${openDropdown === 'date' ? 'rotate-180' : ''}`} />
             </button>
 
             {openDropdown === 'date' && (
-              <div className="absolute left-0 mt-2 w-48 bg-white border border-[#E4D5F3] rounded-2xl shadow-xl p-2 z-30 animate-in fade-in zoom-in-95">
+              <div className="absolute left-0 top-full mt-2 w-52 max-h-72 overflow-y-auto bg-white border border-[#E4D5F3] rounded-2xl shadow-[0_12px_32px_rgba(84,36,119,0.12)] p-2 z-50 animate-in fade-in zoom-in-95">
                 {[
                   { id: 'any', label: 'Any time' },
                   { id: '24h', label: 'Past 24 hours' },
@@ -782,23 +749,25 @@ export default function Jobs() {
                     key={opt.id}
                     type="button"
                     onClick={() => { setDatePostedFilter(opt.id); setOpenDropdown(null); setCurrentPage(1); }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
+                    className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center justify-between ${
                       datePostedFilter === opt.id ? 'bg-[#F3E9FF] text-[#542477]' : 'text-[#27113D] hover:bg-[#FAF7FD]'
                     }`}
                   >
-                    {opt.label}
+                    <span>{opt.label}</span>
+                    {datePostedFilter === opt.id && <Check size={13} className="text-[#542477] shrink-0" />}
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Experience Level Filter Dropdown */}
-          <div className="relative shrink-0">
+          {/* 2. Experience Level Filter Dropdown */}
+          <div className="relative">
             <button
               type="button"
               onClick={() => toggleDropdown('exp')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 transition-all ${
+              aria-expanded={openDropdown === 'exp'}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 transition-all shadow-sm ${
                 experienceFilter !== 'all'
                   ? 'bg-[#F3E9FF] border-[#542477] text-[#542477]'
                   : 'bg-[#FAF7FD] border-[#E4D5F3] text-[#27113D] hover:border-[#D6C2EB]'
@@ -808,15 +777,19 @@ export default function Jobs() {
               <span>
                 {experienceFilter === 'all' ? 'Experience Level' : (
                   experienceFilter === 'entry' ? 'Entry Level' : (
-                    experienceFilter === 'mid-senior' ? 'Mid-Senior' : experienceFilter
+                    experienceFilter === 'mid-senior' ? 'Mid-Senior' : (
+                      experienceFilter === 'internship' ? 'Internship' : (
+                        experienceFilter === 'associate' ? 'Associate' : 'Director / Exec'
+                      )
+                    )
                   )
                 )}
               </span>
-              <ChevronDown size={12} />
+              <ChevronDown size={12} className={`transition-transform duration-200 ${openDropdown === 'exp' ? 'rotate-180' : ''}`} />
             </button>
 
             {openDropdown === 'exp' && (
-              <div className="absolute left-0 mt-2 w-52 bg-white border border-[#E4D5F3] rounded-2xl shadow-xl p-2 z-30 animate-in fade-in zoom-in-95">
+              <div className="absolute left-0 top-full mt-2 w-56 max-h-72 overflow-y-auto bg-white border border-[#E4D5F3] rounded-2xl shadow-[0_12px_32px_rgba(84,36,119,0.12)] p-2 z-50 animate-in fade-in zoom-in-95">
                 {[
                   { id: 'all', label: 'All experience levels' },
                   { id: 'internship', label: 'Internship' },
@@ -829,23 +802,25 @@ export default function Jobs() {
                     key={opt.id}
                     type="button"
                     onClick={() => { setExperienceFilter(opt.id); setOpenDropdown(null); setCurrentPage(1); }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
+                    className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center justify-between ${
                       experienceFilter === opt.id ? 'bg-[#F3E9FF] text-[#542477]' : 'text-[#27113D] hover:bg-[#FAF7FD]'
                     }`}
                   >
-                    {opt.label}
+                    <span>{opt.label}</span>
+                    {experienceFilter === opt.id && <Check size={13} className="text-[#542477] shrink-0" />}
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Work Arrangement Filter Dropdown (Remote / Hybrid / On-site) */}
-          <div className="relative shrink-0">
+          {/* 3. Work Arrangement Filter Dropdown (Remote / Hybrid / On-site) */}
+          <div className="relative">
             <button
               type="button"
               onClick={() => toggleDropdown('arr')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 transition-all ${
+              aria-expanded={openDropdown === 'arr'}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 transition-all shadow-sm ${
                 arrangementFilter !== 'all'
                   ? 'bg-[#F3E9FF] border-[#542477] text-[#542477]'
                   : 'bg-[#FAF7FD] border-[#E4D5F3] text-[#27113D] hover:border-[#D6C2EB]'
@@ -859,11 +834,11 @@ export default function Jobs() {
                   )
                 )}
               </span>
-              <ChevronDown size={12} />
+              <ChevronDown size={12} className={`transition-transform duration-200 ${openDropdown === 'arr' ? 'rotate-180' : ''}`} />
             </button>
 
             {openDropdown === 'arr' && (
-              <div className="absolute left-0 mt-2 w-48 bg-white border border-[#E4D5F3] rounded-2xl shadow-xl p-2 z-30 animate-in fade-in zoom-in-95">
+              <div className="absolute left-0 top-full mt-2 w-52 max-h-72 overflow-y-auto bg-white border border-[#E4D5F3] rounded-2xl shadow-[0_12px_32px_rgba(84,36,119,0.12)] p-2 z-50 animate-in fade-in zoom-in-95">
                 {[
                   { id: 'all', label: 'Any arrangement' },
                   { id: 'remote', label: 'Remote' },
@@ -874,35 +849,45 @@ export default function Jobs() {
                     key={opt.id}
                     type="button"
                     onClick={() => { setArrangementFilter(opt.id); setOpenDropdown(null); setCurrentPage(1); }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
+                    className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center justify-between ${
                       arrangementFilter === opt.id ? 'bg-[#F3E9FF] text-[#542477]' : 'text-[#27113D] hover:bg-[#FAF7FD]'
                     }`}
                   >
-                    {opt.label}
+                    <span>{opt.label}</span>
+                    {arrangementFilter === opt.id && <Check size={13} className="text-[#542477] shrink-0" />}
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Employment Type Filter Dropdown */}
-          <div className="relative shrink-0">
+          {/* 4. Job Type / Employment Type Filter Dropdown */}
+          <div className="relative">
             <button
               type="button"
               onClick={() => toggleDropdown('type')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 transition-all ${
+              aria-expanded={openDropdown === 'type'}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 transition-all shadow-sm ${
                 employmentFilter !== 'all'
                   ? 'bg-[#F3E9FF] border-[#542477] text-[#542477]'
                   : 'bg-[#FAF7FD] border-[#E4D5F3] text-[#27113D] hover:border-[#D6C2EB]'
               }`}
             >
               <Briefcase size={12} className={employmentFilter !== 'all' ? 'text-[#542477]' : 'text-[#8A7A9E]'} />
-              <span>{employmentFilter === 'all' ? 'Job Type' : employmentFilter}</span>
-              <ChevronDown size={12} />
+              <span>
+                {employmentFilter === 'all' ? 'Job Type' : (
+                  employmentFilter === 'full-time' ? 'Full-time' : (
+                    employmentFilter === 'part-time' ? 'Part-time' : (
+                      employmentFilter === 'contract' ? 'Contract' : 'Internship'
+                    )
+                  )
+                )}
+              </span>
+              <ChevronDown size={12} className={`transition-transform duration-200 ${openDropdown === 'type' ? 'rotate-180' : ''}`} />
             </button>
 
             {openDropdown === 'type' && (
-              <div className="absolute left-0 mt-2 w-44 bg-white border border-[#E4D5F3] rounded-2xl shadow-xl p-2 z-30 animate-in fade-in zoom-in-95">
+              <div className="absolute left-0 top-full mt-2 w-52 max-h-72 overflow-y-auto bg-white border border-[#E4D5F3] rounded-2xl shadow-[0_12px_32px_rgba(84,36,119,0.12)] p-2 z-50 animate-in fade-in zoom-in-95">
                 {[
                   { id: 'all', label: 'All types' },
                   { id: 'full-time', label: 'Full-time' },
@@ -914,179 +899,12 @@ export default function Jobs() {
                     key={opt.id}
                     type="button"
                     onClick={() => { setEmploymentFilter(opt.id); setOpenDropdown(null); setCurrentPage(1); }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
+                    className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center justify-between ${
                       employmentFilter === opt.id ? 'bg-[#F3E9FF] text-[#542477]' : 'text-[#27113D] hover:bg-[#FAF7FD]'
                     }`}
                   >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Company Filter Dropdown */}
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => toggleDropdown('company')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 transition-all ${
-                companyFilter !== 'all'
-                  ? 'bg-[#F3E9FF] border-[#542477] text-[#542477]'
-                  : 'bg-[#FAF7FD] border-[#E4D5F3] text-[#27113D] hover:border-[#D6C2EB]'
-              }`}
-            >
-              <Building2 size={12} className={companyFilter !== 'all' ? 'text-[#542477]' : 'text-[#8A7A9E]'} />
-              <span className="max-w-[120px] truncate">{companyFilter === 'all' ? 'Company' : companyFilter}</span>
-              <ChevronDown size={12} />
-            </button>
-
-            {openDropdown === 'company' && (
-              <div className="absolute left-0 mt-2 w-56 max-h-64 overflow-y-auto bg-white border border-[#E4D5F3] rounded-2xl shadow-xl p-2 z-30 animate-in fade-in zoom-in-95">
-                <button
-                  type="button"
-                  onClick={() => { setCompanyFilter('all'); setOpenDropdown(null); setCurrentPage(1); }}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                    companyFilter === 'all' ? 'bg-[#F3E9FF] text-[#542477]' : 'text-[#27113D] hover:bg-[#FAF7FD]'
-                  }`}
-                >
-                  All Companies
-                </button>
-                {availableCompanies.map(c => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => { setCompanyFilter(c); setOpenDropdown(null); setCurrentPage(1); }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold truncate transition-colors ${
-                      companyFilter === c ? 'bg-[#F3E9FF] text-[#542477]' : 'text-[#27113D] hover:bg-[#FAF7FD]'
-                    }`}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Technology / Skills Filter Dropdown */}
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => toggleDropdown('tech')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 transition-all ${
-                techStackFilter !== 'all'
-                  ? 'bg-[#F3E9FF] border-[#542477] text-[#542477]'
-                  : 'bg-[#FAF7FD] border-[#E4D5F3] text-[#27113D] hover:border-[#D6C2EB]'
-              }`}
-            >
-              <Layers size={12} className={techStackFilter !== 'all' ? 'text-[#542477]' : 'text-[#8A7A9E]'} />
-              <span>{techStackFilter === 'all' ? 'Tech Stack' : techStackFilter}</span>
-              <ChevronDown size={12} />
-            </button>
-
-            {openDropdown === 'tech' && (
-              <div className="absolute left-0 mt-2 w-52 max-h-64 overflow-y-auto bg-white border border-[#E4D5F3] rounded-2xl shadow-xl p-2 z-30 animate-in fade-in zoom-in-95">
-                <button
-                  type="button"
-                  onClick={() => { setTechStackFilter('all'); setOpenDropdown(null); setCurrentPage(1); }}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                    techStackFilter === 'all' ? 'bg-[#F3E9FF] text-[#542477]' : 'text-[#27113D] hover:bg-[#FAF7FD]'
-                  }`}
-                >
-                  All Tech Stacks
-                </button>
-                {availableTechStacks.map(t => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => { setTechStackFilter(t); setOpenDropdown(null); setCurrentPage(1); }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                      techStackFilter === t ? 'bg-[#F3E9FF] text-[#542477]' : 'text-[#27113D] hover:bg-[#FAF7FD]'
-                    }`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Salary Range Filter Dropdown */}
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => toggleDropdown('salary')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 transition-all ${
-                salaryFilter !== 'all'
-                  ? 'bg-[#F3E9FF] border-[#542477] text-[#542477]'
-                  : 'bg-[#FAF7FD] border-[#E4D5F3] text-[#27113D] hover:border-[#D6C2EB]'
-              }`}
-            >
-              <DollarSign size={12} className={salaryFilter !== 'all' ? 'text-[#542477]' : 'text-[#8A7A9E]'} />
-              <span>{salaryFilter === 'all' ? 'Salary' : `$${salaryFilter}+`}</span>
-              <ChevronDown size={12} />
-            </button>
-
-            {openDropdown === 'salary' && (
-              <div className="absolute left-0 mt-2 w-48 bg-white border border-[#E4D5F3] rounded-2xl shadow-xl p-2 z-30 animate-in fade-in zoom-in-95">
-                {[
-                  { id: 'all', label: 'Any salary' },
-                  { id: '50', label: '$50k+ / year' },
-                  { id: '80', label: '$80k+ / year' },
-                  { id: '100', label: '$100k+ / year' },
-                  { id: '120', label: '$120k+ / year' },
-                  { id: '150', label: '$150k+ / year' },
-                ].map(opt => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => { setSalaryFilter(opt.id); setOpenDropdown(null); setCurrentPage(1); }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                      salaryFilter === opt.id ? 'bg-[#F3E9FF] text-[#542477]' : 'text-[#27113D] hover:bg-[#FAF7FD]'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Industry Filter Dropdown */}
-          <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => toggleDropdown('industry')}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-1.5 transition-all ${
-                industryFilter !== 'all'
-                  ? 'bg-[#F3E9FF] border-[#542477] text-[#542477]'
-                  : 'bg-[#FAF7FD] border-[#E4D5F3] text-[#27113D] hover:border-[#D6C2EB]'
-              }`}
-            >
-              <Briefcase size={12} className={industryFilter !== 'all' ? 'text-[#542477]' : 'text-[#8A7A9E]'} />
-              <span>{industryFilter === 'all' ? 'Category' : industryFilter}</span>
-              <ChevronDown size={12} />
-            </button>
-
-            {openDropdown === 'industry' && (
-              <div className="absolute left-0 mt-2 w-56 bg-white border border-[#E4D5F3] rounded-2xl shadow-xl p-2 z-30 animate-in fade-in zoom-in-95">
-                {[
-                  { id: 'all', label: 'All Categories' },
-                  { id: 'Engineering', label: 'Engineering & Software' },
-                  { id: 'Data', label: 'Data & AI' },
-                  { id: 'Cloud', label: 'Cloud & DevOps' },
-                  { id: 'Product', label: 'Product & Design' },
-                  { id: 'Security', label: 'Security & Systems' }
-                ].map(opt => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => { setIndustryFilter(opt.id); setOpenDropdown(null); setCurrentPage(1); }}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
-                      industryFilter === opt.id ? 'bg-[#F3E9FF] text-[#542477]' : 'text-[#27113D] hover:bg-[#FAF7FD]'
-                    }`}
-                  >
-                    {opt.label}
+                    <span>{opt.label}</span>
+                    {employmentFilter === opt.id && <Check size={13} className="text-[#542477] shrink-0" />}
                   </button>
                 ))}
               </div>
@@ -1098,7 +916,8 @@ export default function Jobs() {
             <button
               type="button"
               onClick={handleResetAllFilters}
-              className="px-3 py-1.5 rounded-full text-xs font-bold text-[#E11D48] hover:bg-[#FFF1F2] border border-[#FECDD3] flex items-center gap-1 shrink-0 transition-colors ml-auto"
+              className="px-3.5 py-1.5 rounded-full text-xs font-bold text-[#E11D48] hover:bg-[#FFF1F2] border border-[#FECDD3] flex items-center gap-1.5 shrink-0 transition-colors ml-auto shadow-sm"
+              title="Reset all active filters"
             >
               <RotateCcw size={11} /> Reset All
             </button>
@@ -1310,10 +1129,13 @@ export default function Jobs() {
                 </div>
 
                 {/* Job Description Snippet */}
-                <p className="text-xs text-[#5F4E75] leading-relaxed mb-4 font-normal">
-                  {job.description && job.description.length > 260
-                    ? job.description.substring(0, 260) + '...'
-                    : job.description}
+                <p className="text-xs text-[#5F4E75] leading-relaxed mb-4 font-normal whitespace-pre-line">
+                  {(() => {
+                    const cleanDesc = normalizeJobDescription(job.description);
+                    return cleanDesc && cleanDesc.length > 260
+                      ? cleanDesc.substring(0, 260) + '...'
+                      : cleanDesc;
+                  })()}
                 </p>
 
                 {/* Required Skills Chips */}

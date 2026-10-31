@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { listResumes } from '../features/resume/resumeService';
 import { matchJob } from '../features/jobs/jobService';
+import { normalizeJobDescription } from '../utils/jobUtils';
 
 export default function ResumeMatchModal({
   isOpen,
@@ -70,7 +71,7 @@ export default function ResumeMatchModal({
         title: job.title,
         company: job.company,
         location: job.location,
-        description: job.description,
+        description: normalizeJobDescription(job.description),
         required_skills: job.required_skills || [],
         job_url: job.job_url || job.application_url,
       };

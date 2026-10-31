@@ -19,6 +19,51 @@ logger = logging.getLogger(__name__)
 _user_skills_cache: Dict[str, Dict[str, Dict[str, Any]]] = {}
 _learning_progress_cache: Dict[str, Dict[str, Dict[str, Any]]] = {}
 
+SUPPORTED_SKILL_LEVELS = ["Beginner", "Intermediate", "Advanced", "Expert"]
+
+SKILL_LEVEL_RANKS: Dict[str, int] = {
+    "Beginner": 1,
+    "Intermediate": 2,
+    "Advanced": 3,
+    "Expert": 4,
+}
+
+SKILL_LEVEL_TO_PERCENTAGE: Dict[str, float] = {
+    "Beginner": 25.0,
+    "Intermediate": 50.0,
+    "Advanced": 75.0,
+    "Expert": 90.0,
+}
+
+
+def normalize_skill_level(val: Any, default: str = "Intermediate") -> str:
+    """
+    Safely normalize any skill proficiency input (level string or legacy numeric percentage)
+    to one of the four supported skill levels: Beginner, Intermediate, Advanced, Expert.
+    """
+    if val is None or val == "":
+        return default
+    if isinstance(val, str):
+        cleaned = val.strip().capitalize()
+        if cleaned in SKILL_LEVEL_RANKS:
+            return cleaned
+        try:
+            val = float(val)
+        except ValueError:
+            return default
+    try:
+        f = float(val)
+        if f < 40.0:
+            return "Beginner"
+        elif f < 70.0:
+            return "Intermediate"
+        elif f < 90.0:
+            return "Advanced"
+        else:
+            return "Expert"
+    except Exception:
+        return default
+
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -39,8 +84,41 @@ class UserSkillService:
     # SKILLS MANAGEMENT
     # --------------------------------------------------------------------------
 
+    def _normalize_skill_record(self, record: Dict[str, Any]) -> Dict[str, Any]:
+        """Ensure record contains migrated level fields alongside legacy proficiency."""
+        c_lvl = normalize_skill_level(
+            record.get("current_level") or record.get("currentLevel") or record.get("proficiency"),
+            default="Intermediate",
+        )
+        t_lvl = normalize_skill_level(
+            record.get("target_level") or record.get("targetLevel") or record.get("target_proficiency"),
+            default="Advanced",
+        )
+        record["current_level"] = c_lvl
+        record["currentLevel"] = c_lvl
+        record["target_level"] = t_lvl
+        record["targetLevel"] = t_lvl
+
+        if "proficiency" not in record or record["proficiency"] is None:
+            record["proficiency"] = SKILL_LEVEL_TO_PERCENTAGE[c_lvl]
+        else:
+            try:
+                record["proficiency"] = float(record["proficiency"])
+            except Exception:
+                record["proficiency"] = SKILL_LEVEL_TO_PERCENTAGE[c_lvl]
+
+        if "target_proficiency" not in record or record["target_proficiency"] is None:
+            record["target_proficiency"] = SKILL_LEVEL_TO_PERCENTAGE[t_lvl]
+        else:
+            try:
+                record["target_proficiency"] = float(record["target_proficiency"])
+            except Exception:
+                record["target_proficiency"] = SKILL_LEVEL_TO_PERCENTAGE[t_lvl]
+
+        return record
+
     def _load_user_skills(self, user_id: str) -> Dict[str, Dict[str, Any]]:
-        """Retrieve skills for user from cache or Firestore."""
+        """Retrieve skills for user from cache or Firestore with automatic level migration."""
         if user_id in _user_skills_cache:
             return _user_skills_cache[user_id]
 
@@ -51,7 +129,7 @@ class UserSkillService:
                 for d in docs:
                     sid = d.get("id") or d.get("skill_id")
                     if sid:
-                        skills_map[sid] = d
+                        skills_map[sid] = self._normalize_skill_record(d)
             except Exception as exc:
                 logger.warning(f"Failed to load user_skills from Firestore for user {user_id}: {exc}")
 
@@ -61,14 +139,19 @@ class UserSkillService:
     def get_user_skills(self, user_id: str) -> tuple[List[Dict[str, Any]], Dict[str, Any]]:
         """Get list of user skills and summary metrics."""
         skills_map = self._load_user_skills(user_id)
-        skills_list = list(skills_map.values())
+        skills_list = [self._normalize_skill_record(s) for s in skills_map.values()]
         # Sort descending by updated_at
         skills_list.sort(key=lambda s: s.get("updated_at", ""), reverse=True)
 
         total_skills = len(skills_list)
-        proficient_skills = sum(1 for s in skills_list if float(s.get("proficiency", 0)) >= 70.0)
+        proficient_skills = sum(
+            1 for s in skills_list
+            if s.get("current_level") in ("Advanced", "Expert") or float(s.get("proficiency", 0.0)) >= 70.0
+        )
         skills_to_improve = sum(
-            1 for s in skills_list if float(s.get("proficiency", 0)) < float(s.get("target_proficiency", 80.0))
+            1 for s in skills_list
+            if SKILL_LEVEL_RANKS.get(s.get("current_level", "Intermediate"), 2) < SKILL_LEVEL_RANKS.get(s.get("target_level", "Advanced"), 3)
+            or float(s.get("proficiency", 0.0)) < float(s.get("target_proficiency", 80.0))
         )
 
         target_role = self.get_user_target_role(user_id)
@@ -131,14 +214,44 @@ class UserSkillService:
         skill_id = f"skill_{uuid4().hex[:10]}"
         now = _now_iso()
 
-        proficiency = max(0.0, min(100.0, float(data.get("proficiency", 50.0))))
-        target_proficiency = max(0.0, min(100.0, float(data.get("target_proficiency", 80.0))))
+        current_lvl_input = data.get("current_level") or data.get("currentLevel")
+        target_lvl_input = data.get("target_level") or data.get("targetLevel")
+
+        if current_lvl_input:
+            clean_c = str(current_lvl_input).strip().capitalize()
+            if clean_c not in SKILL_LEVEL_RANKS:
+                raise ValueError(f"Unsupported skill level '{current_lvl_input}'. Supported levels: Beginner, Intermediate, Advanced, Expert.")
+            current_lvl = clean_c
+            proficiency = SKILL_LEVEL_TO_PERCENTAGE[current_lvl]
+        else:
+            raw_prof = data.get("proficiency")
+            if raw_prof is None:
+                raw_prof = 50.0
+            proficiency = max(0.0, min(100.0, float(raw_prof)))
+            current_lvl = normalize_skill_level(proficiency, "Intermediate")
+
+        if target_lvl_input:
+            clean_t = str(target_lvl_input).strip().capitalize()
+            if clean_t not in SKILL_LEVEL_RANKS:
+                raise ValueError(f"Unsupported skill level '{target_lvl_input}'. Supported levels: Beginner, Intermediate, Advanced, Expert.")
+            target_lvl = clean_t
+            target_proficiency = SKILL_LEVEL_TO_PERCENTAGE[target_lvl]
+        else:
+            raw_t_prof = data.get("target_proficiency")
+            if raw_t_prof is None:
+                raw_t_prof = 80.0
+            target_proficiency = max(0.0, min(100.0, float(raw_t_prof)))
+            target_lvl = normalize_skill_level(target_proficiency, "Advanced")
 
         skill_record = {
             "id": skill_id,
             "user_id": user_id,
             "name": name,
             "category": data.get("category", "Programming Languages"),
+            "current_level": current_lvl,
+            "target_level": target_lvl,
+            "currentLevel": current_lvl,
+            "targetLevel": target_lvl,
             "proficiency": proficiency,
             "target_proficiency": target_proficiency,
             "proficiency_source": data.get("proficiency_source", "self-assessed"),
@@ -163,7 +276,7 @@ class UserSkillService:
         return skill_record
 
     def update_skill(self, user_id: str, skill_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Update an existing skill with ownership check."""
+        """Update an existing skill with ownership check and level validation."""
         skills_map = self._load_user_skills(user_id)
         existing = skills_map.get(skill_id)
 
@@ -172,6 +285,7 @@ class UserSkillService:
             doc_id = f"{user_id}_{skill_id}"
             existing = self.database.get("user_skills", doc_id)
             if existing and existing.get("user_id") == user_id:
+                existing = self._normalize_skill_record(existing)
                 skills_map[skill_id] = existing
 
         if not existing:
@@ -195,11 +309,39 @@ class UserSkillService:
         if "category" in data and data["category"] is not None:
             existing["category"] = str(data["category"]).strip()
 
-        if "proficiency" in data and data["proficiency"] is not None:
-            existing["proficiency"] = max(0.0, min(100.0, float(data["proficiency"])))
+        # Update current level / proficiency
+        if "current_level" in data or "currentLevel" in data:
+            c_in = data.get("current_level") or data.get("currentLevel")
+            if c_in:
+                clean_c = str(c_in).strip().capitalize()
+                if clean_c not in SKILL_LEVEL_RANKS:
+                    raise ValueError(f"Unsupported skill level '{c_in}'. Supported levels: Beginner, Intermediate, Advanced, Expert.")
+                existing["current_level"] = clean_c
+                existing["currentLevel"] = clean_c
+                existing["proficiency"] = SKILL_LEVEL_TO_PERCENTAGE[clean_c]
+        elif "proficiency" in data and data["proficiency"] is not None:
+            raw = max(0.0, min(100.0, float(data["proficiency"])))
+            existing["proficiency"] = raw
+            c_lvl = normalize_skill_level(raw, "Intermediate")
+            existing["current_level"] = c_lvl
+            existing["currentLevel"] = c_lvl
 
-        if "target_proficiency" in data and data["target_proficiency"] is not None:
-            existing["target_proficiency"] = max(0.0, min(100.0, float(data["target_proficiency"])))
+        # Update target level / target proficiency
+        if "target_level" in data or "targetLevel" in data:
+            t_in = data.get("target_level") or data.get("targetLevel")
+            if t_in:
+                clean_t = str(t_in).strip().capitalize()
+                if clean_t not in SKILL_LEVEL_RANKS:
+                    raise ValueError(f"Unsupported skill level '{t_in}'. Supported levels: Beginner, Intermediate, Advanced, Expert.")
+                existing["target_level"] = clean_t
+                existing["targetLevel"] = clean_t
+                existing["target_proficiency"] = SKILL_LEVEL_TO_PERCENTAGE[clean_t]
+        elif "target_proficiency" in data and data["target_proficiency"] is not None:
+            raw = max(0.0, min(100.0, float(data["target_proficiency"])))
+            existing["target_proficiency"] = raw
+            t_lvl = normalize_skill_level(raw, "Advanced")
+            existing["target_level"] = t_lvl
+            existing["targetLevel"] = t_lvl
 
         if "notes" in data and data["notes"] is not None:
             existing["notes"] = str(data["notes"]).strip()
@@ -222,14 +364,16 @@ class UserSkillService:
 
         return existing
 
-    def delete_skill(self, user_id: str, skill_id: str) -> bool:
-        """Delete a skill with ownership check."""
+    def delete_skill(self, user_id: str, skill_id: str) -> None:
+        """Delete skill for user with ownership check."""
         skills_map = self._load_user_skills(user_id)
         existing = skills_map.get(skill_id)
 
         if not existing and self.database:
             doc_id = f"{user_id}_{skill_id}"
             existing = self.database.get("user_skills", doc_id)
+            if existing and existing.get("user_id") == user_id:
+                skills_map[skill_id] = existing
 
         if not existing:
             raise KeyError("Skill not found.")
@@ -237,11 +381,12 @@ class UserSkillService:
         if existing.get("user_id") != user_id:
             raise PermissionError("Access forbidden: You do not own this skill.")
 
-        # Remove from cache
-        skills_map.pop(skill_id, None)
+        # Remove from memory cache
+        if skill_id in skills_map:
+            del skills_map[skill_id]
         _user_skills_cache[user_id] = skills_map
 
-        # Delete from Firestore
+        # Remove from Firestore
         if self.database:
             try:
                 doc_id = f"{user_id}_{skill_id}"
@@ -249,14 +394,12 @@ class UserSkillService:
             except Exception as exc:
                 logger.error(f"Failed to delete user_skill from Firestore: {exc}")
 
-        return True
-
     # --------------------------------------------------------------------------
-    # LEARNING PROGRESS TRACKING
+    # LEARNING & PRACTICE PROGRESS TRACKING
     # --------------------------------------------------------------------------
 
     def _load_learning_progress(self, user_id: str) -> Dict[str, Dict[str, Any]]:
-        """Retrieve progress map for user from cache or Firestore."""
+        """Retrieve learning progress items from memory or Firestore."""
         if user_id in _learning_progress_cache:
             return _learning_progress_cache[user_id]
 
@@ -265,7 +408,7 @@ class UserSkillService:
             try:
                 docs = self.database.list("learning_progress", filters={"user_id": user_id}, limit=500)
                 for d in docs:
-                    rid = d.get("resource_id")
+                    rid = d.get("resource_id") or d.get("id")
                     if rid:
                         progress_map[rid] = d
             except Exception as exc:
@@ -275,30 +418,22 @@ class UserSkillService:
         return progress_map
 
     def get_learning_progress(self, user_id: str, category: Optional[str] = None) -> Dict[str, Any]:
-        """Get all learning progress records and summary counts for user."""
+        """Fetch user practice records and compute counts."""
         progress_map = self._load_learning_progress(user_id)
         records = list(progress_map.values())
 
-        if category:
-            cat_lower = category.lower()
+        if category and category.strip():
+            cat_lower = category.strip().lower()
             records = [r for r in records if r.get("category", "").lower() == cat_lower]
 
         counts = {
-            "dsa_solved": sum(
-                1 for r in progress_map.values()
-                if r.get("category") == "dsa" and r.get("status") in ("Solved", "Completed")
-            ),
-            "aptitude_completed": sum(
-                1 for r in progress_map.values()
-                if r.get("category") == "aptitude" and r.get("status") in ("Completed", "Solved")
-            ),
-            "programming_completed": sum(
-                1 for r in progress_map.values()
-                if r.get("category") == "programming" and r.get("status") in ("Completed", "Solved")
-            ),
-            "total_completed": sum(
-                1 for r in progress_map.values() if r.get("status") in ("Solved", "Completed")
-            ),
+            "dsa_solved": sum(1 for r in records if r.get("category", "").lower() == "dsa" and r.get("status") in ("Solved", "Completed")),
+            "aptitude_completed": sum(1 for r in records if r.get("category", "").lower() == "aptitude" and r.get("status") in ("Solved", "Completed")),
+            "total_completed": sum(1 for r in records if r.get("status") in ("Solved", "Completed")),
+            "solved": sum(1 for r in records if r.get("status") in ("Solved", "Completed")),
+            "in_progress": sum(1 for r in records if r.get("status") == "In Progress"),
+            "revision": sum(1 for r in records if r.get("status") == "Revision"),
+            "total_attempted": len(records),
         }
 
         return {
@@ -308,50 +443,42 @@ class UserSkillService:
         }
 
     def update_learning_progress(self, user_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Save or update learning progress for a specific resource."""
+        """Save practice status, notes, or completion timestamp for an item."""
         resource_id = data.get("resource_id", "").strip()
         if not resource_id:
-            raise ValueError("resource_id is required.")
+            raise ValueError("Resource ID is required.")
 
+        category = data.get("category", "General").strip()
+        status = data.get("status", "Not Started").strip()
+        notes = (data.get("notes") or "").strip()
+        topic = (data.get("topic") or "").strip()
+        title = (data.get("title") or resource_id).strip()
+
+        now = _now_iso()
         progress_map = self._load_learning_progress(user_id)
         existing = progress_map.get(resource_id)
-        now = _now_iso()
-
-        status = data.get("status", "In Progress")
-        is_completed = status in ("Solved", "Completed")
 
         if existing:
             existing["status"] = status
-            if "notes" in data and data["notes"] is not None:
-                existing["notes"] = str(data["notes"]).strip()
-            if "topic" in data and data["topic"]:
-                existing["topic"] = str(data["topic"]).strip()
-            if "title" in data and data["title"]:
-                existing["title"] = str(data["title"]).strip()
-            if "category" in data and data["category"]:
-                existing["category"] = str(data["category"]).strip().lower()
-
+            existing["notes"] = notes or existing.get("notes", "")
             existing["last_practiced_at"] = now
             existing["updated_at"] = now
-            if is_completed and not existing.get("completed_at"):
+            if status in ("Solved", "Completed") and not existing.get("completed_at"):
                 existing["completed_at"] = now
-            elif not is_completed:
-                existing["completed_at"] = None
-
             record = existing
         else:
-            record_id = f"{user_id}_{resource_id}"
+            record_id = f"prog_{uuid4().hex[:10]}"
             record = {
                 "id": record_id,
                 "user_id": user_id,
                 "resource_id": resource_id,
-                "category": data.get("category", "dsa").strip().lower(),
-                "topic": data.get("topic", "").strip(),
-                "title": data.get("title", "").strip(),
+                "category": category,
+                "topic": topic,
+                "title": title,
                 "status": status,
-                "notes": (data.get("notes") or "").strip(),
+                "notes": notes,
                 "last_practiced_at": now,
-                "completed_at": now if is_completed else None,
+                "completed_at": now if status in ("Solved", "Completed") else None,
                 "created_at": now,
                 "updated_at": now,
             }
@@ -359,12 +486,11 @@ class UserSkillService:
         progress_map[resource_id] = record
         _learning_progress_cache[user_id] = progress_map
 
-        # Persist to Firestore
         if self.database:
             try:
                 doc_id = f"{user_id}_{resource_id}"
                 self.database.update("learning_progress", doc_id, record)
             except Exception as exc:
-                logger.error(f"Failed to update learning_progress in Firestore: {exc}")
+                logger.error(f"Failed to persist learning_progress to Firestore: {exc}")
 
         return record

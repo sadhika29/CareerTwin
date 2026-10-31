@@ -6,7 +6,7 @@ import { Progress } from '../components/ui/Progress';
 import { Link } from 'react-router-dom';
 import { 
   Sparkles, ArrowRight, UserCheck, FileText, Target, MessageSquareText,
-  Search, BriefcaseBusiness, BookOpen, Map, ArrowUpRight
+  Search, BriefcaseBusiness, ArrowUpRight
 } from 'lucide-react';
 
 const demoScores = { resume: 82, ats: 78, job_match: 76, dsa: 61, aptitude: 74, technical: 70, communication: 72, interview: 65, overall: 78 };
@@ -69,8 +69,6 @@ export default function Dashboard() {
     { label: 'Find Jobs', icon: BriefcaseBusiness, to: '/jobs' },
     { label: 'Practice Interview', icon: MessageSquareText, to: '/interview' },
     { label: 'Improve Skills', icon: Target, to: '/skills' },
-    { label: 'Start Preparation', icon: BookOpen, to: '/preparation' },
-    { label: 'Career Planner', icon: Map, to: '/what-if' },
   ];
 
   return (
@@ -226,7 +224,7 @@ export default function Dashboard() {
         <h2 className="text-lg sm:text-xl font-bold font-['Plus_Jakarta_Sans',_sans-serif] text-[#27113D] mb-4">
           Continue your journey
         </h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {quickActions.map((action, idx) => (
             <Link key={idx} to={action.to} className="group relative">
               <div className="h-full bg-white rounded-2xl border border-[#E4D5F3] p-5 flex flex-col items-center text-center gap-3 shadow-xs hover:-translate-y-1 hover:border-[#D6C2EB] hover:shadow-[0_8px_25px_rgba(84,36,119,0.08)] transition-all duration-200">
