@@ -1,38 +1,75 @@
-import { useEffect, useState } from 'react';
-import { getCareerState, getDigitalTwin, demoCareer } from '../features/career/careerService';
+import { useEffect, useState, useCallback } from 'react';
+import { getCareerState, getDigitalTwin } from '../features/career/careerService';
 import axiosClient from '../api/axiosClient';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { Progress } from '../components/ui/Progress';
+import { auth } from '../firebase';
 import { Link } from 'react-router-dom';
 import { 
   Sparkles, ArrowRight, UserCheck, FileText, Target, MessageSquareText,
-  Search, BriefcaseBusiness, ArrowUpRight
+  BriefcaseBusiness, ArrowUpRight, CheckCircle2, AlertCircle
 } from 'lucide-react';
 
-const demoScores = { resume: 82, ats: 78, job_match: 76, dsa: 61, aptitude: 74, technical: 70, communication: 72, interview: 65, overall: 78 };
+function isRawUid(val) {
+  if (!val || typeof val !== 'string') return true;
+  const s = val.trim();
+  if (s.length >= 20 && !s.includes(' ') && /\d/.test(s) && /[a-zA-Z]/.test(s)) {
+    return true;
+  }
+  return s.toLowerCase() === 'null' || s.toLowerCase() === 'undefined';
+}
+
+function resolveCleanGreeting(profileName) {
+  if (profileName && !isRawUid(profileName)) {
+    return profileName;
+  }
+  const storedName = localStorage.getItem('career_name');
+  if (storedName && !isRawUid(storedName)) {
+    return storedName;
+  }
+  const authUser = auth?.currentUser;
+  if (authUser?.displayName && !isRawUid(authUser.displayName)) {
+    return authUser.displayName;
+  }
+  if (authUser?.email && authUser.email.includes('@')) {
+    const prefix = authUser.email.split('@')[0].replace(/[._-]/g, ' ');
+    return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+  }
+  return 'Student';
+}
 
 export default function Dashboard() {
   const [career, setCareer] = useState(null);
   const [twin, setTwin] = useState(null);
   const [insight, setInsight] = useState(null);
   const [stats, setStats] = useState(null);
-  const [userName, setUserName] = useState('');
+  const [userName, setUserName] = useState(() => resolveCleanGreeting());
   const [state, setState] = useState('loading');
 
-  const load = async () => {
-    setState('loading');
+  const load = useCallback(async () => {
     try {
-      const storedName = localStorage.getItem('career_name') || localStorage.getItem('career_user') || 'Student';
-      setUserName(storedName);
+      // Determine active resume override if user chose one in current session
+      const activeResumeId = sessionStorage.getItem('career_active_resume_id') || localStorage.getItem('career_active_resume_id') || undefined;
+      const statsParams = activeResumeId ? { params: { resume_id: activeResumeId } } : {};
 
       const [careerData, twinData, statsRes] = await Promise.all([
         getCareerState().catch(() => null),
         getDigitalTwin().catch(() => null),
-        axiosClient.get('/dashboard/stats').catch(() => null),
+        axiosClient.get('/dashboard/stats', statsParams).catch(() => null),
       ]);
+
       setCareer(careerData);
       setTwin(twinData);
-      if (statsRes?.data) setStats(statsRes.data);
+
+      if (statsRes?.data) {
+        const d = statsRes.data;
+        setStats(d);
+        if (d.display_name && !isRawUid(d.display_name)) {
+          setUserName(d.display_name);
+          localStorage.setItem('career_name', d.display_name);
+        } else if (d.full_name && !isRawUid(d.full_name)) {
+          setUserName(d.full_name);
+          localStorage.setItem('career_name', d.full_name);
+        }
+      }
       setState('ready');
 
       axiosClient.get('/dashboard/insight').then(res => {
@@ -41,9 +78,25 @@ export default function Dashboard() {
     } catch {
       setState('ready');
     }
-  };
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+
+    // Auto-refresh when tab gains focus or becomes visible
+    const handleFocus = () => { load(); };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') load();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [load]);
 
   if (state === 'loading') {
     return (
@@ -55,10 +108,10 @@ export default function Dashboard() {
   }
 
   const scores = {
-    resume: stats?.resume_ats_score ?? twin?.resume_score ?? twin?.resume ?? 0,
-    dsa: twin?.dsa_score ?? twin?.dsa ?? 0,
-    technical: stats?.skills_progress ?? twin?.technical_score ?? twin?.technical ?? 0,
-    interview: stats?.interview_readiness ?? twin?.interview_score ?? twin?.interview ?? 0,
+    resume: stats?.resume_ats_score ?? twin?.resume_score ?? 0,
+    dsa: stats?.dsa_progress ?? twin?.dsa_score ?? 0,
+    technical: stats?.skills_progress ?? twin?.technical_score ?? 0,
+    interview: stats?.interview_readiness ?? twin?.interview_score ?? 0,
     applications: stats?.total_applications ?? 0
   };
   
@@ -75,10 +128,29 @@ export default function Dashboard() {
     <div className="animate-in fade-in duration-500 pb-12 space-y-8">
       {/* Dashboard Header */}
       <div>
-        <div className="inline-flex items-center gap-2 bg-[#F3E9FF] border border-[#E4D5F3] text-[#542477] px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider mb-3">
-          <div className="w-2 h-2 rounded-full bg-[#D83CC5] animate-pulse"></div>
-          CareerTwin AI Active Companion
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <div className="inline-flex items-center gap-2 bg-[#F3E9FF] border border-[#E4D5F3] text-[#542477] px-3.5 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider">
+            <div className="w-2 h-2 rounded-full bg-[#D83CC5] animate-pulse"></div>
+            CareerTwin AI Active Companion
+          </div>
+
+          {stats?.active_resume_filename && (
+            <Link 
+              to="/resume" 
+              className="inline-flex items-center gap-1.5 bg-white border border-[#E4D5F3] hover:border-[#542477] text-[#542477] px-3 py-1 rounded-full text-xs font-medium transition-colors shadow-xs"
+              title="Click to view or switch active resume"
+            >
+              <CheckCircle2 size={13} className="text-[#16A34A]" />
+              <span>Active Resume: <strong className="font-semibold">{stats.active_resume_filename}</strong></span>
+              {stats.resume_ats_score != null && (
+                <span className="ml-1 bg-[#FAF7FD] text-[#542477] px-1.5 py-0.2 rounded border border-[#E4D5F3] font-bold">
+                  {stats.resume_ats_score}%
+                </span>
+              )}
+            </Link>
+          )}
         </div>
+
         <h1 className="text-3xl sm:text-4xl font-bold font-['Plus_Jakarta_Sans',_sans-serif] text-[#27113D] tracking-tight">
           Welcome back, <span className="font-['Playfair_Display',_serif] text-[#542477]">{userName || 'Student'}</span> 👋
         </h1>
@@ -92,7 +164,7 @@ export default function Dashboard() {
         {[
           { 
             label: 'Profile Completion', 
-            value: stats?.profile_completion ?? 0, 
+            displayValue: `${stats?.profile_completion ?? 0}%`, 
             icon: UserCheck, 
             color: 'text-[#16A34A]', 
             bg: 'bg-[#ECFDF5]', 
@@ -101,16 +173,16 @@ export default function Dashboard() {
           },
           { 
             label: 'Resume ATS Score', 
-            value: scores.resume, 
+            displayValue: stats?.resume_ats_score != null ? `${stats.resume_ats_score}%` : '—', 
             icon: FileText, 
             color: 'text-[#542477]', 
             bg: 'bg-[#F3E9FF]', 
             border: 'border-[#E4D5F3]', 
-            trend: scores.resume > 0 ? 'Verified' : 'Upload resume' 
+            trend: stats?.resume_ats_score != null ? (stats.has_job_description ? 'Job Matched' : 'Verified') : 'Upload resume' 
           },
           { 
             label: 'Skills Progress', 
-            value: scores.technical, 
+            displayValue: stats?.skills_progress != null ? `${stats.skills_progress}%` : '0%', 
             icon: Target, 
             color: 'text-[#D97706]', 
             bg: 'bg-[#FFFBEB]', 
@@ -119,12 +191,12 @@ export default function Dashboard() {
           },
           { 
             label: 'Interview Readiness', 
-            value: scores.interview, 
+            displayValue: stats?.has_interviews && stats?.interview_readiness != null ? `${stats.interview_readiness}%` : '—', 
             icon: MessageSquareText, 
             color: 'text-[#E11D48]', 
             bg: 'bg-[#FFF1F2]', 
             border: 'border-[#FECDD3]', 
-            trend: scores.interview > 0 ? 'Evaluated' : 'Needs mock test' 
+            trend: stats?.has_interviews ? `${stats?.total_interviews ?? 1} completed` : 'Needs mock test' 
           }
         ].map((kpi, idx) => (
           <div 
@@ -140,7 +212,7 @@ export default function Dashboard() {
               </span>
             </div>
             <h3 className="text-3xl font-extrabold font-['Plus_Jakarta_Sans',_sans-serif] text-[#27113D] mb-1">
-              {kpi.value}<span className="text-lg text-[#8A7A9E] ml-0.5">%</span>
+              {kpi.displayValue}
             </h3>
             <p className="text-xs sm:text-sm font-medium text-[#78678C]">{kpi.label}</p>
           </div>
@@ -169,14 +241,32 @@ export default function Dashboard() {
               </p>
             </div>
 
-            <div className="relative z-10 pt-2">
-              <Link 
-                to="/skills" 
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-[#542477] to-[#D83CC5] text-white hover:opacity-95 px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold shadow-[0_4px_15px_rgba(84,36,119,0.25)] hover:-translate-y-0.5 transition-all cursor-pointer"
-              >
-                <span>View Skill Plan</span>
-                <ArrowRight size={16} />
-              </Link>
+            <div className="relative z-10 pt-2 flex flex-wrap items-center gap-3">
+              {!stats?.has_resume ? (
+                <Link 
+                  to="/resume" 
+                  className="inline-flex items-center gap-2 bg-gradient-to-r from-[#542477] to-[#D83CC5] text-white hover:opacity-95 px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold shadow-[0_4px_15px_rgba(84,36,119,0.25)] hover:-translate-y-0.5 transition-all cursor-pointer"
+                >
+                  <span>Upload Resume</span>
+                  <ArrowRight size={16} />
+                </Link>
+              ) : !stats?.has_interviews ? (
+                <Link 
+                  to="/interview" 
+                  className="inline-flex items-center gap-2 bg-gradient-to-r from-[#542477] to-[#D83CC5] text-white hover:opacity-95 px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold shadow-[0_4px_15px_rgba(84,36,119,0.25)] hover:-translate-y-0.5 transition-all cursor-pointer"
+                >
+                  <span>Take First Mock Interview</span>
+                  <ArrowRight size={16} />
+                </Link>
+              ) : (
+                <Link 
+                  to="/skills" 
+                  className="inline-flex items-center gap-2 bg-gradient-to-r from-[#542477] to-[#D83CC5] text-white hover:opacity-95 px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold shadow-[0_4px_15px_rgba(84,36,119,0.25)] hover:-translate-y-0.5 transition-all cursor-pointer"
+                >
+                  <span>View Skill Plan</span>
+                  <ArrowRight size={16} />
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -198,7 +288,7 @@ export default function Dashboard() {
                   { label: 'Technical Skills', value: scores.technical, color: 'from-[#16A34A] to-[#22C55E]' },
                   { label: 'DSA Algorithms', value: scores.dsa, color: 'from-[#D97706] to-[#F59E0B]' },
                   { label: 'Mock Interview', value: scores.interview, color: 'from-[#E11D48] to-[#F43F5E]' },
-                  { label: 'Application Pace', value: scores.applications || 42, color: 'from-[#542477] to-[#D83CC5]' }
+                  { label: 'Application Pace', value: stats?.application_pace ?? (scores.applications ? Math.min(100, scores.applications * 10) : 0), color: 'from-[#542477] to-[#D83CC5]' }
                 ].map((item, idx) => (
                   <div key={idx} className="space-y-1.5">
                     <div className="flex justify-between text-xs font-semibold">

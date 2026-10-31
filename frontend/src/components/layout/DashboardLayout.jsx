@@ -6,7 +6,7 @@ export default function DashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#FAF7FD] text-[#27113D] flex font-sans relative selection:bg-[#ED96D7]/25 selection:text-[#4C2365]">
+    <div className="h-screen w-screen overflow-hidden bg-[#FAF7FD] text-[#27113D] flex font-sans relative selection:bg-[#ED96D7]/25 selection:text-[#4C2365]">
       {/* Subtle ambient background glow orbs */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-15%] right-[-5%] w-[45%] h-[45%] rounded-full bg-[#ED96D7]/10 blur-[130px]" />
@@ -24,10 +24,10 @@ export default function DashboardLayout({ children }) {
         />
       )}
 
-      <div className="flex-1 flex flex-col min-w-0 relative z-10">
+      <div className="flex-1 flex flex-col h-full min-w-0 relative z-10 overflow-hidden">
         <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto">
-          <div className="max-w-[1440px] mx-auto p-4 sm:p-6 md:p-8 lg:p-10">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto scroll-smooth">
+          <div className="max-w-[1440px] mx-auto p-4 sm:p-6 md:p-8 lg:p-10 min-h-full">
             {children}
           </div>
         </main>

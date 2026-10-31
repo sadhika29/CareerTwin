@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Menu, Search, Bell, ChevronDown, Sparkles } from 'lucide-react';
+import { Menu, Search, ChevronDown } from 'lucide-react';
 import { useLocation, Link } from 'react-router-dom';
 import { getProfile } from '../../features/profile/profileService';
 
 export default function Header({ onMenuClick }) {
   const location = useLocation();
   const title = location.pathname.split('/')[1] || 'overview';
-  const [profileName, setProfileName] = useState('Yamini');
+  const [profileName, setProfileName] = useState(() => localStorage.getItem('career_name') || 'Student');
   const [profileCompletion, setProfileCompletion] = useState(85);
 
   useEffect(() => {
@@ -62,25 +62,8 @@ export default function Header({ onMenuClick }) {
         </div>
       </div>
 
-      {/* Right Controls */}
-      <div className="flex items-center gap-2 sm:gap-3.5">
-        <button 
-          title="CareerTwin AI Copilot"
-          className="relative p-2 text-[#78678C] hover:text-[#542477] hover:bg-[#F3E9FF] rounded-full transition-colors cursor-pointer group"
-        >
-          <Sparkles size={19} className="group-hover:scale-110 transition-transform text-[#7951D1]" />
-        </button>
-
-        <button 
-          title="Notifications"
-          className="relative p-2 text-[#78678C] hover:text-[#542477] hover:bg-[#F3E9FF] rounded-full transition-colors cursor-pointer"
-        >
-          <Bell size={19} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#E11D48] rounded-full ring-2 ring-white"></span>
-        </button>
-        
-        <div className="h-6 w-px bg-[#E4D5F3] mx-1"></div>
-        
+      {/* Right Controls - Profile Section */}
+      <div className="flex items-center">
         <Link 
           to="/profile" 
           className="flex items-center gap-2.5 hover:bg-[#F3E9FF]/70 p-1.5 pr-3 rounded-full border border-transparent hover:border-[#E4D5F3] transition-all cursor-pointer group"

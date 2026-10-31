@@ -65,23 +65,42 @@ def _get_firestore() -> FirestoreDatabase | None:
 @router.get("")
 async def get_profile(user_id: str = Depends(get_current_user)) -> Dict[str, Any]:
     """Retrieve the current user profile, career twin summary, and active AI persona."""
+    from backend.services.profile_sync_service import is_raw_uid_or_placeholder, sync_resume_to_user_profile
+
     profile = _user_profiles.get(user_id)
-    if not profile:
-        db = _get_firestore()
-        if db:
-            try:
-                db_profile = db.get("profiles", user_id)
-                if db_profile:
-                    profile = db_profile
-                    _user_profiles[user_id] = profile
-            except Exception:
-                pass
+    db = _get_firestore()
+    if not profile and db:
+        try:
+            db_profile = db.get("profiles", user_id)
+            if db_profile:
+                profile = db_profile
+                _user_profiles[user_id] = profile
+        except Exception:
+            pass
+
+    # If profile is missing or name is raw UID, attempt auto-sync from user's latest resume
+    if db and (not profile or is_raw_uid_or_placeholder(profile.get("full_name"), user_id)):
+        try:
+            resumes = db.list("resumes", filters={"user_id": user_id}, limit=1)
+            if resumes:
+                latest_r = resumes[0]
+                profile = sync_resume_to_user_profile(
+                    user_id=user_id,
+                    resume_text=latest_r.get("text", ""),
+                    resume_id=latest_r.get("resume_id", ""),
+                    filename=latest_r.get("filename", "Resume"),
+                    ats_score=latest_r.get("ats_score"),
+                    resume_score=latest_r.get("resume_score"),
+                    database=db,
+                )
+        except Exception:
+            pass
 
     if not profile:
         profile = {
-            "username": user_id,
-            "full_name": user_id.replace("_", " ").replace("-", " ").title(),
-            "email": f"{user_id}@example.com",
+            "username": "",
+            "full_name": "",
+            "email": "",
             "target_role": "Software Engineer",
             "education": "",
             "graduation_year": "",
@@ -102,6 +121,41 @@ async def get_profile(user_id: str = Depends(get_current_user)) -> Dict[str, Any
         "digital_twin_score": twin_score,
         "status": "success",
     }
+
+
+@router.post("/sync-resume")
+async def sync_profile_from_resume(
+    resume_id: Optional[str] = None,
+    user_id: str = Depends(get_current_user),
+) -> Dict[str, Any]:
+    """Manually or programmatically trigger resume-to-profile synchronization."""
+    from backend.services.profile_sync_service import sync_resume_to_user_profile
+    db = _get_firestore()
+    if not db:
+        return {"status": "error", "message": "Database unavailable"}
+
+    resumes = []
+    if resume_id:
+        doc = db.get("resumes", resume_id)
+        if doc and doc.get("user_id") == user_id:
+            resumes = [doc]
+    if not resumes:
+        resumes = db.list("resumes", filters={"user_id": user_id}, limit=1)
+
+    if not resumes:
+        return {"status": "warning", "message": "No resumes found for user"}
+
+    r = resumes[0]
+    updated = sync_resume_to_user_profile(
+        user_id=user_id,
+        resume_text=r.get("text", ""),
+        resume_id=r.get("resume_id", ""),
+        filename=r.get("filename", "Resume"),
+        ats_score=r.get("ats_score"),
+        resume_score=r.get("resume_score"),
+        database=db,
+    )
+    return {"status": "success", "profile": updated}
 
 
 @router.post("")

@@ -1,4 +1,4 @@
-import axiosClient from '../../api/axiosClient'
+import axiosClient, { waitForAuthReady } from '../../api/axiosClient'
 import { auth } from '../../firebase'
 import {
   createUserWithEmailAndPassword,
@@ -287,4 +287,24 @@ export function signOut() {
   }
 }
 
-
+/**
+ * Resolves a fresh, valid Firebase ID token immediately before sensitive protected workflows.
+ */
+export async function getValidAuthToken(forceRefresh = false) {
+  if (auth && !auth.currentUser) {
+    await waitForAuthReady();
+  }
+  if (auth?.currentUser) {
+    try {
+      const token = await auth.currentUser.getIdToken(forceRefresh);
+      if (token) {
+        localStorage.setItem('career_access_token', token);
+        localStorage.setItem('career_user', auth.currentUser.uid);
+        return token;
+      }
+    } catch (err) {
+      console.warn('getValidAuthToken refresh warning:', err?.message);
+    }
+  }
+  return localStorage.getItem('career_access_token') || null;
+}

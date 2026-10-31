@@ -126,6 +126,19 @@ async def upload_resume(
             original_filename=file.filename,
         )
 
+        # Synchronize biographical and professional information into user profile
+        try:
+            from backend.services.profile_sync_service import sync_resume_to_user_profile
+            sync_resume_to_user_profile(
+                user_id=resolved_user_id,
+                resume_text=resume.text,
+                resume_id=resume.resume_id,
+                filename=resume.filename,
+                database=database,
+            )
+        except Exception:
+            pass
+
         return {
             "resume_id": resume.resume_id,
             "user_id": resume.user_id,
@@ -203,6 +216,22 @@ async def analyze_resume(
                 state.resume_score = result.ats_score
             if request.target_role:
                 state.target_role = request.target_role
+        except Exception:
+            pass
+
+        # Synchronize biographical and professional information into user profile
+        try:
+            from backend.services.profile_sync_service import sync_resume_to_user_profile
+            sync_resume_to_user_profile(
+                user_id=resolved_user_id,
+                resume_text=resume_document.get("text", "") or resume_document.get("extracted_text", ""),
+                resume_id=resume_id,
+                filename=resume_document.get("filename", ""),
+                ats_score=getattr(result, "ats_score", None),
+                resume_score=getattr(result, "resume_score", None),
+                job_description=request.job_description,
+                database=database,
+            )
         except Exception:
             pass
 
@@ -429,6 +458,23 @@ async def save_resume_analysis(
             target_role=request.target_role,
             analysis_id=request.analysis_id,
         )
+
+        # Synchronize active analysis info into user profile
+        try:
+            from backend.services.profile_sync_service import sync_resume_to_user_profile
+            res_doc = database.get(collection="resumes", document_id=request.resume_id)
+            sync_resume_to_user_profile(
+                user_id=resolved_user_id,
+                resume_text=res_doc.get("text", "") if res_doc else "",
+                resume_id=request.resume_id,
+                filename=request.filename,
+                ats_score=saved_doc.get("ats_score"),
+                resume_score=saved_doc.get("resume_score"),
+                job_description=request.job_description,
+                database=database,
+            )
+        except Exception:
+            pass
 
         return SavedAnalysisResponse(
             analysis_id=saved_doc["analysis_id"],

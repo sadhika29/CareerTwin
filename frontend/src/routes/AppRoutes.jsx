@@ -16,6 +16,7 @@ import Applications from '../pages/Applications'
 import Signup from '../pages/Signup'
 import ForgotPassword from '../pages/ForgotPassword'
 import Home from '../pages/Home'
+import ErrorBoundary from '../components/ErrorBoundary'
 import { saveRedirectPath, isValidRedirectPath } from '../features/auth/authRedirect'
 
 function ProtectedRoutes() {
@@ -58,9 +59,9 @@ function ProtectedRoutes() {
         <Route path="/performance" element={<Navigate to="/dashboard" replace />} />
 
         {/* Interview Preparation */}
-        <Route path="/interview" element={<Interview />} />
-        <Route path="/interview-prep" element={<Interview />} />
-        <Route path="/interview-preparation" element={<Interview />} />
+        <Route path="/interview" element={<ErrorBoundary><Interview /></ErrorBoundary>} />
+        <Route path="/interview-prep" element={<ErrorBoundary><Interview /></ErrorBoundary>} />
+        <Route path="/interview-preparation" element={<ErrorBoundary><Interview /></ErrorBoundary>} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
@@ -70,16 +71,34 @@ function ProtectedRoutes() {
 }
 
 function AuthenticatedApp() {
-  return (
-    <Routes>
-      <Route path="/*" element={<ProtectedRoutes />} />
-    </Routes>
+  const location = useLocation()
+  const isAuthenticated = Boolean(
+    localStorage.getItem('career_user') ||
+    localStorage.getItem('user_id') ||
+    localStorage.getItem('career_auth_token') ||
+    localStorage.getItem('token') ||
+    sessionStorage.getItem('career_user')
   )
+
+  if (!isAuthenticated) {
+    const intendedPath = location.pathname + location.search
+    if (isValidRedirectPath(intendedPath)) {
+      saveRedirectPath(intendedPath)
+      return (
+        <Navigate
+          to={`/login?returnTo=${encodeURIComponent(intendedPath)}`}
+          state={{ from: intendedPath }}
+          replace
+        />
+      )
+    }
+    return <Navigate to="/login" replace />
+  }
+
+  return <ProtectedRoutes />
 }
 
 export default function AppRoutes({ user, authLoading = false }) {
-  const location = useLocation()
-
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#FAF7FD]">
@@ -91,25 +110,18 @@ export default function AppRoutes({ user, authLoading = false }) {
     )
   }
 
-  // Public authentication flow
-  if (!user) {
-    if (location.pathname !== '/login' && location.pathname !== '/signup' && location.pathname !== '/forgot-password' && location.pathname !== '/') {
-      if (isValidRedirectPath(location.pathname)) {
-        saveRedirectPath(location.pathname)
-      }
-    }
-
-    return (
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    )
+  // If user prop is explicitly passed (e.g., from auth context/prop), use it directly
+  if (user) {
+    return <ProtectedRoutes />
   }
 
-  // Authenticated user application
-  return <AuthenticatedApp />
+  return (
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/*" element={<AuthenticatedApp />} />
+    </Routes>
+  )
 }

@@ -59,7 +59,11 @@ class SpeechifyService:
         """
         Stream audio bytes chunk-by-chunk for low-latency playback.
         """
+        if not self.is_configured():
+            raise ValueError("Speechify API key is not configured.")
         client = self._get_client()
+        if not client:
+            raise ValueError("Speechify client is not initialized.")
         vid = voice_id or self.default_voice_id
         mod = model or self.default_model
         

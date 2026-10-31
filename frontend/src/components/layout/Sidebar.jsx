@@ -29,7 +29,7 @@ export default function Sidebar({ open, onNavigate }) {
 
   return (
     <aside 
-      className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-[#FBF8FF] border-r border-[#E4D5F3] transform transition-transform duration-200 ease-in-out flex flex-col shadow-sm ${
+      className={`fixed lg:static inset-y-0 left-0 z-40 w-64 h-full shrink-0 bg-[#FBF8FF] border-r border-[#E4D5F3] transform transition-transform duration-200 ease-in-out flex flex-col shadow-sm ${
         open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       }`}
     >

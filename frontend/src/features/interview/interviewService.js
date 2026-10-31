@@ -12,9 +12,21 @@ export async function submitAnswer(sessionId, payload) {
   return data
 }
 
+/** Run candidate code in the sandboxed execution environment */
+export async function runCodeExecution(payload) {
+  const { data } = await axiosClient.post('/interview/code/run', payload)
+  return data
+}
+
 /** Get final interview result / summary */
 export async function getInterviewResult(sessionId) {
   const { data } = await axiosClient.get(`/interview/${sessionId}/result`)
+  return data
+}
+
+/** Retrieve an existing interview session by ID */
+export async function getInterviewSession(sessionId) {
+  const { data } = await axiosClient.get(`/interview/${sessionId}`)
   return data
 }
 

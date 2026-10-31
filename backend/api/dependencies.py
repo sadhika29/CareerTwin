@@ -26,18 +26,13 @@ async def get_current_user(
         if user_id:
             return user_id
 
-        # Attempt Firebase Admin ID token verification
+        # Attempt Firebase Admin ID token verification with clock-skew tolerance
         try:
-            import firebase_admin
-            from firebase_admin import auth as fb_auth
-            if not firebase_admin._apps:
-                from backend.database.firebase import initialize_firebase
-                initialize_firebase()
-            if firebase_admin._apps:
-                decoded = fb_auth.verify_id_token(token)
-                uid = decoded.get("uid") or decoded.get("sub")
-                if uid:
-                    return uid
+            from backend.database.firebase import verify_firebase_id_token
+            decoded = verify_firebase_id_token(token, clock_skew_seconds=5)
+            uid = decoded.get("uid") or decoded.get("sub")
+            if uid:
+                return uid
         except Exception as exc:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

@@ -128,18 +128,13 @@ def _check_admin_auth(
         token = authorization.removeprefix("Bearer ").strip()
         if admin_secret and secrets.compare_digest(token, admin_secret):
             return True
-        # Try Firebase token verification
+        # Try Firebase token verification with clock-skew tolerance
         try:
-            import firebase_admin
-            from firebase_admin import auth as fb_auth
-            if not firebase_admin._apps:
-                from backend.database.firebase import initialize_firebase
-                initialize_firebase()
-            if firebase_admin._apps:
-                decoded = fb_auth.verify_id_token(token)
-                uid = decoded.get("uid")
-                if decoded.get("admin") is True or uid in admin_uids:
-                    return True
+            from backend.database.firebase import verify_firebase_id_token
+            decoded = verify_firebase_id_token(token, clock_skew_seconds=5)
+            uid = decoded.get("uid")
+            if decoded.get("admin") is True or uid in admin_uids:
+                return True
         except Exception:
             pass
 

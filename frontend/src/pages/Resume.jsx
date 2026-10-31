@@ -81,6 +81,8 @@ export default function Resume() {
           setActiveResumeId(targetResume.resume_id);
           setActiveFilename(targetResume.filename);
           sessionStorage.setItem('career_active_resume_id', targetResume.resume_id);
+          localStorage.setItem('career_active_resume_id', targetResume.resume_id);
+          localStorage.setItem('career_active_filename', targetResume.filename);
 
           try {
             const detail = await getResume(targetResume.resume_id, uid);
@@ -159,6 +161,8 @@ export default function Resume() {
       setActiveResumeId(result.resume_id);
       setActiveFilename(result.filename);
       sessionStorage.setItem('career_active_resume_id', result.resume_id);
+      localStorage.setItem('career_active_resume_id', result.resume_id);
+      localStorage.setItem('career_active_filename', result.filename);
       setPastResumes((prev) => [result, ...prev.filter((r) => r.resume_id !== result.resume_id)]);
       await runAnalysis(result.resume_id, targetRole, jobDescription, result.filename);
     } catch (err) {
@@ -186,11 +190,16 @@ export default function Resume() {
       setAnalysisResult(result);
       setActiveResumeId(resumeId);
       sessionStorage.setItem('career_active_resume_id', resumeId);
+      localStorage.setItem('career_active_resume_id', resumeId);
       if (customFilename) {
         setActiveFilename(customFilename);
+        localStorage.setItem('career_active_filename', customFilename);
       } else {
         const found = pastResumes.find((r) => r.resume_id === resumeId);
-        if (found) setActiveFilename(found.filename);
+        if (found) {
+          setActiveFilename(found.filename);
+          localStorage.setItem('career_active_filename', found.filename);
+        }
       }
     } catch (err) {
       console.error('Analysis error:', err);
@@ -259,13 +268,19 @@ export default function Resume() {
     setSaveError('');
     setActiveTab('current');
     if (saved.analysis_id) sessionStorage.setItem('career_active_analysis_id', saved.analysis_id);
-    if (saved.resume_id) sessionStorage.setItem('career_active_resume_id', saved.resume_id);
+    if (saved.resume_id) {
+      sessionStorage.setItem('career_active_resume_id', saved.resume_id);
+      localStorage.setItem('career_active_resume_id', saved.resume_id);
+      if (saved.filename) localStorage.setItem('career_active_filename', saved.filename);
+    }
   };
 
   const handleSelectRecentResume = async (selectedResume) => {
     setActiveResumeId(selectedResume.resume_id);
     setActiveFilename(selectedResume.filename);
     sessionStorage.setItem('career_active_resume_id', selectedResume.resume_id);
+    localStorage.setItem('career_active_resume_id', selectedResume.resume_id);
+    localStorage.setItem('career_active_filename', selectedResume.filename);
     setMessage('');
     setIsError(false);
 
